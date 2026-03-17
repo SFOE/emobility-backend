@@ -1,0 +1,39 @@
+{
+  "name": "e-mobility-backend",
+  "version": "0.1.0",
+  "description": "",
+  "main": "index.js",
+  "engines": {
+    "npm": "^10.9.3",
+    "node": "^22.20.0"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "e-mobility",
+    "ich-trank-strom",
+    "backend"
+  ],
+  "author": "Marc Schnydrig",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^5.2.1",
+    "pg": "^8.20.0",
+    "zod": "^4.3.6",
+    "pino": "^10.3.1",
+    "pino-http": "^11.0.0",
+    "dotenv": "^17.3.1",
+    "uuid": "^13.0.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3",
+    "tsx": "^4.21.0",
+    "@types/node": "^22.0.0",
+    "@types/express": "^5.0.6",
+    "eslint": "^10.0.3",
+    "@typescript-eslint/parser": "^8.57.1",
+    "@typescript-eslint/eslint-plugin": "^8.57.1",
+    "prettier": "^3.8.1"
+  }
+}
