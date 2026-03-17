@@ -8,7 +8,9 @@
     "node": "^22.20.0"
   },
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "dev": "tsx watch src/app/server.ts",
+    "build": "tsc -p tsconfig.json",
+    "start": "node dist/app/server.js"
   },
   "keywords": [
     "e-mobility",
