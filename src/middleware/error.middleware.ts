@@ -1,0 +1,18 @@
+import { NextFunction, Request, Response } from 'express';
+import { buildOcpiErrorResponse } from '../shared/http/ocpi-response';
+
+/**
+ * Handles unexpected application errors.
+ */
+export function errorMiddleware(
+    error: unknown,
+    _req: Request,
+    res: Response,
+    _next: NextFunction,
+) {
+    console.error(error);
+
+    res
+        .status(500)
+        .json(buildOcpiErrorResponse(3000, 'Internal server error'));
+}

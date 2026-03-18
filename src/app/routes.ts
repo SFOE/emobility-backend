@@ -1,7 +1,10 @@
 import { Router } from 'express';
 import { healthRouter } from '../modules/health/health.routes';
-import { ocpiVersionsRouter } from '../modules/ocpi/versions/versions.routes';
+import { credentialsRouter } from '../modules/auth/credentials.routes';
 import { ocpiDetailsRouter } from '../modules/ocpi/details/details.routes';
+import { ocpiVersionsRouter } from '../modules/ocpi/versions/versions.routes';
+import { evseDataRouter } from '../modules/ingest/evse-data/evse-data.routes';
+import { evseStatusRouter } from '../modules/ingest/evse-status/evse-status.routes';
 
 export const appRouter = Router();
 
@@ -11,3 +14,6 @@ export const appRouter = Router();
 appRouter.use('/health', healthRouter);
 appRouter.use('/ocpi/versions', ocpiVersionsRouter);
 appRouter.use('/ocpi/2.3.0/details', ocpiDetailsRouter);
+appRouter.use('/ocpi/2.3.0/credentials', credentialsRouter);
+appRouter.use('/ingest/ocpi/2.3.0/evse-data', evseDataRouter);
+appRouter.use('/ingest/ocpi/2.3.0/evse-status', evseStatusRouter);

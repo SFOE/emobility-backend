@@ -1,8 +1,9 @@
 import express from 'express';
-
 import pinoHttp from 'pino-http';
-import { appRouter } from './routes';
 import { logger } from '../config/logger';
+import { errorMiddleware } from '../middleware/error.middleware';
+import { notFoundMiddleware } from '../middleware/not-found.middleware';
+import { appRouter } from './routes';
 
 export const app = express();
 
@@ -16,5 +17,11 @@ app.use(
     }),
 );
 
-// Registers all application routes.
+// Registers all application routes
 app.use(appRouter);
+
+// Handles unknown routes.
+app.use(notFoundMiddleware);
+
+// Handles unexpected application errors
+app.use(errorMiddleware);
