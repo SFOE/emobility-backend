@@ -1,0 +1,16 @@
+# https://github.com/prettier/prettier/blob/master/docs/options.md
+singleQuote: true
+trailingComma: none
+arrowParens: "avoid"
+#singleAttributePerLine: false
+#bracketSameLine: false
+tabWidth: 4
+printWidth: 100
+semi: true
+overrides:
+  - files:
+      - '*.md'
+      - '*.yaml'
+      - '*.yml'
+    options:
+      tabWidth: 2

@@ -1,0 +1,37 @@
+{
+  "name": "emobility-backend",
+  "version": "1.0.0",
+  "description": "E-Mobility Backend Lambda Functions",
+  "scripts": {
+    "build": "tsc",
+    "clean": "rm -rf dist",
+    "prebuild": "npm run clean",
+    "watch": "tsc --watch",
+    "lint": "eslint src --ext .ts",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "package": "npm run build && cd dist && zip -r ../lambda.zip ."
+  },
+  "dependencies": {
+    "@aws-sdk/client-lambda": "^3.710.0",
+    "@aws-sdk/client-s3": "^3.710.0"
+  },
+  "devDependencies": {
+    "@types/aws-lambda": "^8.10.150",
+    "@types/jest": "^30.0.0",
+    "@types/node": "^24.12.0",
+    "@typescript-eslint/eslint-plugin": "^8.57.1",
+    "@typescript-eslint/parser": "^8.57.1",
+    "eslint": "^10.1.0",
+    "jest": "^30.0.0",
+    "ts-jest": "^29.2.5",
+    "typescript": "^5.7.2"
+  },
+  "engines": {
+    "node": ">=24.x.x",
+    "npm": ">=10.0.0"
+  },
+  "overrides": {
+    "fast-xml-parser": ">=5.5.7"
+  }
+}
