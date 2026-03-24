@@ -20,6 +20,7 @@ evseStatusRouter.post(
         res.status(200).json(
             buildOcpiResponse({
                 accepted: true,
+                partner_id: req.partner?.id,
                 status_count: body.statuses.length,
             }),
         );

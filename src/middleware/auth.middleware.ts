@@ -1,6 +1,7 @@
 import { NextFunction, Request, Response } from 'express';
 import { findPartnerByToken } from '../modules/partners/partner.service';
-import { buildOcpiErrorResponse } from '../shared/http/ocpi-response';
+import { AppError } from '../shared/errors/app-error';
+import { OcpiStatusCodes } from '../shared/errors/error-codes';
 
 /**
  * Extracts the bearer token from the Authorization header.
@@ -28,29 +29,41 @@ function extractBearerToken(authorizationHeader?: string): string | null {
  */
 export function authMiddleware(
     req: Request,
-    res: Response,
+    _res: Response,
     next: NextFunction,
 ) {
     const token = extractBearerToken(req.header('Authorization'));
 
     if (!token) {
-        return res
-            .status(401)
-            .json(buildOcpiErrorResponse(2001, 'Missing or invalid authorization'));
+        return next(
+            new AppError(
+                'Missing or invalid authorization',
+                401,
+                OcpiStatusCodes.INVALID_PAYLOAD,
+            ),
+        );
     }
 
     const partner = findPartnerByToken(token);
 
     if (!partner) {
-        return res
-            .status(401)
-            .json(buildOcpiErrorResponse(2002, 'Unknown partner token'));
+        return next(
+            new AppError(
+                'Unknown partner token',
+                401,
+                OcpiStatusCodes.UNKNOWN_PARTNER_TOKEN,
+            ),
+        );
     }
 
     if (!partner.isActive) {
-        return res
-            .status(403)
-            .json(buildOcpiErrorResponse(2003, 'Partner is inactive'));
+        return next(
+            new AppError(
+                'Partner is inactive',
+                403,
+                OcpiStatusCodes.INACTIVE_PARTNER,
+            ),
+        );
     }
 
     req.partner = partner;

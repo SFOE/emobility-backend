@@ -22,6 +22,7 @@ evseDataRouter.post('/', validateBody(evseDataRequestSchema), (req, res) => {
     res.status(200).json(
         buildOcpiResponse({
             accepted: true,
+            partner_id: req.partner?.id,
             location_count: body.locations.length,
             evse_count: evseCount,
         }),

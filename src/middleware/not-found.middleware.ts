@@ -1,9 +1,20 @@
-import { Request, Response } from 'express';
-import { buildOcpiErrorResponse } from '../shared/http/ocpi-response';
+import { NextFunction, Request, Response } from 'express';
+import { AppError } from '../shared/errors/app-error';
+import { OcpiStatusCodes } from '../shared/errors/error-codes';
 
 /**
  * Handles unknown routes.
  */
-export function notFoundMiddleware(_req: Request, res: Response) {
-    res.status(404).json(buildOcpiErrorResponse(2000, 'Route not found'));
+export function notFoundMiddleware(
+    _req: Request,
+    _res: Response,
+    next: NextFunction,
+) {
+    next(
+        new AppError(
+            'Route not found',
+            404,
+            OcpiStatusCodes.ROUTE_NOT_FOUND,
+        ),
+    );
 }
