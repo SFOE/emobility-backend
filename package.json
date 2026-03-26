@@ -4,17 +4,18 @@
   "description": "E-Mobility Backend Lambda Functions",
   "scripts": {
     "build": "tsc",
-    "clean": "rm -rf dist",
-    "prebuild": "npm run clean",
-    "watch": "tsc --watch",
+    "clean": "sh ./scripts/clean.sh",
     "lint": "eslint src --ext .ts",
     "test": "jest",
     "test:watch": "jest --watch",
-    "package": "npm run build && cd dist && zip -r ../lambda.zip ."
+    "package": "yarn clean && yarn build && sh ./scripts/package.sh"
   },
+  "license": "EUPL-1.2",
   "dependencies": {
-    "@aws-sdk/client-lambda": "^3.710.0",
-    "@aws-sdk/client-s3": "^3.710.0"
+    "@aws-sdk/client-dynamodb": "^3.973.0",
+    "@aws-sdk/client-lambda": "^3.973.0",
+    "@aws-sdk/lib-dynamodb": "^3.973.0",
+    "@aws-sdk/util-dynamodb": "^3.973.0"
   },
   "devDependencies": {
     "@types/aws-lambda": "^8.10.150",
@@ -22,14 +23,14 @@
     "@types/node": "^24.12.0",
     "@typescript-eslint/eslint-plugin": "^8.57.1",
     "@typescript-eslint/parser": "^8.57.1",
-    "eslint": "^10.1.0",
+    "eslint": "^9.20.0",
     "jest": "^30.0.0",
     "ts-jest": "^29.2.5",
-    "typescript": "^5.7.2"
+    "typescript": "^5.9.3"
   },
   "engines": {
     "node": ">=24.x.x",
-    "npm": ">=10.0.0"
+    "yarn": ">=1.0.0"
   },
   "overrides": {
     "fast-xml-parser": ">=5.5.7"
