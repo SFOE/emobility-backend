@@ -15,7 +15,7 @@ src/
 Install dependencies:
 
 ```bash
-npm install
+yarn install
 ```
 
 ## Development
@@ -23,33 +23,27 @@ npm install
 Build the project:
 
 ```bash
-npm run build
-```
-
-Watch mode for development:
-
-```bash
-npm run watch
+yarn build
 ```
 
 Run tests:
 
 ```bash
-npm test
+yarn test
 ```
 
 Run linter:
 
 ```bash
-npm run lint
+yarn lint
 ```
 
-## Deployment
+## Packaging for Publish Artifacts
 
-Package Lambda functions:
+Package Lambda functions & common modules:
 
 ```bash
-npm run package
+yarn package
 ```
 
-This creates a `lambda.zip` file ready for deployment. Infrastructure deployment is handled in a separate repository.
+This creates a `emobility-backand.zip` file ready for deployment. Infrastructure deployment is handled in a separate repository.
