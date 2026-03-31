@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "description": "E-Mobility Backend Lambda Functions",
   "scripts": {
-    "build": "tsc",
+    "build": "yarn clean && tsc",
     "clean": "sh ./scripts/clean.sh",
     "lint": "eslint src --ext .ts",
     "test": "jest",
