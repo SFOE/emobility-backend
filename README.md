@@ -46,4 +46,4 @@ Package Lambda functions & common modules:
 yarn package
 ```
 
-This creates a `emobility-backand.zip` file ready for deployment. Infrastructure deployment is handled in a separate repository.
+This creates a `emobility-backend.zip` file ready for deployment. Infrastructure deployment is handled in a separate repository.
