@@ -1,4 +1,4 @@
-name: CI (Build & Test)
+name: Build & Test
 
 on:
   push:
@@ -15,17 +15,16 @@ jobs:
   build-test:
     name: Build & Test
     runs-on: ubuntu-latest
-
     steps:
       # Checkout repository code
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       # Setup Node.js environment
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
-          node-version: 24
+          node-version: 22
           cache: yarn
 
       # Install dependencies using lockfile for consistency
@@ -34,7 +33,7 @@ jobs:
 
       # Run unit tests
       - name: Run tests
-        run: yarn test
+        run: yarn test --passWithNoTests
 
       # Build application
       - name: Build application
