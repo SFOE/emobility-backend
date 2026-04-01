@@ -1,3 +1,3 @@
 #!/usr/bin/env bash
-
-echo "clean ..."
+tsc --build --clean
+rm -rf dist
