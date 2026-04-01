@@ -1,0 +1,41 @@
+name: CI (Build & Test)
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+# Prevent duplicate runs on same branch
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-test:
+    name: Build & Test
+    runs-on: ubuntu-latest
+
+    steps:
+      # Checkout repository code
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # Setup Node.js environment
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: yarn
+
+      # Install dependencies using lockfile for consistency
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+
+      # Run unit tests
+      - name: Run tests
+        run: yarn test
+
+      # Build application
+      - name: Build application
+        run: yarn build
