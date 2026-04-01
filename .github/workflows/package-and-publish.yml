@@ -1,0 +1,142 @@
+name: Package & Publish Artifact
+run-name: "Package & Publish ${{ inputs.environment }}${{ inputs.tag != '' && format(' ({0})', inputs.tag) || '' }}"
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: "Environment"
+        required: true
+        type: environment
+      tag:
+        description: "Git tag for test/prod (e.g. 1.0.0). Not required for dev."
+        required: false
+        type: string
+
+jobs:
+  package-publish:
+    name: Package & Publish
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+      # Validate workflow inputs before running the pipeline
+      - name: Validate inputs
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if [[ "${{ inputs.environment }}" != "dev" && -z "${{ inputs.tag }}" ]]; then
+            echo "Error: 'tag' is required for test and prod deployments."
+            exit 1
+          fi
+
+      # Verify that the requested tag exists for test/prod
+      - name: Verify Git tag exists
+        if: ${{ inputs.environment != 'dev' }}
+        uses: actions/github-script@v7
+        env:
+          TAG: ${{ inputs.tag }}
+        with:
+          script: |
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const tag = process.env.TAG;
+
+            try {
+              await github.rest.git.getRef({
+                owner,
+                repo,
+                ref: `tags/${tag}`,
+              });
+              core.info(`Tag '${tag}' exists.`);
+            } catch (e) {
+              if (e.status === 404) {
+                core.setFailed(`Tag '${tag}' does not exist. Aborting workflow.`);
+              } else {
+                throw e;
+              }
+            }
+
+      # Checkout current branch/ref for dev
+      - name: Checkout current ref
+        if: ${{ inputs.environment == 'dev' }}
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # Checkout a specific tag for test/prod
+      - name: Checkout tag
+        if: ${{ inputs.environment != 'dev' }}
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag }}
+          fetch-depth: 0
+
+      # Setup Node.js runtime for the workflow
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: yarn
+
+      # Install dependencies from the lockfile
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+
+      # Run automated tests before packaging
+      - name: Run tests
+        run: yarn test
+
+      # Build TypeScript output
+      - name: Build application
+        run: yarn build
+
+      # Package Lambda and layer artifacts into ZIP files
+      - name: Package artifacts
+        run: yarn package
+
+      # Verify that all expected ZIP artifacts exist
+      - name: Verify ZIP artifacts
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          echo "Listing dist directory:"
+          ls -lah dist
+
+          test -f dist/emobility-backend.zip
+          test -f dist/common-layer.zip
+          test -f dist/node-modules-layer.zip
+
+          echo "All expected ZIP artifacts are present."
+
+      # Configure AWS access via GitHub OIDC
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_OIDC_ROLE_ARN }}
+          aws-region: eu-central-1
+
+      # Publish artifacts to the configured S3 bucket
+      - name: Publish artifacts
+        shell: bash
+        env:
+          ARTIFACT_STORE: ${{ vars.ARTIFACT_STORE }}
+        run: |
+          set -euo pipefail
+
+          VERSION="${{ inputs.tag }}"
+          if [[ "${{ inputs.environment }}" == "dev" ]]; then
+            VERSION="${GITHUB_SHA}"
+          fi
+
+          echo "Uploading artifacts to s3://${ARTIFACT_STORE}"
+
+          aws s3 cp "dist/emobility-backend.zip" "s3://${ARTIFACT_STORE}/backend/emobility-backend-${VERSION}.zip"
+          aws s3 cp "dist/common-layer.zip" "s3://${ARTIFACT_STORE}/layers/common-layer-${VERSION}.zip"
+          aws s3 cp "dist/node-modules-layer.zip" "s3://${ARTIFACT_STORE}/layers/node-modules-layer-${VERSION}.zip"
