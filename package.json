@@ -3,12 +3,9 @@
   "version": "1.0.0",
   "description": "E-Mobility Backend Lambda Functions",
   "scripts": {
-    "build": "tsc",
-    "clean": "sh ./scripts/clean.sh",
-    "lint": "eslint src --ext .ts",
     "test": "jest",
-    "test:watch": "jest --watch",
-    "package": "yarn clean && yarn build && sh ./scripts/package.sh"
+    "clean": "sh clean.sh",
+    "build": "yarn clean && tsc && sh build.sh"
   },
   "license": "EUPL-1.2",
   "dependencies": {
