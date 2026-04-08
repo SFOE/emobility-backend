@@ -15,6 +15,9 @@ jobs:
   build-test:
     name: Build & Test
     runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
     steps:
       # Checkout repository code
       - name: Checkout
