@@ -1,4 +1,4 @@
-name: Deploy
+name: Deploy Tag
 run-name: "Deploy ${{ inputs.tag }} to ${{ inputs.environment }}"
 
 on:
@@ -19,7 +19,7 @@ concurrency:
 
 jobs:
   deploy:
-    name: Deploy v${{ inputs.tag }} to ${{ inputs.environment }}
+    name: Deploy Tag v${{ inputs.tag }} to ${{ inputs.environment }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
     environment: ${{ inputs.environment }}
@@ -55,7 +55,7 @@ jobs:
 
       # Configure AWS access via GitHub OIDC
       - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v4
+        uses: aws-actions/configure-aws-credentials@v5
         with:
           role-to-assume: ${{ vars.AWS_OIDC_ROLE_ARN }}
           aws-region: eu-central-1
