@@ -1,4 +1,4 @@
-name: Deploy
+name: Deploy Tag
 run-name: "Deploy ${{ inputs.tag }} to ${{ inputs.environment }}"
 
 on:
@@ -13,19 +13,21 @@ on:
         required: true
         type: string
 
+concurrency:
+  group: deploy-${{ inputs.environment }}
+  cancel-in-progress: false
+
 jobs:
   deploy:
-    name: Deploy v${{ inputs.tag }} to ${{ inputs.environment }}
+    name: Deploy Tag v${{ inputs.tag }} to ${{ inputs.environment }}
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     environment: ${{ inputs.environment }}
     permissions:
       id-token: write
-      contents: write
 
     steps:
-      # ----------------------------------------------------------
       # Verify that Git tag exists in current repository
-      # ----------------------------------------------------------
       - name: Verify Git tag exists
         uses: actions/github-script@v7
         env:
@@ -51,19 +53,39 @@ jobs:
               }
             }
 
-      # ----------------------------------------------------------
+      # Configure AWS access via GitHub OIDC
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v5
+        with:
+          role-to-assume: ${{ vars.AWS_OIDC_ROLE_ARN }}
+          aws-region: eu-central-1
+
+      # Verify that the artifact for the given tag exists in S3
+      - name: Verify artifact exists in S3
+        shell: bash
+        env:
+          ARTIFACT_STORE: ${{ vars.ARTIFACT_STORE }}
+          TAG: ${{ inputs.tag }}
+        run: |
+          set -euo pipefail
+
+          artifact="s3://${ARTIFACT_STORE}/emobility-backend-${TAG}.zip"
+          if ! aws s3 ls "$artifact" > /dev/null 2>&1; then
+            echo "Error: Artifact '${artifact}' not found in S3. Run package-and-publish first."
+            exit 1
+          fi
+          echo "Artifact '${artifact}' exists."
+
       # Authenticate using GitHub App (required for cross-repo access)
-      # ----------------------------------------------------------
       - name: Authenticate as GitHub App
         id: app-auth
-        uses: tibdex/github-app-token@v1
+        uses: actions/create-github-app-token@v2
         with:
-          app_id: ${{ secrets.GH_APP_ID }}
-          private_key: ${{ secrets.GH_APP_PRIVATE_KEY }}
+          app-id: ${{ secrets.GH_APP_ID }}
+          private-key: ${{ secrets.GH_APP_PRIVATE_KEY }}
+          owner: SFOE-Prometheon
 
-      # ----------------------------------------------------------
-      # Checkout Terraform repository
-      # ----------------------------------------------------------
+      # Checkout Terraform repository for the target environment
       - name: Checkout Terraform repo
         uses: actions/checkout@v5
         with:
@@ -71,19 +93,19 @@ jobs:
           token: ${{ steps.app-auth.outputs.token }}
           path: tf-repo
 
-      # ----------------------------------------------------------
       # Update backend version inside Terraform variables
-      # ----------------------------------------------------------
       - name: Update version
+        shell: bash
         run: |
+          set -euo pipefail
           cd tf-repo
           sed -i "s/backend_app_version = \".*\"/backend_app_version = \"${{ inputs.tag }}\"/" deploy.auto.tfvars
 
-      # ----------------------------------------------------------
       # Commit and push changes to Terraform repository
-      # ----------------------------------------------------------
       - name: Commit & push changes
+        shell: bash
         run: |
+          set -euo pipefail
           cd tf-repo
           git config user.name "GitHub Actions"
           git config user.email "noreply@github.com"
