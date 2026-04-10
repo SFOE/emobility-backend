@@ -15,7 +15,7 @@ jobs:
   deploy:
     name: Deploy dev
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 10
     environment: dev
     permissions:
       contents: read
