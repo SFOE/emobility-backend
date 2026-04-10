@@ -1,27 +1,32 @@
-name: Publish Tag
-run-name: "Publish tag ${{ inputs.tag }}"
+name: Publish & Deploy Tag
+run-name: "Publish & Deploy ${{ inputs.tag }} to ${{ inputs.environment }}"
 
-# Builds, tests, packages, and uploads artifacts to S3 for a given git tag.
+# Builds, tests, packages, publishes, and deploys a git tag to the target environment.
 # Requires repo-level variables: AWS_OIDC_PUBLISH_ROLE_ARN, ARTIFACT_STORE
-# Run deploy-tag to promote a published artifact to test or prod.
+# Use deploy-tag to re-deploy an already-published tag without rebuilding.
 
 on:
   workflow_dispatch:
     inputs:
+      environment:
+        description: "Target environment"
+        required: true
+        type: environment
       tag:
-        description: "Git tag to publish (e.g. 1.0.0)"
+        description: "Git tag to publish and deploy (e.g. 1.0.0)"
         required: true
         type: string
 
 concurrency:
-  group: publish-tag
+  group: publish-tag-${{ inputs.environment }}
   cancel-in-progress: false
 
 jobs:
-  publish:
-    name: Publish ${{ inputs.tag }}
+  publish-and-deploy:
+    name: Publish & Deploy ${{ inputs.tag }} to ${{ inputs.environment }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    environment: ${{ inputs.environment }}
     permissions:
       contents: read
       id-token: write
@@ -92,7 +97,7 @@ jobs:
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v5
         with:
-          role-to-assume: ${{ vars.AWS_OIDC_PUBLISH_ROLE_ARN }}
+          role-to-assume: ${{ vars.AWS_OIDC_ROLE_ARN }}
           aws-region: eu-central-1
 
       # Upload artifacts to the shared S3 artifact store (skip if already exists)
