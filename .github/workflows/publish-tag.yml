@@ -1,9 +1,8 @@
-name: Publish & Deploy Tag
-run-name: "Publish & Deploy ${{ inputs.tag }} to ${{ inputs.environment }}"
+name: Publish Tag
+run-name: "Publish Tag ${{ inputs.tag }} to ${{ inputs.environment }}"
 
-# Builds, tests, packages, publishes, and deploys a git tag to the target environment.
-# Requires repo-level variables: AWS_OIDC_PUBLISH_ROLE_ARN, ARTIFACT_STORE
-# Use deploy-tag to re-deploy an already-published tag without rebuilding.
+# Builds, tests, packages, and publishes a git tag to the S3 artifact store of the target environment.
+# Use deploy-tag to deploy a published artifact.
 
 on:
   workflow_dispatch:
@@ -13,7 +12,7 @@ on:
         required: true
         type: environment
       tag:
-        description: "Git tag to publish and deploy (e.g. 1.0.0)"
+        description: "Git tag to publish (e.g. 1.0.0)"
         required: true
         type: string
 
@@ -22,8 +21,8 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  publish-and-deploy:
-    name: Publish & Deploy ${{ inputs.tag }} to ${{ inputs.environment }}
+  publish:
+    name: Publish ${{ inputs.tag }} to ${{ inputs.environment }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
     environment: ${{ inputs.environment }}
