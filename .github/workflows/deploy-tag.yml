@@ -1,15 +1,18 @@
 name: Deploy Tag
 run-name: "Deploy ${{ inputs.tag }} to ${{ inputs.environment }}"
 
+# Deploys an already-published tag to any environment by updating the Terraform repo.
+# Requires the artifact to be published first via the publish-tag workflow.
+
 on:
   workflow_dispatch:
     inputs:
       environment:
-        description: "Environment"
+        description: "Target environment"
         required: true
         type: environment
       tag:
-        description: "Git Tag (e.g. 1.0.0)"
+        description: "Git tag to deploy (e.g. 1.0.0)"
         required: true
         type: string
 
@@ -19,7 +22,7 @@ concurrency:
 
 jobs:
   deploy:
-    name: Deploy Tag v${{ inputs.tag }} to ${{ inputs.environment }}
+    name: Deploy ${{ inputs.tag }} to ${{ inputs.environment }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
     environment: ${{ inputs.environment }}
@@ -27,23 +30,17 @@ jobs:
       id-token: write
 
     steps:
-      # Verify that Git tag exists in current repository
+      # Verify that the requested tag exists in this repository
       - name: Verify Git tag exists
         uses: actions/github-script@v7
         env:
           TAG: ${{ inputs.tag }}
         with:
           script: |
-            const owner = context.repo.owner;
-            const repo = context.repo.repo;
+            const { owner, repo } = context.repo;
             const tag = process.env.TAG;
-
             try {
-              await github.rest.git.getRef({
-                owner,
-                repo,
-                ref: `tags/${tag}`,
-              });
+              await github.rest.git.getRef({ owner, repo, ref: `tags/${tag}` });
               core.info(`Tag '${tag}' exists.`);
             } catch (e) {
               if (e.status === 404) {
@@ -71,12 +68,12 @@ jobs:
 
           artifact="s3://${ARTIFACT_STORE}/emobility-backend-${TAG}.zip"
           if ! aws s3 ls "$artifact" > /dev/null 2>&1; then
-            echo "Error: Artifact '${artifact}' not found in S3. Run package-and-publish first."
+            echo "::error::Artifact '${artifact}' not found in S3. Run the publish-tag workflow first."
             exit 1
           fi
           echo "Artifact '${artifact}' exists."
 
-      # Authenticate using GitHub App (required for cross-repo access)
+      # Authenticate using GitHub App (required for cross-repo access to Terraform repo)
       - name: Authenticate as GitHub App
         id: app-auth
         uses: actions/create-github-app-token@v2
@@ -85,7 +82,7 @@ jobs:
           private-key: ${{ secrets.GH_APP_PRIVATE_KEY }}
           owner: SFOE-Prometheon
 
-      # Checkout Terraform repository for the target environment
+      # Checkout the Terraform repository for the target environment
       - name: Checkout Terraform repo
         uses: actions/checkout@v5
         with:
@@ -93,7 +90,7 @@ jobs:
           token: ${{ steps.app-auth.outputs.token }}
           path: tf-repo
 
-      # Update backend version inside Terraform variables
+      # Update backend version in Terraform variables
       - name: Update version
         shell: bash
         run: |
@@ -101,8 +98,8 @@ jobs:
           cd tf-repo
           sed -i "s/backend_app_version = \".*\"/backend_app_version = \"${{ inputs.tag }}\"/" deploy.auto.tfvars
 
-      # Commit and push changes to Terraform repository
-      - name: Commit & push changes
+      # Commit and push the version update to the Terraform repository
+      - name: Commit and push
         shell: bash
         run: |
           set -euo pipefail

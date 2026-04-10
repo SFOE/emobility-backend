@@ -1,88 +1,35 @@
-name: Package & Publish
-run-name: "${{ inputs.environment == 'dev' && 'Package, Publish & Deploy' || 'Package & Publish' }} ${{ inputs.environment }} (${{ inputs.environment == 'dev' && github.sha || inputs.tag }})"
+name: Deploy Dev
+run-name: "Deploy dev (${{ github.ref_name }}@${{ github.sha }})"
+
+# Builds, tests, packages, publishes, and deploys the current branch HEAD to dev.
+# No inputs required — always targets the dev environment.
 
 on:
-  workflow_dispatch:
-    inputs:
-      environment:
-        description: "Environment"
-        required: true
-        type: environment
-      tag:
-        description: "Git tag for test/prod (e.g. 1.0.0). Not required for dev."
-        required: false
-        type: string
+  workflow_dispatch: {}
 
 concurrency:
-  group: package-publish-${{ inputs.environment }}
+  group: deploy-dev
   cancel-in-progress: false
 
 jobs:
-  package-publish:
-    name: Package & Publish
+  deploy:
+    name: Deploy dev
     runs-on: ubuntu-latest
-    timeout-minutes: 10
-    environment: ${{ inputs.environment }}
-    outputs:
-      version: ${{ steps.set-version.outputs.value }}
+    timeout-minutes: 15
+    environment: dev
     permissions:
+      contents: read
       id-token: write
 
     steps:
-      # Validate workflow inputs before running the pipeline
-      - name: Validate inputs
-        shell: bash
-        run: |
-          set -euo pipefail
-
-          if [[ "${{ inputs.environment }}" == "dev" ]]; then
-            if [[ -n "${{ inputs.tag }}" ]]; then
-              echo "::warning::'tag' is ignored for dev deployments. Deploying branch HEAD."
-            else
-              echo "::notice::Dev deployment: no tag required, deploying branch HEAD."
-            fi
-          else
-            if [[ -z "${{ inputs.tag }}" ]]; then
-              echo "::error::'tag' is required for test and prod deployments."
-              exit 1
-            fi
-          fi
-
-      # Verify that the requested tag exists for test/prod
-      - name: Verify Git tag exists
-        if: inputs.environment != 'dev'
-        uses: actions/github-script@v7
-        env:
-          TAG: ${{ inputs.tag }}
-        with:
-          script: |
-            const owner = context.repo.owner;
-            const repo = context.repo.repo;
-            const tag = process.env.TAG;
-
-            try {
-              await github.rest.git.getRef({
-                owner,
-                repo,
-                ref: `tags/${tag}`,
-              });
-              core.info(`Tag '${tag}' exists.`);
-            } catch (e) {
-              if (e.status === 404) {
-                core.setFailed(`Tag '${tag}' does not exist. Aborting workflow.`);
-              } else {
-                throw e;
-              }
-            }
-
-      # Checkout selected branch (dev) or specific tag (test/prod)
+      # Checkout the current branch HEAD
       - name: Checkout
         uses: actions/checkout@v5
         with:
-          ref: ${{ inputs.environment == 'dev' && github.ref || inputs.tag }}
+          ref: ${{ github.ref }}
           fetch-depth: 0
 
-      # Setup Node.js runtime for the workflow
+      # Setup Node.js runtime
       - name: Setup Node.js
         uses: actions/setup-node@v5
         with:
@@ -97,11 +44,7 @@ jobs:
       - name: Run tests
         run: yarn test --passWithNoTests
 
-      # Build TypeScript output
-      - name: Build application
-        run: yarn build
-
-      # Package Lambda and layer artifacts into ZIP files
+      # Clean, build, and package Lambda and layer artifacts into ZIP files
       - name: Package artifacts
         run: yarn package
 
@@ -127,19 +70,14 @@ jobs:
           role-to-assume: ${{ vars.AWS_OIDC_ROLE_ARN }}
           aws-region: eu-central-1
 
-      # Resolve version: SHA for dev, tag for test/prod
+      # Resolve the version to a short SHA (7 chars)
       - name: Set version
         id: set-version
         shell: bash
-        run: |
-          if [[ "${{ inputs.environment }}" == "dev" ]]; then
-            echo "value=${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
-          else
-            echo "value=${{ inputs.tag }}" >> "$GITHUB_OUTPUT"
-          fi
+        run: echo "value=${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
 
-      # Publish artifacts to the configured S3 bucket
-      - name: Publish artifacts
+      # Upload artifacts to the shared S3 artifact store (skip if already exists)
+      - name: Publish artifacts to S3
         shell: bash
         env:
           ARTIFACT_STORE: ${{ vars.ARTIFACT_STORE }}
@@ -164,7 +102,6 @@ jobs:
 
       # Authenticate using GitHub App (required for cross-repo access to Terraform repo)
       - name: Authenticate as GitHub App
-        if: inputs.environment == 'dev'
         id: app-auth
         uses: actions/create-github-app-token@v2
         with:
@@ -172,24 +109,25 @@ jobs:
           private-key: ${{ secrets.GH_APP_PRIVATE_KEY }}
           owner: SFOE-Prometheon
 
-      # Checkout Terraform repository for dev and update backend version
+      # Checkout the dev Terraform repository
       - name: Checkout Terraform repo
-        if: inputs.environment == 'dev'
         uses: actions/checkout@v5
         with:
           repository: SFOE-prometheon/prometheon-emobility-dev
           token: ${{ steps.app-auth.outputs.token }}
           path: tf-repo
 
-      - name: Deploy to dev
-        if: inputs.environment == 'dev'
+      # Update backend version and deploy to dev
+      - name: Update version and deploy
+        shell: bash
         env:
           VERSION: ${{ steps.set-version.outputs.value }}
         run: |
+          set -euo pipefail
           cd tf-repo
           sed -i "s/backend_app_version = \".*\"/backend_app_version = \"${VERSION}\"/" deploy.auto.tfvars
           git config user.name "GitHub Actions"
           git config user.email "noreply@github.com"
           git add deploy.auto.tfvars
-          git commit -m "chore(deploy): deploy backend SHA ${VERSION:0:7}"
+          git commit -m "chore(deploy): deploy backend SHA ${VERSION}"
           git push
