@@ -1,0 +1,120 @@
+name: Publish Tag
+run-name: "Publish tag ${{ inputs.tag }}"
+
+# Builds, tests, packages, and uploads artifacts to S3 for a given git tag.
+# Requires repo-level variables: AWS_OIDC_PUBLISH_ROLE_ARN, ARTIFACT_STORE
+# Run deploy-tag to promote a published artifact to test or prod.
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Git tag to publish (e.g. 1.0.0)"
+        required: true
+        type: string
+
+concurrency:
+  group: publish-tag
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    name: Publish ${{ inputs.tag }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      # Verify that the requested tag exists in this repository
+      - name: Verify Git tag exists
+        uses: actions/github-script@v7
+        env:
+          TAG: ${{ inputs.tag }}
+        with:
+          script: |
+            const { owner, repo } = context.repo;
+            const tag = process.env.TAG;
+            try {
+              await github.rest.git.getRef({ owner, repo, ref: `tags/${tag}` });
+              core.info(`Tag '${tag}' exists.`);
+            } catch (e) {
+              if (e.status === 404) {
+                core.setFailed(`Tag '${tag}' does not exist. Aborting publish.`);
+              } else {
+                throw e;
+              }
+            }
+
+      # Checkout the requested tag
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ inputs.tag }}
+          fetch-depth: 0
+
+      # Setup Node.js runtime
+      - name: Setup Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: yarn
+
+      # Install dependencies from the lockfile
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+
+      # Run automated tests before packaging
+      - name: Run tests
+        run: yarn test --passWithNoTests
+
+      # Clean, build, and package Lambda and layer artifacts into ZIP files
+      - name: Package artifacts
+        run: yarn package
+
+      # Verify that all expected ZIP artifacts exist
+      - name: Verify ZIP artifacts
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          echo "Listing dist directory:"
+          ls -lah dist
+
+          test -f dist/emobility-backend.zip
+          test -f dist/common-layer.zip
+          test -f dist/node-modules-layer.zip
+
+          echo "All expected ZIP artifacts are present."
+
+      # Configure AWS access via GitHub OIDC (repo-level publish role)
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v5
+        with:
+          role-to-assume: ${{ vars.AWS_OIDC_PUBLISH_ROLE_ARN }}
+          aws-region: eu-central-1
+
+      # Upload artifacts to the shared S3 artifact store (skip if already exists)
+      - name: Publish artifacts to S3
+        shell: bash
+        env:
+          ARTIFACT_STORE: ${{ vars.ARTIFACT_STORE }}
+          VERSION: ${{ inputs.tag }}
+        run: |
+          set -euo pipefail
+
+          upload_if_not_exists() {
+            local src="$1"
+            local dst="$2"
+            if aws s3 ls "$dst" > /dev/null 2>&1; then
+              echo "::notice::Skipping ${src} (version: ${VERSION}): already exists at ${dst}"
+            else
+              echo "Uploading ${src} to ${dst} (version: ${VERSION})"
+              aws s3 cp "$src" "$dst"
+            fi
+          }
+
+          upload_if_not_exists "dist/emobility-backend.zip" "s3://${ARTIFACT_STORE}/emobility-backend-${VERSION}.zip"
+          upload_if_not_exists "dist/common-layer.zip" "s3://${ARTIFACT_STORE}/layers/common-layer-${VERSION}.zip"
+          upload_if_not_exists "dist/node-modules-layer.zip" "s3://${ARTIFACT_STORE}/layers/node-modules-layer-${VERSION}.zip"

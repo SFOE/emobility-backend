@@ -1,4 +1,8 @@
 name: Build & Test
+run-name: "Build & Test (${{ github.head_ref || github.ref_name }})"
+
+# Runs on every push to main and on pull requests targeting main.
+# Validates that the codebase builds and all tests pass.
 
 on:
   push:
@@ -6,38 +10,38 @@ on:
   pull_request:
     branches: [main]
 
-# Prevent duplicate runs on same branch
 concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  build-test:
+  build-and-test:
     name: Build & Test
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
       contents: read
+
     steps:
-      # Checkout repository code
+      # Checkout the branch or PR HEAD
       - name: Checkout
         uses: actions/checkout@v5
 
-      # Setup Node.js environment
+      # Setup Node.js runtime
       - name: Setup Node.js
         uses: actions/setup-node@v5
         with:
           node-version: 22
           cache: yarn
 
-      # Install dependencies using lockfile for consistency
+      # Install dependencies from the lockfile
       - name: Install dependencies
         run: yarn install --frozen-lockfile
 
-      # Run unit tests
+      # Run automated tests
       - name: Run tests
         run: yarn test --passWithNoTests
 
-      # Build application
+      # Build TypeScript output
       - name: Build application
         run: yarn build
