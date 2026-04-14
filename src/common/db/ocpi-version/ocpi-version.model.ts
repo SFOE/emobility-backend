@@ -1,6 +1,6 @@
 import { BaseModel } from '/opt/nodejs/db/base.model';
 
-export interface OcpiVersion extends BaseModel {
+export interface OCPIVersion extends BaseModel {
     version: string;
     url: string;
 }

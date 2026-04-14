@@ -1,4 +1,4 @@
-import { GetCommand, GetCommandInput, ScanCommandInput } from '@aws-sdk/lib-dynamodb';
+import { GetCommand, GetCommandInput, ScanCommandInput, QueryCommand, QueryCommandInput } from '@aws-sdk/lib-dynamodb';
 import { dynamoDocClient } from '/opt/nodejs/aws.constants';
 
 export const getItem = async <T>(tableName: string, params: GetCommandInput): Promise<T> => {
@@ -31,6 +31,43 @@ export const fetchAll = async <T>(tableName: string): Promise<T[]> => {
     } catch (err) {
         console.error(err);
         const message = `Error fetching all items from DynamoDB table ${tableName}`;
+        console.error(message);
+        throw new Error(message);
+    }
+};
+
+export const queryByPk = async <T>(
+    tableName: string,
+    pk: string,
+): Promise<T[]> => {
+    try {
+        const items: T[] = [];
+        const params: QueryCommandInput = {
+            TableName: tableName,
+            KeyConditionExpression: "pk = :pk",
+            ExpressionAttributeValues: {
+                ":pk": pk,
+            },
+        };
+
+        let lastEvaluatedKey: Record<string, unknown> | undefined;
+
+        do {
+            const response = await dynamoDocClient.send(
+                new QueryCommand({
+                    ...params,
+                    ExclusiveStartKey: lastEvaluatedKey,
+                }),
+            );
+
+            items.push(...((response.Items ?? []) as T[]));
+            lastEvaluatedKey = response.LastEvaluatedKey;
+        } while (lastEvaluatedKey);
+
+        return items;
+    } catch (err) {
+        console.error(err);
+        const message = `Error querying items from DynamoDB table ${tableName} with pk=${pk}`;
         console.error(message);
         throw new Error(message);
     }

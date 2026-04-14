@@ -1,7 +1,12 @@
-import { fetchAll } from '/opt/nodejs/db/db-requests';
+import { queryByPk} from '/opt/nodejs/db/db-requests';
 import { OCPI_VERSION_TABLE_NAME } from '/opt/nodejs/db/db-table-names.constants';
-import { OcpiVersion } from '/opt/nodejs/db/ocpi-version/ocpi-version.model';
+import { OCPIVersion } from '/opt/nodejs/db/ocpi-version/ocpi-version.model';
 
-export const getAllOcpiVersions = async (): Promise<OcpiVersion[]> => {
-    return fetchAll<OcpiVersion>(OCPI_VERSION_TABLE_NAME);
+export const getOCPIVersions = async (): Promise<OCPIVersion[]> => {
+    const items = await queryByPk<OCPIVersion>(OCPI_VERSION_TABLE_NAME, "VERSION");
+
+    return items.map(({ version, url }) => ({
+        version,
+        url,
+    })) as OCPIVersion[];
 };

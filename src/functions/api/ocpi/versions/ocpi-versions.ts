@@ -1,5 +1,5 @@
 import { APIGatewayProxyEvent, APIGatewayProxyResult, Context } from 'aws-lambda';
-import { getAllOcpiVersions } from '/opt/nodejs/db/ocpi-version/ocpi-version.db';
+import { getOCPIVersions } from '/opt/nodejs/db/ocpi-version/ocpi-version.db';
 import { ErrorHandler } from '/opt/nodejs/api/error/api-error-handler';
 import { prepareResponse } from '/opt/nodejs/utils/api.utils';
 
@@ -11,7 +11,7 @@ export const handler = async (
     console.log('Context:', JSON.stringify(context, null, 2));
 
     try {
-        const versions = await getAllOcpiVersions();
+        const versions = await getOCPIVersions();
         console.info(`Retrieving ${versions.length} OCPI versions`);
         return prepareResponse(versions);
     } catch (error) {
