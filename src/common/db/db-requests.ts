@@ -72,3 +72,29 @@ export const queryByPk = async <T>(
         throw new Error(message);
     }
 };
+
+export const queryBySk = async <T>(
+    tableName: string,
+    pk: string,
+    sk: string,
+): Promise<T | null> => {
+    try {
+        const response = await dynamoDocClient.send(
+            new GetCommand({
+                TableName: tableName,
+                Key: {
+                    pk: pk,
+                    sk: sk,
+                },
+            }),
+        );
+
+        return (response.Item as T) ?? null;
+    } catch (err) {
+        console.error(err);
+        const message = `Error query by ak for sk ${sk}`;
+        console.error(message);
+        throw new Error(message);
+    }
+};
+

@@ -1,3 +1,4 @@
 export interface BaseModel {
-    id: string;
+    pk: string;
+    sk?: string;
 }

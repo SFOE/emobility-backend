@@ -1,5 +1,5 @@
 import { APIGatewayProxyEvent, APIGatewayProxyResult, Context } from 'aws-lambda';
-import { getOCPIVersions } from '/opt/nodejs/db/ocpi-version/ocpi-version.db';
+import {getOCPIVersionDetails, getOCPIVersions } from '/opt/nodejs/db/ocpi-version/ocpi-version.db';
 import { ErrorHandler } from '/opt/nodejs/api/error/api-error-handler';
 import { prepareResponse } from '/opt/nodejs/utils/api.utils';
 
@@ -14,6 +14,23 @@ export const handler = async (
         const versions = await getOCPIVersions();
         console.info(`Retrieving ${versions.length} OCPI versions`);
         return prepareResponse(versions);
+    } catch (error) {
+        return ErrorHandler.handleError(error);
+    }
+};
+
+export const detail = async (
+    event: APIGatewayProxyEvent,
+): Promise<APIGatewayProxyResult> => {
+    const version = event.pathParameters?.version;
+    console.log('Get version detail of:', version);
+
+    try {
+        if (!version) {
+            return ErrorHandler.handleError("Version is required.")
+        }
+        const versionDetail = await getOCPIVersionDetails(version);
+        return prepareResponse(versionDetail);
     } catch (error) {
         return ErrorHandler.handleError(error);
     }
