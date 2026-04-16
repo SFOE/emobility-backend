@@ -1,5 +1,12 @@
-import { GetCommand, GetCommandInput, ScanCommandInput, QueryCommand, QueryCommandInput } from '@aws-sdk/lib-dynamodb';
-import { dynamoDocClient } from '/opt/nodejs/aws.constants';
+import {
+    GetCommand,
+    GetCommandInput,
+    PutCommand,
+    QueryCommand,
+    QueryCommandInput,
+    ScanCommandInput
+} from '@aws-sdk/lib-dynamodb';
+import {dynamoDocClient} from '/opt/nodejs/aws.constants';
 
 export const getItem = async <T>(tableName: string, params: GetCommandInput): Promise<T> => {
     try {
@@ -98,3 +105,20 @@ export const queryBySk = async <T>(
     }
 };
 
+export const saveItem = async <T extends Record<string, any> | undefined>(
+    tableName: string,
+    item: T
+): Promise<void> => {
+    try {
+        await dynamoDocClient.send(
+            new PutCommand({
+                TableName: tableName,
+                Item: item,
+            }),
+        );
+    } catch (err) {
+        console.error(err);
+        const message = `Error saving item to DynamoDB table ${tableName}`;
+        throw new Error(message);
+    }
+}
