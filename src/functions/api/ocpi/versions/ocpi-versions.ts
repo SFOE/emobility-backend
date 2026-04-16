@@ -1,38 +1,37 @@
-import { APIGatewayProxyEvent, APIGatewayProxyResult, Context } from 'aws-lambda';
+import {APIGatewayProxyEvent, APIGatewayProxyResult} from 'aws-lambda';
+import {getOCPIVersionDetails, getOCPIVersions} from '/opt/nodejs/db/ocpi-version/ocpi-version.db';
+import {ErrorHandler} from '/opt/nodejs/api/error/api-error-handler';
+import {prepareOCPIResponse} from '/opt/nodejs/utils/api.utils';
 
 export const handler = async (
-  event: APIGatewayProxyEvent,
-  context: Context
+    event: APIGatewayProxyEvent,
 ): Promise<APIGatewayProxyResult> => {
-  console.log('Event:', JSON.stringify(event, null, 2));
-  console.log('Context:', JSON.stringify(context, null, 2));
+    console.log('GET versions:', JSON.stringify(event, null, 2));
 
-  try {
-    // get supported versions from dynamodb
-    const responseBody = [
-        {
-        version: "2.3",
-        url: "https://api.emobility-dev.prometheon.bfe.admin.ch/ocpi/2.3"
-      }
-    ];
+    try {
+        const versions = await getOCPIVersions();
+        return prepareOCPIResponse(versions);
+    } catch (error) {
+        return ErrorHandler.handleError(error);
+    }
+};
 
-    return {
-      statusCode: 200,
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(responseBody),
-    };
-  } catch (error) {
-    console.error('Error:', error);
-    return {
-      statusCode: 500,
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        message: 'Internal Server Error',
-      }),
-    };
-  }
+export const detail = async (
+    event: APIGatewayProxyEvent,
+): Promise<APIGatewayProxyResult> => {
+    const version = event.pathParameters?.version;
+    console.log('Get version detail of:', version);
+
+    try {
+        if (!version) {
+            return ErrorHandler.handleError("Version is required.")
+        }
+        const versionDetail = await getOCPIVersionDetails(version);
+        if (!versionDetail) {
+            return ErrorHandler.handleUnsupportedVersionError(version);
+        }
+        return prepareOCPIResponse(versionDetail);
+    } catch (error) {
+        return ErrorHandler.handleError(error);
+    }
 };
