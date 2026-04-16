@@ -4,7 +4,7 @@ export interface DbKeys {
 }
 
 export interface OCPIResponse<T> {
-    data: T;
+    data?: T;
     status_code: number;
     status_message?: string;
     timestamp: string;

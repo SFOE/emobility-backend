@@ -27,6 +27,9 @@ export const detail = async (
             return ErrorHandler.handleError("Version is required.")
         }
         const versionDetail = await getOCPIVersionDetails(version);
+        if (!versionDetail) {
+            return ErrorHandler.handleUnsupportedVersionError(version);
+        }
         return prepareOCPIResponse(versionDetail);
     } catch (error) {
         return ErrorHandler.handleError(error);
