@@ -1,3 +1,5 @@
+import {DbKeys} from "/opt/nodejs/db/base.model";
+
 export interface OCPICredential {
     token: string;
     url: string;
@@ -5,9 +7,7 @@ export interface OCPICredential {
     roles: OCPICredentialRole[];
 }
 
-export interface OCPICredentialItem extends OCPICredential {
-    pk: string;
-    sk: string;
+export interface OCPICredentialItem extends OCPICredential, DbKeys {
     createdAt: string;
 }
 
