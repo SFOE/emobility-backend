@@ -36,3 +36,24 @@ const ocpiSuccess = <T>(
     timestamp: new Date().toISOString(),
   };
 };
+
+export const extractToken = (authHeader?: string): string | null => {
+  if (!authHeader) {
+    return null;
+  }
+
+  const match = authHeader.match(/^Token\s+(.+)$/i);
+  if (!match) {
+    return null;
+  }
+
+  return match[1].trim();
+};
+
+export const tryDecodeBase64 = (token: string): string => {
+  try {
+    return Buffer.from(token, 'base64').toString('utf8');
+  } catch {
+    return token;
+  }
+};

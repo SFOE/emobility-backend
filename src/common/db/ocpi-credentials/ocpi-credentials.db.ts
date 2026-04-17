@@ -1,9 +1,6 @@
-import { saveItem } from '/opt/nodejs/db/db-requests';
+import { queryBySk, saveItem } from '/opt/nodejs/db/db-requests';
 import { OCPI_CREDENTIALS_TABLE_NAME } from '/opt/nodejs/db/db-table-names.constants';
-import {
-  OCPICredential,
-  OCPICredentialItem,
-} from '/opt/nodejs/db/ocpi-credentials/ocpi-credentials.model';
+import { OCPICredential, OCPICredentialItem, } from '/opt/nodejs/db/ocpi-credentials/ocpi-credentials.model';
 import { hashToken } from '/opt/nodejs/utils/crypto.utils';
 
 export const saveCredentials = async (
@@ -23,4 +20,16 @@ export const saveCredentials = async (
 
   // store new credentials of the cpo
   await saveItem(OCPI_CREDENTIALS_TABLE_NAME, credentialItem);
+};
+
+export const getCredentials = async (
+  token: string,
+): Promise<OCPICredentialItem | null> => {
+  const tokenHash = hashToken(token);
+
+  return await queryBySk<OCPICredentialItem>(
+    OCPI_CREDENTIALS_TABLE_NAME,
+    `TOKEN#${tokenHash}`,
+    'CREDENTIALS',
+  );
 };
