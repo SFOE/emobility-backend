@@ -108,7 +108,7 @@ export const queryBySk = async <T>(
   }
 };
 
-export const saveItem = async <T extends Record<string, any> | undefined>(
+export const saveItem = async <T extends Record<string, unknown> | undefined>(
   tableName: string,
   item: T,
 ): Promise<void> => {

@@ -6,9 +6,9 @@ run-name: "Build & Test (${{ github.head_ref || github.ref_name }})"
 
 on:
   push:
-    branches: [main]
+    branches: [ main ]
   pull_request:
-    branches: [main]
+    branches: [ main ]
 
 concurrency:
   group: ci-${{ github.ref }}
@@ -37,6 +37,10 @@ jobs:
       # Install dependencies from the lockfile
       - name: Install dependencies
         run: yarn install --frozen-lockfile
+
+      # Lint the codebase
+      - name: Lint codebase
+        run: yarn lint
 
       # Run automated tests
       - name: Run tests

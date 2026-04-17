@@ -6,7 +6,7 @@
     "format": "prettier --write .",
     "build": "tsc",
     "clean": "bash ./scripts/clean.sh",
-    "lint": "eslint src --ext .ts",
+    "lint": "eslint src",
     "test": "jest",
     "test:watch": "jest --watch",
     "package": "yarn clean && yarn build && bash ./scripts/package.sh"
