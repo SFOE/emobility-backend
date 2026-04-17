@@ -22,8 +22,5 @@ export const saveCredentials = async (
   };
 
   // store new credentials of the cpo
-  await saveItem<OCPICredentialItem>(
-    OCPI_CREDENTIALS_TABLE_NAME,
-    credentialItem,
-  );
+  await saveItem(OCPI_CREDENTIALS_TABLE_NAME, credentialItem);
 };

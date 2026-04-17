@@ -108,9 +108,9 @@ export const queryBySk = async <T>(
   }
 };
 
-export const saveItem = async <T extends Record<string, any> | undefined>(
+export const saveItem = async (
   tableName: string,
-  item: T,
+  item: object,
 ): Promise<void> => {
   try {
     await dynamoDocClient.send(
