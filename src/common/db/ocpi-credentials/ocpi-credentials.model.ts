@@ -8,7 +8,6 @@ export interface OCPICredential {
 export interface OCPICredentialItem extends OCPICredential {
     pk: string;
     sk: string;
-    partyAccessToken?: string;
     createdAt: string;
 }
 

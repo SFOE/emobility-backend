@@ -2,7 +2,8 @@ import {APIGatewayProxyEvent, APIGatewayProxyResult} from "aws-lambda";
 import {ErrorHandler} from "/opt/nodejs/api/error/api-error-handler";
 import {prepareOCPIResponse} from "/opt/nodejs/utils/api.utils";
 import {OCPICredential} from "/opt/nodejs/db/ocpi-credentials/ocpi-credentials.model";
-import {registerCPO} from "/opt/nodejs/db/ocpi-credentials/ocpi-credentials.db";
+import {saveCredentials} from "/opt/nodejs/db/ocpi-credentials/ocpi-credentials.db";
+import {generateToken} from "/opt/nodejs/utils/crypto.utils";
 
 export const handler = async (
     event: APIGatewayProxyEvent,
@@ -18,12 +19,14 @@ export const handler = async (
     // Partner aus Authorizer (optional beim ersten Setup evtl. leer)
     // const authContext = event.requestContext?.authorizer?.lambda || {};
 
+    const newToken = generateToken();
+
     // save credentials
-    await registerCPO(cpoCredentials)
+    await saveCredentials(cpoCredentials, newToken)
 
     const response: OCPICredential = {
-      token: 'NEW_TOKEN_123',
-      url: '/ocpi/versions',
+      token: newToken,
+      url: `${process.env.BASE_URL}/ocpi/versions`,
       roles: [
         {
           role: "NAP",
