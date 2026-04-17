@@ -15,6 +15,10 @@ export class ErrorHandler {
         }
     }
 
+    public static handleBadRequestError(ocpiStatusCode: number, message: string): APIGatewayProxyResult {
+        return prepareOCPIErrorResponse(message, 400, ocpiStatusCode);
+    }
+
     public static handleUnsupportedVersionError(version: string): APIGatewayProxyResult {
         return prepareOCPIErrorResponse(`Unsupported version: ${version}`, 400, 3002);
     }
