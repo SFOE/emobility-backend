@@ -5,13 +5,18 @@ import { OCPICredential } from '/opt/nodejs/db/ocpi-credentials/ocpi-credentials
 import { saveCredentials } from '/opt/nodejs/db/ocpi-credentials/ocpi-credentials.db';
 import { generateToken } from '/opt/nodejs/utils/crypto.utils';
 
-export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
+export const handler = async (
+  event: APIGatewayProxyEvent,
+): Promise<APIGatewayProxyResult> => {
   try {
     const cpoCredentials: OCPICredential = JSON.parse(event.body ?? '{}');
 
     // Basic validation
     if (!cpoCredentials.token) {
-      return ErrorHandler.handleBadRequestError(2001, 'Invalid credentials payload');
+      return ErrorHandler.handleBadRequestError(
+        2001,
+        'Invalid credentials payload',
+      );
     }
 
     // Partner aus Authorizer

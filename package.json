@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "description": "E-Mobility Backend Lambda Functions",
   "scripts": {
+    "format": "prettier --write .",
     "build": "tsc",
     "clean": "bash ./scripts/clean.sh",
     "lint": "eslint src --ext .ts",
@@ -25,6 +26,7 @@
     "@typescript-eslint/parser": "^8.57.1",
     "eslint": "^9.20.0",
     "jest": "^30.0.0",
+    "prettier": "^3.8.3",
     "ts-jest": "^29.2.5",
     "typescript": "^5.9.3"
   },

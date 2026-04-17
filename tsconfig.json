@@ -21,9 +21,7 @@
     "noFallthroughCasesInSwitch": true,
     "baseUrl": "./src",
     "paths": {
-      "/opt/nodejs/*": [
-        "common/*"
-      ]
+      "/opt/nodejs/*": ["common/*"]
     }
   },
   "include": ["src/**/*"],
