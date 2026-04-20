@@ -20,8 +20,9 @@ export class ErrorHandler {
   public static handleBadRequestError(
     ocpiStatusCode: number,
     message: string,
+    statusCode = 400,
   ): APIGatewayProxyResult {
-    return prepareOCPIErrorResponse(message, 400, ocpiStatusCode);
+    return prepareOCPIErrorResponse(message, statusCode, ocpiStatusCode);
   }
 
   public static handleUnsupportedVersionError(

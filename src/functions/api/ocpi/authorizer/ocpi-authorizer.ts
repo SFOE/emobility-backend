@@ -8,9 +8,10 @@ export const handler = async (event: APIGatewayRequestAuthorizerEventV2) => {
       event.headers?.authorization || event.headers?.Authorization;
 
     const token = extractToken(authHeader);
+
     console.log('Auth attempt:', {
       hasToken: !!token,
-      tokenHash: token?.slice(0, 8),
+      token: token?.slice(0, 8),
     });
 
     if (!token) {
@@ -27,6 +28,7 @@ export const handler = async (event: APIGatewayRequestAuthorizerEventV2) => {
     return {
       isAuthorized: true,
       context: {
+        isBootstrap: item.bootstrapToken,
         credentials: item,
       },
     };

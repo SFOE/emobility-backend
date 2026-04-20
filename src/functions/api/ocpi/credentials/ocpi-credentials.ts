@@ -11,6 +11,18 @@ export const handler = async (
   try {
     const cpoCredentials: OCPICredential = JSON.parse(event.body ?? '{}');
 
+    // get Authorizer Context
+    const authContext = event.requestContext?.authorizer?.lambda || {};
+
+    console.log('Auth context:', authContext);
+    if (!authContext.isBootstrap) {
+      return ErrorHandler.handleBadRequestError(
+        2000,
+        'Only bootstrap tokens are allowed, client already has a token!',
+        405,
+      );
+    }
+
     // Basic validation
     if (!cpoCredentials.token) {
       return ErrorHandler.handleBadRequestError(
@@ -18,9 +30,6 @@ export const handler = async (
         'Invalid credentials payload',
       );
     }
-
-    // Partner aus Authorizer
-    // const authContext = event.requestContext?.authorizer?.lambda || {};
 
     const newToken = generateToken();
 
