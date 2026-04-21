@@ -1,6 +1,7 @@
 import { APIGatewayRequestAuthorizerEventV2 } from 'aws-lambda';
-import { extractToken } from '/opt/nodejs/utils/api.utils';
 import { getCredentials } from '/opt/nodejs/db/ocpi-credentials/ocpi-credentials.db';
+import { OCPIAuthorizerContext } from '/opt/nodejs/api/base.model';
+import { extractToken, getPartnerId } from '/opt/nodejs/utils/ocpi-utils';
 
 export const handler = async (event: APIGatewayRequestAuthorizerEventV2) => {
   try {
@@ -23,14 +24,15 @@ export const handler = async (event: APIGatewayRequestAuthorizerEventV2) => {
     if (!item) {
       return { isAuthorized: false };
     }
+    const context: OCPIAuthorizerContext = {
+      isBootstrap: item.bootstrapToken ?? false,
+      partnerId: getPartnerId(item),
+    };
 
     // Successfully authenticated
     return {
       isAuthorized: true,
-      context: {
-        isBootstrap: item.bootstrapToken,
-        credentials: item,
-      },
+      context,
     };
   } catch (err) {
     console.error('Authorizer error:', err);

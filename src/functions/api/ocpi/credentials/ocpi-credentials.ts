@@ -1,59 +1,57 @@
-import { APIGatewayProxyEvent, APIGatewayProxyResult } from 'aws-lambda';
+import { APIGatewayProxyResult } from 'aws-lambda';
 import { ErrorHandler } from '/opt/nodejs/api/error/api-error-handler';
-import { prepareOCPIResponse } from '/opt/nodejs/utils/api.utils';
+import {
+  prepareOCPIResponse,
+  withVersionCheck,
+} from '/opt/nodejs/utils/api.utils';
 import { OCPICredential } from '/opt/nodejs/db/ocpi-credentials/ocpi-credentials.model';
-import { saveCredentials } from '/opt/nodejs/db/ocpi-credentials/ocpi-credentials.db';
+import { saveNewCredentials } from '/opt/nodejs/db/ocpi-credentials/ocpi-credentials.db';
 import { generateToken } from '/opt/nodejs/utils/crypto.utils';
+import { BFE_ROLE } from '/opt/nodejs/config.constants';
+import { APIGatewayProxyEventV2WithLambdaAuthorizer } from 'aws-lambda/trigger/api-gateway-proxy';
+import { OCPIAuthorizerContext } from '/opt/nodejs/api/base.model';
 
-export const handler = async (
-  event: APIGatewayProxyEvent,
-): Promise<APIGatewayProxyResult> => {
-  try {
-    const cpoCredentials: OCPICredential = JSON.parse(event.body ?? '{}');
+export const handler = withVersionCheck(
+  async (
+    event: APIGatewayProxyEventV2WithLambdaAuthorizer<OCPIAuthorizerContext>,
+  ): Promise<APIGatewayProxyResult> => {
+    try {
+      // get Authorizer Context
+      const authContext = event.requestContext?.authorizer?.lambda || {};
 
-    // get Authorizer Context
-    const authContext = event.requestContext?.authorizer?.lambda || {};
+      console.log('Auth context:', authContext);
+      if (!authContext.isBootstrap) {
+        return ErrorHandler.handleBadRequestError(
+          2000,
+          'Only bootstrap tokens are allowed, client already has a token!',
+          405,
+        );
+      }
+      const cpoCredentials: OCPICredential = JSON.parse(event.body ?? '{}');
 
-    console.log('Auth context:', authContext);
-    if (!authContext.isBootstrap) {
-      return ErrorHandler.handleBadRequestError(
-        2000,
-        'Only bootstrap tokens are allowed, client already has a token!',
-        405,
-      );
+      // Basic validation
+      if (!cpoCredentials.token) {
+        return ErrorHandler.handleBadRequestError(
+          2001,
+          'Invalid credentials payload!',
+        );
+      }
+
+      const newToken = generateToken();
+
+      // save credentials
+      await saveNewCredentials(cpoCredentials, newToken);
+
+      const response: OCPICredential = {
+        token: newToken,
+        url: `${process.env.BASE_URL}/ocpi/versions`,
+        roles: [BFE_ROLE],
+      };
+
+      return prepareOCPIResponse(response);
+    } catch (err) {
+      console.error(err);
+      return ErrorHandler.handleError(err);
     }
-
-    // Basic validation
-    if (!cpoCredentials.token) {
-      return ErrorHandler.handleBadRequestError(
-        2001,
-        'Invalid credentials payload',
-      );
-    }
-
-    const newToken = generateToken();
-
-    // save credentials
-    await saveCredentials(cpoCredentials, newToken);
-
-    const response: OCPICredential = {
-      token: newToken,
-      url: `${process.env.BASE_URL}/ocpi/versions`,
-      roles: [
-        {
-          role: 'NAP',
-          business_details: {
-            name: 'Bundesamt für Energie',
-          },
-          party_id: 'BFE',
-          country_code: 'CH',
-        },
-      ],
-    };
-
-    return prepareOCPIResponse(response);
-  } catch (err) {
-    console.error(err);
-    return ErrorHandler.handleError(err);
-  }
-};
+  },
+);

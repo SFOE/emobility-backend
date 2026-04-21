@@ -1,6 +1,6 @@
 import { APIGatewayProxyResult } from 'aws-lambda';
 import { HttpError } from '/opt/nodejs/api/error/http-error';
-import { OCPIResponse } from '/opt/nodejs/db/base.model';
+import { OCPIResponse } from '/opt/nodejs/api/base.model';
 
 export class ErrorHandler {
   private static INTERNAL_SERVER_ERROR = 'Internal Server Error';
