@@ -1,7 +1,4 @@
-import {
-  APIGatewayProxyResult,
-  APIGatewayProxyStructuredResultV2,
-} from 'aws-lambda';
+import { APIGatewayProxyResult } from 'aws-lambda';
 import {
   OCPIAuthorizerContext,
   OCPIResponse,
@@ -41,9 +38,7 @@ export const withVersionCheck =
   (handler: OCPIHandler) =>
   async (
     event: APIGatewayProxyEventV2WithLambdaAuthorizer<OCPIAuthorizerContext>,
-  ): Promise<
-    void | APIGatewayProxyStructuredResultV2 | string | APIGatewayProxyResult
-  > => {
+  ): Promise<APIGatewayProxyResult> => {
     const version = event.pathParameters?.version ?? 'unknown';
 
     if (!SUPPORTED_VERSIONS.includes(version)) {
