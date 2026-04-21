@@ -1,27 +1,19 @@
 import { APIGatewayProxyResult } from 'aws-lambda';
-import { OCPIResponse } from '/opt/nodejs/db/base.model';
+import {
+  OCPIAuthorizerContext,
+  OCPIResponse,
+} from '/opt/nodejs/api/base.model';
+import { APIGatewayProxyEventV2WithLambdaAuthorizer } from 'aws-lambda/trigger/api-gateway-proxy';
+import { SUPPORTED_VERSIONS } from '/opt/nodejs/config.constants';
+import { ErrorHandler } from '/opt/nodejs/api/error/api-error-handler';
 
-export const prepareResponse = (data: unknown): APIGatewayProxyResult => ({
-  statusCode: 200,
-  headers: {
-    'Content-Type': 'application/json',
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Headers':
-      'Content-Type, X-Amz-Date, Authorization, X-Api-Key, X-Amz-Security-Token',
-    'Access-Control-Allow-Methods': 'OPTIONS,GET',
-  },
-  body: JSON.stringify(data),
-});
+const OCPI_HEADERS = {
+  'Content-Type': 'application/json',
+};
 
 export const prepareOCPIResponse = (data: unknown): APIGatewayProxyResult => ({
   statusCode: 200,
-  headers: {
-    'Content-Type': 'application/json',
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Headers':
-      'Content-Type, X-Amz-Date, Authorization, X-Api-Key, X-Amz-Security-Token',
-    'Access-Control-Allow-Methods': 'OPTIONS,GET',
-  },
+  headers: OCPI_HEADERS,
   body: JSON.stringify(ocpiSuccess(data)),
 });
 
@@ -36,3 +28,22 @@ const ocpiSuccess = <T>(
     timestamp: new Date().toISOString(),
   };
 };
+
+type OCPIHandler = (
+  event: APIGatewayProxyEventV2WithLambdaAuthorizer<OCPIAuthorizerContext>,
+  ocpiVersion: string,
+) => Promise<APIGatewayProxyResult>;
+
+export const withVersionCheck =
+  (handler: OCPIHandler) =>
+  async (
+    event: APIGatewayProxyEventV2WithLambdaAuthorizer<OCPIAuthorizerContext>,
+  ): Promise<APIGatewayProxyResult> => {
+    const version = event.pathParameters?.version ?? 'unknown';
+
+    if (!SUPPORTED_VERSIONS.includes(version)) {
+      return ErrorHandler.handleUnsupportedVersionError(version);
+    }
+
+    return handler(event, version);
+  };

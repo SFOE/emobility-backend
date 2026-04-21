@@ -1,0 +1,10 @@
+CPI Bootstrap Token (Token A)
+----------------------------------
+Plain Token (give to CPO):
+eac8239dae8c9369c3c95802807fe9896ec9903f4aa46de08614b90447898013
+
+Hash (store in DynamoDB):
+f88f85abd60e9a16a11ba16389a712223c04e46ed2b694881ee9e42c966adbca
+
+DynamoDB pk:
+TOKEN#f88f85abd60e9a16a11ba16389a712223c04e46ed2b694881ee9e42c966adbca

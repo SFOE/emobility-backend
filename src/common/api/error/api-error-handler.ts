@@ -1,6 +1,6 @@
 import { APIGatewayProxyResult } from 'aws-lambda';
 import { HttpError } from '/opt/nodejs/api/error/http-error';
-import { OCPIResponse } from '/opt/nodejs/db/base.model';
+import { OCPIResponse } from '/opt/nodejs/api/base.model';
 
 export class ErrorHandler {
   private static INTERNAL_SERVER_ERROR = 'Internal Server Error';
@@ -20,8 +20,9 @@ export class ErrorHandler {
   public static handleBadRequestError(
     ocpiStatusCode: number,
     message: string,
+    statusCode = 400,
   ): APIGatewayProxyResult {
-    return prepareOCPIErrorResponse(message, 400, ocpiStatusCode);
+    return prepareOCPIErrorResponse(message, statusCode, ocpiStatusCode);
   }
 
   public static handleUnsupportedVersionError(
