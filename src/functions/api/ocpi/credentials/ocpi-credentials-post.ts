@@ -5,26 +5,36 @@ import {
   withVersionCheck,
 } from '/opt/nodejs/utils/api.utils';
 import { OCPICredential } from '/opt/nodejs/db/ocpi-credentials/ocpi-credentials.model';
-import { invalidateBootstrapToken, saveNewCredentials } from '/opt/nodejs/db/ocpi-credentials/ocpi-credentials.db';
+import { getCredentials, invalidateBootstrapToken, saveNewCredentials } from '/opt/nodejs/db/ocpi-credentials/ocpi-credentials.db';
 import { generateToken } from '/opt/nodejs/utils/crypto.utils';
 import { BFE_ROLE } from '/opt/nodejs/config.constants';
 import { savePartySecret } from '/opt/nodejs/utils/secrets.utils';
-import { APIGatewayProxyEventV2WithLambdaAuthorizer } from 'aws-lambda/trigger/api-gateway-proxy';
-import { OCPIAuthorizerContext } from '/opt/nodejs/api/base.model';
+import { extractToken } from '/opt/nodejs/utils/ocpi-utils';
 
 export const handler = withVersionCheck(
-  async (
-    event: APIGatewayProxyEventV2WithLambdaAuthorizer<OCPIAuthorizerContext>,
-    authContext: OCPIAuthorizerContext,
-  ): Promise<APIGatewayProxyResult> => {
+  async (event): Promise<APIGatewayProxyResult> => {
     try {
-      if (!authContext.isBootstrap) {
+      const authHeader = event.headers?.authorization || event.headers?.Authorization;
+      const bootstrapToken = extractToken(authHeader)!;
+
+      // Fresh DynamoDB lookup — bypasses API Gateway authorizer cache
+      const tokenItem = await getCredentials(bootstrapToken);
+
+      if (tokenItem?.bootstrapToken === false) {
+        return ErrorHandler.handleBadRequestError(
+          2000,
+          'Initial Token was used before.',
+          405,
+        );
+      }
+      if (!tokenItem?.bootstrapToken) {
         return ErrorHandler.handleBadRequestError(
           2000,
           'Only bootstrap tokens are allowed, client already has a token!',
           405,
         );
       }
+
       const cpoCredentials: OCPICredential = JSON.parse(event.body ?? '{}');
 
       // Basic validation
@@ -44,7 +54,7 @@ export const handler = withVersionCheck(
       await saveNewCredentials(cpoCredentials, newToken, tokenBSecretRef);
 
       // invalidate the bootstrap token so it cannot be reused
-      await invalidateBootstrapToken(cpoCredentials.token);
+      await invalidateBootstrapToken(bootstrapToken);
 
       const response: OCPICredential = {
         token: newToken,
