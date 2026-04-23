@@ -14,12 +14,9 @@ import { OCPIAuthorizerContext } from '/opt/nodejs/api/base.model';
 export const handler = withVersionCheck(
   async (
     event: APIGatewayProxyEventV2WithLambdaAuthorizer<OCPIAuthorizerContext>,
+    authContext: OCPIAuthorizerContext,
   ): Promise<APIGatewayProxyResult> => {
     try {
-      // get Authorizer Context
-      const authContext = event.requestContext?.authorizer?.lambda || {};
-
-      console.log('Auth context:', authContext);
       if (!authContext.isBootstrap) {
         return ErrorHandler.handleBadRequestError(
           2000,
