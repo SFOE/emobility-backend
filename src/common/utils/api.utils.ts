@@ -31,6 +31,7 @@ const ocpiSuccess = <T>(
 
 type OCPIHandler = (
   event: APIGatewayProxyEventV2WithLambdaAuthorizer<OCPIAuthorizerContext>,
+  authContext: OCPIAuthorizerContext,
   ocpiVersion: string,
 ) => Promise<APIGatewayProxyResult>;
 
@@ -39,11 +40,13 @@ export const withVersionCheck =
   async (
     event: APIGatewayProxyEventV2WithLambdaAuthorizer<OCPIAuthorizerContext>,
   ): Promise<APIGatewayProxyResult> => {
+    // get Authorizer Context
+    const authContext = event.requestContext?.authorizer?.lambda || {};
     const version = event.pathParameters?.version ?? 'unknown';
 
     if (!SUPPORTED_VERSIONS.includes(version)) {
       return ErrorHandler.handleUnsupportedVersionError(version);
     }
 
-    return handler(event, version);
+    return handler(event, authContext, version);
   };
