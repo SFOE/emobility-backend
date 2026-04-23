@@ -1,4 +1,4 @@
-import { queryBySk, saveItem } from '/opt/nodejs/db/db-requests';
+import { queryBySk, saveItem, updateItem } from '/opt/nodejs/db/db-requests';
 import { OCPI_CREDENTIALS_TABLE_NAME } from '/opt/nodejs/db/db-table-names.constants';
 import {
   OCPICredential,
@@ -35,5 +35,17 @@ export const getCredentials = async (
     OCPI_CREDENTIALS_TABLE_NAME,
     `TOKEN#${tokenHash}`,
     'CREDENTIALS',
+  );
+};
+
+export const invalidateBootstrapToken = async (token: string): Promise<void> => {
+  const tokenHash = hashToken(token);
+
+  await updateItem(
+    OCPI_CREDENTIALS_TABLE_NAME,
+    `TOKEN#${tokenHash}`,
+    'CREDENTIALS',
+    'SET bootstrapToken = :val',
+    { ':val': false },
   );
 };

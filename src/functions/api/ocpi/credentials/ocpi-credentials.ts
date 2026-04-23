@@ -5,7 +5,7 @@ import {
   withVersionCheck,
 } from '/opt/nodejs/utils/api.utils';
 import { OCPICredential } from '/opt/nodejs/db/ocpi-credentials/ocpi-credentials.model';
-import { saveNewCredentials } from '/opt/nodejs/db/ocpi-credentials/ocpi-credentials.db';
+import { invalidateBootstrapToken, saveNewCredentials } from '/opt/nodejs/db/ocpi-credentials/ocpi-credentials.db';
 import { generateToken } from '/opt/nodejs/utils/crypto.utils';
 import { BFE_ROLE } from '/opt/nodejs/config.constants';
 import { savePartySecret } from '/opt/nodejs/utils/secrets.utils';
@@ -42,6 +42,9 @@ export const handler = withVersionCheck(
 
       // save credentials with secret reference instead of plaintext token
       await saveNewCredentials(cpoCredentials, newToken, tokenBSecretRef);
+
+      // invalidate the bootstrap token so it cannot be reused
+      await invalidateBootstrapToken(cpoCredentials.token);
 
       const response: OCPICredential = {
         token: newToken,
