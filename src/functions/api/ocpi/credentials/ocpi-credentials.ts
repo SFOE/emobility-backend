@@ -8,6 +8,7 @@ import { OCPICredential } from '/opt/nodejs/db/ocpi-credentials/ocpi-credentials
 import { saveNewCredentials } from '/opt/nodejs/db/ocpi-credentials/ocpi-credentials.db';
 import { generateToken } from '/opt/nodejs/utils/crypto.utils';
 import { BFE_ROLE } from '/opt/nodejs/config.constants';
+import { savePartySecret } from '/opt/nodejs/utils/secrets.utils';
 import { APIGatewayProxyEventV2WithLambdaAuthorizer } from 'aws-lambda/trigger/api-gateway-proxy';
 import { OCPIAuthorizerContext } from '/opt/nodejs/api/base.model';
 
@@ -38,6 +39,9 @@ export const handler = withVersionCheck(
 
       // save credentials
       await saveNewCredentials(cpoCredentials, newToken);
+
+      // save tokens in Secrets Manager
+      await savePartySecret(cpoCredentials.roles[0], cpoCredentials.token, newToken);
 
       const response: OCPICredential = {
         token: newToken,
