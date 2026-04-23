@@ -10,7 +10,8 @@
     "test": "jest",
     "test:watch": "jest --watch",
     "package": "yarn clean && yarn build && bash ./scripts/package.sh",
-    "generate:token": "ts-node scripts/generate-ocpi-token.ts"
+    "generate:token": "ts-node scripts/generate-ocpi-token.ts",
+    "hash:token": "ts-node scripts/hash-ocpi-token.ts"
   },
   "license": "EUPL-1.2",
   "dependencies": {

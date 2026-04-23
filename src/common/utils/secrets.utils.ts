@@ -10,17 +10,20 @@ import { OCPICredentialRole } from '/opt/nodejs/db/ocpi-credentials/ocpi-credent
 const secretsClient = new SecretsManagerClient({ region: Aws.region });
 
 export interface OCPIPartySecretValue {
-  tokenB: string;
-  tokenC: string;
+  CREDENTIALS_TOKEN_B: string;
+  CREDENTIALS_TOKEN_C: string;
 }
 
 export const savePartySecret = async (
   role: OCPICredentialRole,
   tokenB: string,
   tokenC: string,
-): Promise<void> => {
+): Promise<string> => {
   const secretName = `/emobility/ocpi/parties/${role.role}/${role.country_code}/${role.party_id}`;
-  const secretValue: OCPIPartySecretValue = { tokenB, tokenC };
+  const secretValue: OCPIPartySecretValue = {
+    CREDENTIALS_TOKEN_B: tokenB,
+    CREDENTIALS_TOKEN_C: tokenC,
+  };
   const secretString = JSON.stringify(secretValue);
 
   try {
@@ -42,4 +45,6 @@ export const savePartySecret = async (
       throw err;
     }
   }
+
+  return secretName;
 };

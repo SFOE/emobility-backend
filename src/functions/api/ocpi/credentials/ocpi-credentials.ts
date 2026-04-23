@@ -37,11 +37,11 @@ export const handler = withVersionCheck(
 
       const newToken = generateToken();
 
-      // save credentials
-      await saveNewCredentials(cpoCredentials, newToken);
+      // save tokens in Secrets Manager, use secret reference for DynamoDB
+      const tokenBSecretRef = await savePartySecret(cpoCredentials.roles[0], cpoCredentials.token, newToken);
 
-      // save tokens in Secrets Manager
-      await savePartySecret(cpoCredentials.roles[0], cpoCredentials.token, newToken);
+      // save credentials with secret reference instead of plaintext token
+      await saveNewCredentials(cpoCredentials, newToken, tokenBSecretRef);
 
       const response: OCPICredential = {
         token: newToken,
