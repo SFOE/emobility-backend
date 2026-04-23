@@ -1,6 +1,8 @@
 import {
   SecretsManagerClient,
   CreateSecretCommand,
+  DescribeSecretCommand,
+  ResourceNotFoundException,
 } from '@aws-sdk/client-secrets-manager';
 import { Aws } from '/opt/nodejs/aws.constants';
 import { OCPICredentialRole } from '/opt/nodejs/db/ocpi-credentials/ocpi-credentials.model';
@@ -52,4 +54,15 @@ export const savePartySecret = async (
 
   // Return the secret name so it can be stored as a reference in DynamoDB
   return secretName;
+};
+
+export const partySecretExists = async (role: OCPICredentialRole): Promise<boolean> => {
+  const secretName = `/emobility/ocpi/parties/${role.role}/${role.country_code}/${role.party_id}`;
+  try {
+    await secretsClient.send(new DescribeSecretCommand({ SecretId: secretName }));
+    return true;
+  } catch (err) {
+    if (err instanceof ResourceNotFoundException) return false;
+    throw err;
+  }
 };

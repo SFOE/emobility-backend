@@ -8,7 +8,7 @@ import { OCPICredential } from '/opt/nodejs/db/ocpi-credentials/ocpi-credentials
 import { getCredentials, invalidateBootstrapToken, saveNewCredentials } from '/opt/nodejs/db/ocpi-credentials/ocpi-credentials.db';
 import { generateToken } from '/opt/nodejs/utils/crypto.utils';
 import { BFE_ROLE } from '/opt/nodejs/config.constants';
-import { savePartySecret } from '/opt/nodejs/utils/secrets.utils';
+import { partySecretExists, savePartySecret } from '/opt/nodejs/utils/secrets.utils';
 import { extractToken } from '/opt/nodejs/utils/ocpi-utils';
 
 export const handler = withVersionCheck(
@@ -42,6 +42,14 @@ export const handler = withVersionCheck(
         return ErrorHandler.handleBadRequestError(
           2001,
           'Invalid credentials payload!',
+        );
+      }
+
+      if (await partySecretExists(cpoCredentials.roles[0])) {
+        return ErrorHandler.handleBadRequestError(
+          2001,
+          'CPO is already registered.',
+          405,
         );
       }
 
