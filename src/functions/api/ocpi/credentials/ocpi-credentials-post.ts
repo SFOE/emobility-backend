@@ -5,29 +5,21 @@ import {
   withVersionCheck,
 } from '/opt/nodejs/utils/api.utils';
 import { OCPICredential } from '/opt/nodejs/db/ocpi-credentials/ocpi-credentials.model';
-import { getCredentials, invalidateBootstrapToken, saveNewCredentials } from '/opt/nodejs/db/ocpi-credentials/ocpi-credentials.db';
+import { invalidateBootstrapToken, saveNewCredentials } from '/opt/nodejs/db/ocpi-credentials/ocpi-credentials.db';
 import { generateToken } from '/opt/nodejs/utils/crypto.utils';
 import { BFE_ROLE } from '/opt/nodejs/config.constants';
 import { partySecretExists, savePartySecret } from '/opt/nodejs/utils/secrets.utils';
 import { extractToken } from '/opt/nodejs/utils/ocpi-utils';
+import { APIGatewayProxyEventV2WithLambdaAuthorizer } from 'aws-lambda/trigger/api-gateway-proxy';
+import { OCPIAuthorizerContext } from '/opt/nodejs/api/base.model';
 
 export const handler = withVersionCheck(
-  async (event): Promise<APIGatewayProxyResult> => {
+  async (
+    event: APIGatewayProxyEventV2WithLambdaAuthorizer<OCPIAuthorizerContext>,
+    authContext: OCPIAuthorizerContext,
+  ): Promise<APIGatewayProxyResult> => {
     try {
-      const authHeader = event.headers?.authorization || event.headers?.Authorization;
-      const bootstrapToken = extractToken(authHeader)!;
-
-      // Fresh DynamoDB lookup — bypasses API Gateway authorizer cache
-      const tokenItem = await getCredentials(bootstrapToken);
-
-      if (tokenItem?.bootstrapToken === false) {
-        return ErrorHandler.handleBadRequestError(
-          2000,
-          'Initial Token was used before.',
-          405,
-        );
-      }
-      if (!tokenItem?.bootstrapToken) {
+      if (!authContext.isBootstrap) {
         return ErrorHandler.handleBadRequestError(
           2000,
           'Only bootstrap tokens are allowed, client already has a token!',
@@ -62,6 +54,8 @@ export const handler = withVersionCheck(
       await saveNewCredentials(cpoCredentials, newToken, tokenBSecretRef);
 
       // invalidate the bootstrap token so it cannot be reused
+      const authHeader = event.headers?.authorization || event.headers?.Authorization;
+      const bootstrapToken = extractToken(authHeader)!;
       await invalidateBootstrapToken(bootstrapToken);
 
       const response: OCPICredential = {
