@@ -5,6 +5,7 @@ import {
   QueryCommand,
   QueryCommandInput,
   ScanCommandInput,
+  UpdateCommand,
 } from '@aws-sdk/lib-dynamodb';
 import { dynamoDocClient } from '/opt/nodejs/aws.constants';
 
@@ -122,6 +123,29 @@ export const saveItem = async (
   } catch (err) {
     console.error(err);
     const message = `Error saving item to DynamoDB table ${tableName}`;
+    throw new Error(message);
+  }
+};
+
+export const updateItem = async (
+  tableName: string,
+  pk: string,
+  sk: string,
+  updateExpression: string,
+  expressionAttributeValues: Record<string, unknown>,
+): Promise<void> => {
+  try {
+    await dynamoDocClient.send(
+      new UpdateCommand({
+        TableName: tableName,
+        Key: { pk, sk },
+        UpdateExpression: updateExpression,
+        ExpressionAttributeValues: expressionAttributeValues,
+      }),
+    );
+  } catch (err) {
+    console.error(err);
+    const message = `Error updating item in DynamoDB table ${tableName}`;
     throw new Error(message);
   }
 };

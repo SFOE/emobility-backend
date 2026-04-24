@@ -10,12 +10,14 @@
     "test": "jest",
     "test:watch": "jest --watch",
     "package": "yarn clean && yarn build && bash ./scripts/package.sh",
-    "generate:token": "ts-node scripts/generate-ocpi-token.ts"
+    "generate:token": "ts-node scripts/generate-ocpi-token.ts",
+    "hash:token": "ts-node scripts/hash-ocpi-token.ts"
   },
   "license": "EUPL-1.2",
   "dependencies": {
     "@aws-sdk/client-dynamodb": "^3.1031.0",
     "@aws-sdk/client-lambda": "^3.1031.0",
+    "@aws-sdk/client-secrets-manager": "^3.1031.0",
     "@aws-sdk/lib-dynamodb": "^3.1031.0",
     "@aws-sdk/util-dynamodb": "^3.996.2"
   },
