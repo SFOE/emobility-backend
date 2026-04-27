@@ -10,6 +10,7 @@ export interface OCPICredential {
 export interface OCPICredentialItem extends OCPICredential, DbKeys {
   bootstrapToken?: boolean;
   createdAt: string;
+  updatedAt?: string;
 }
 
 export interface OCPICredentialRole {

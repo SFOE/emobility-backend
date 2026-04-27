@@ -49,3 +49,34 @@ export const invalidateBootstrapToken = async (token: string): Promise<void> => 
     { ':val': false },
   );
 };
+
+export const updateCredentials = async (
+    currentToken: string,
+    updatedCredentials: OCPICredential,
+): Promise<OCPICredentialItem | null> => {
+  // Load existing credentials by the currently valid token.
+  const existingCredentials = await getCredentials(currentToken);
+
+  if (!existingCredentials) {
+    return null;
+  }
+
+  // Keep the current lookup key until token rotation is handled via Secrets Manager.
+  const tokenHash = hashToken(currentToken);
+
+  const credentialItem: OCPICredentialItem = {
+    ...existingCredentials,
+    pk: `TOKEN#${tokenHash}`,
+    sk: 'CREDENTIALS',
+    token: updatedCredentials.token,
+    url: updatedCredentials.url,
+    hub_party_id: updatedCredentials.hub_party_id,
+    roles: updatedCredentials.roles,
+    updatedAt: new Date().toISOString(),
+  };
+
+  // Overwrite the existing credential item with the updated partner data.
+  await saveItem(OCPI_CREDENTIALS_TABLE_NAME, credentialItem);
+
+  return credentialItem;
+};
