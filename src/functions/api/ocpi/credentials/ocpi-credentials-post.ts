@@ -1,17 +1,14 @@
 import { APIGatewayProxyResult } from 'aws-lambda';
+import { APIGatewayProxyEventV2WithLambdaAuthorizer } from 'aws-lambda/trigger/api-gateway-proxy';
 import { ErrorHandler } from '/opt/nodejs/api/error/api-error-handler';
-import {
-  prepareOCPIResponse,
-  withVersionCheck,
-} from '/opt/nodejs/utils/api.utils';
+import { OCPIAuthorizerContext } from '/opt/nodejs/api/base.model';
+import { prepareOCPIResponse, withVersionCheck } from '/opt/nodejs/utils/api.utils';
 import { OCPICredential } from '/opt/nodejs/db/ocpi-credentials/ocpi-credentials.model';
 import { invalidateBootstrapToken, saveNewCredentials } from '/opt/nodejs/db/ocpi-credentials/ocpi-credentials.db';
-import { generateToken } from '/opt/nodejs/utils/crypto.utils';
 import { BFE_ROLE } from '/opt/nodejs/config.constants';
+import { generateToken } from '/opt/nodejs/utils/crypto.utils';
 import { partySecretExists, savePartySecret } from '/opt/nodejs/utils/secrets.utils';
-import { extractToken } from '/opt/nodejs/utils/ocpi-utils';
-import { APIGatewayProxyEventV2WithLambdaAuthorizer } from 'aws-lambda/trigger/api-gateway-proxy';
-import { OCPIAuthorizerContext } from '/opt/nodejs/api/base.model';
+import { extractToken, validateCredentialsPayload } from '/opt/nodejs/utils/ocpi-utils';
 
 export const handler = withVersionCheck(
   async (
@@ -19,54 +16,71 @@ export const handler = withVersionCheck(
     authContext: OCPIAuthorizerContext,
   ): Promise<APIGatewayProxyResult> => {
     try {
+      // Fail fast on missing config before any business logic or async work
+      if (!process.env.BASE_URL) {
+        throw new Error('BASE_URL environment variable is not set');
+      }
+
+      // Only bootstrap tokens are permitted for the initial registration handshake
       if (!authContext.isBootstrap) {
-        return ErrorHandler.handleBadRequestError(
-          2000,
-          'Only bootstrap tokens are allowed, client already has a token!',
-          405,
-        );
+        console.warn(`[OCPI][credentials/post] Rejected — ${authContext.partnerId} is already registered`);
+        return ErrorHandler.handleBadRequestError(2000, 'Only bootstrap tokens are allowed, client already has a token!', 405);
       }
 
-      const cpoCredentials: OCPICredential = JSON.parse(event.body ?? '{}');
-
-      // Basic validation
-      if (!cpoCredentials.token) {
-        return ErrorHandler.handleBadRequestError(
-          2001,
-          'Invalid credentials payload!',
-        );
+      // Reject requests without a body before attempting to parse
+      if (!event.body) {
+        console.warn(`[OCPI][credentials/post] Rejected — missing request body from ${authContext.partnerId}`);
+        return ErrorHandler.handleBadRequestError(2001, 'Request body is missing!');
       }
 
-      if (await partySecretExists(cpoCredentials.roles[0])) {
-        return ErrorHandler.handleBadRequestError(
-          2001,
-          'CPO is already registered.',
-          405,
-        );
+      // Parse the incoming credentials payload
+      let credentials: OCPICredential;
+      try {
+        credentials = JSON.parse(event.body);
+      } catch {
+        console.warn(`[OCPI][credentials/post] Rejected — invalid JSON body from ${authContext.partnerId}`);
+        return ErrorHandler.handleBadRequestError(2001, 'Invalid request body: expected JSON!');
       }
 
+      // Prefer the CPO role as primary identifier; fall back to first entry for non-CPO parties
+      const primaryRole = credentials.roles?.find((r) => r.role === 'CPO') ?? credentials.roles?.[0];
+      const partyRef = `${primaryRole?.role}/${primaryRole?.country_code}/${primaryRole?.party_id}`;
+
+      // Validate token and primary role fields according to the OCPI credentials spec
+      const validationError = validateCredentialsPayload(credentials, primaryRole);
+      if (validationError) {
+        console.warn(`[OCPI][credentials/post] Validation failed for ${authContext.partnerId}:`, validationError);
+        return ErrorHandler.handleBadRequestError(2001, validationError);
+      }
+
+      // Prevent duplicate registrations for the same party
+      if (await partySecretExists(primaryRole)) {
+        console.warn(`[OCPI][credentials/post] Rejected — already registered: ${partyRef}`);
+        return ErrorHandler.handleBadRequestError(2001, `${partyRef} is already registered.`, 405);
+      }
+
+      // Generate TOKEN_C and persist both tokens; DynamoDB holds only the Secrets Manager reference
       const newToken = generateToken();
+      const tokenBSecretRef = await savePartySecret(primaryRole, credentials.token, newToken);
+      await saveNewCredentials(credentials, newToken, tokenBSecretRef);
 
-      // save tokens in Secrets Manager, use secret reference for DynamoDB
-      const tokenBSecretRef = await savePartySecret(cpoCredentials.roles[0], cpoCredentials.token, newToken);
-
-      // save credentials with secret reference instead of plaintext token
-      await saveNewCredentials(cpoCredentials, newToken, tokenBSecretRef);
-
-      // invalidate the bootstrap token so it cannot be reused
-      const authHeader = event.headers?.authorization || event.headers?.Authorization;
-      const bootstrapToken = extractToken(authHeader)!;
+      // Bootstrap token is single-use; invalidate it now that registration succeeded
+      const bootstrapToken = extractToken(event.headers?.authorization || event.headers?.Authorization);
+      if (!bootstrapToken) {
+        throw new Error('Bootstrap token could not be extracted from authorization header');
+      }
       await invalidateBootstrapToken(bootstrapToken);
 
-      const response: OCPICredential = {
+      console.info(`[OCPI][credentials/post] Registration successful: ${partyRef}`);
+
+      // Return BFE's own credentials (TOKEN_C + versions URL + role) to the registering party
+      return prepareOCPIResponse({
         token: newToken,
         url: `${process.env.BASE_URL}/ocpi/versions`,
         roles: [BFE_ROLE],
-      };
-
-      return prepareOCPIResponse(response);
+      } satisfies OCPICredential);
     } catch (err) {
-      console.error(err);
+      console.error(`[OCPI][credentials/post] Unexpected error for party ${authContext.partnerId}:`, err);
       return ErrorHandler.handleError(err);
     }
   },
