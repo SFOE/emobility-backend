@@ -2,7 +2,7 @@ import { APIGatewayProxyResult } from 'aws-lambda';
 import { APIGatewayProxyEventV2WithLambdaAuthorizer } from 'aws-lambda/trigger/api-gateway-proxy';
 import { ErrorHandler } from '/opt/nodejs/api/error/api-error-handler';
 import { OCPIAuthorizerContext } from '/opt/nodejs/api/base.model';
-import { prepareOCPIResponse, withVersionCheck } from '/opt/nodejs/utils/api.utils';
+import { parseRequestBody, prepareOCPIResponse, withVersionCheck } from '/opt/nodejs/utils/api.utils';
 import { OCPICredential } from '/opt/nodejs/db/ocpi-credentials/ocpi-credentials.model';
 import { invalidateBootstrapToken, saveNewCredentials } from '/opt/nodejs/db/ocpi-credentials/ocpi-credentials.db';
 import { BFE_ROLE } from '/opt/nodejs/config.constants';
@@ -27,20 +27,13 @@ export const handler = withVersionCheck(
         return ErrorHandler.handleBadRequestError(2000, 'Only bootstrap tokens are allowed, client already has a token!', 405);
       }
 
-      // Reject requests without a body before attempting to parse
-      if (!event.body) {
-        console.warn(`[OCPI][credentials/post] Rejected — missing request body from ${authContext.partnerId}`);
-        return ErrorHandler.handleBadRequestError(2001, 'Request body is missing!');
+      // Parse and validate the incoming credentials payload
+      const bodyResult = parseRequestBody<OCPICredential>(event.body);
+      if (!bodyResult.ok) {
+        console.warn(`[OCPI][credentials/post] Rejected — invalid or missing request body from ${authContext.partnerId}`);
+        return bodyResult.error;
       }
-
-      // Parse the incoming credentials payload
-      let credentials: OCPICredential;
-      try {
-        credentials = JSON.parse(event.body);
-      } catch {
-        console.warn(`[OCPI][credentials/post] Rejected — invalid JSON body from ${authContext.partnerId}`);
-        return ErrorHandler.handleBadRequestError(2001, 'Invalid request body: expected JSON!');
-      }
+      const credentials = bodyResult.data;
 
       // Prefer the CPO role as primary identifier; fall back to first entry for non-CPO parties
       const primaryRole = credentials.roles?.find((r) => r.role === 'CPO') ?? credentials.roles?.[0];
