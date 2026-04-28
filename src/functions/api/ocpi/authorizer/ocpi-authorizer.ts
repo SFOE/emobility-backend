@@ -27,8 +27,7 @@ export const handler = async (event: APIGatewayRequestAuthorizerEventV2) => {
     const context: OCPIAuthorizerContext = {
       isBootstrap: item.bootstrapToken ?? false,
       partnerId: getPartnerId(item),
-      // DynamoDB stores the Secrets Manager reference in the token field.
-      credentialsSecretRef: item.token,
+      credentialsSecretRef: item.credentialsSecretRef,
     };
 
     // Successfully authenticated

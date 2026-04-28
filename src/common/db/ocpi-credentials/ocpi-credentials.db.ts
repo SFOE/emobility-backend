@@ -9,15 +9,16 @@ import { hashToken } from '/opt/nodejs/utils/crypto.utils';
 export const saveNewCredentials = async (
   credentials: OCPICredential,
   generatedToken: string,
-  tokenBSecretRef: string,
+  credentialsSecretRef: string,
 ): Promise<void> => {
   // hash new generated access token
   const tokenHash = hashToken(generatedToken);
   const credentialItem: OCPICredentialItem = {
     pk: `TOKEN#${tokenHash}`,
     sk: 'CREDENTIALS',
-    token: tokenBSecretRef,
+    credentialsSecretRef: credentialsSecretRef,
     url: credentials.url,
+    hub_party_id: credentials.hub_party_id,
     roles: credentials.roles,
     createdAt: new Date().toISOString(),
   };
