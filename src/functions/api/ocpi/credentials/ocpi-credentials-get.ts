@@ -8,7 +8,7 @@ import {
 } from '/opt/nodejs/utils/api.utils';
 import { OCPICredential } from '/opt/nodejs/db/ocpi-credentials/ocpi-credentials.model';
 import { getPartySecret } from '/opt/nodejs/utils/secrets.utils';
-import { BFE_ROLE } from '/opt/nodejs/config.constants';
+import { BFE_ROLE, BFE_HUB_PARTY_ID } from '/opt/nodejs/config.constants';
 
 /**
  * Handles GET /ocpi/{version}/credentials.
@@ -54,6 +54,7 @@ export const handler = withVersionCheck(
             const response: OCPICredential = {
                 token: partySecret.CREDENTIALS_TOKEN_C,
                 url: `${process.env.BASE_URL}/ocpi/versions`,
+                hub_party_id: BFE_HUB_PARTY_ID,
                 roles: [BFE_ROLE],
             };
 
