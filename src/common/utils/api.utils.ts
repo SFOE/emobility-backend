@@ -7,6 +7,19 @@ import { APIGatewayProxyEventV2WithLambdaAuthorizer } from 'aws-lambda/trigger/a
 import { SUPPORTED_VERSIONS } from '/opt/nodejs/config.constants';
 import { ErrorHandler } from '/opt/nodejs/api/error/api-error-handler';
 
+type ParseBodyResult<T> = { ok: true; data: T } | { ok: false; error: APIGatewayProxyResult };
+
+export function parseRequestBody<T>(body: string | undefined): ParseBodyResult<T> {
+  if (!body) {
+    return { ok: false, error: ErrorHandler.handleBadRequestError(2001, 'Request body is missing!') };
+  }
+  try {
+    return { ok: true, data: JSON.parse(body) as T };
+  } catch {
+    return { ok: false, error: ErrorHandler.handleBadRequestError(2001, 'Invalid request body: expected JSON!') };
+  }
+}
+
 const OCPI_HEADERS = {
   'Content-Type': 'application/json',
 };

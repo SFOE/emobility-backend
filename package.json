@@ -7,8 +7,10 @@
     "build": "tsc",
     "clean": "bash ./scripts/clean.sh",
     "lint": "eslint src",
-    "test": "jest",
-    "test:watch": "jest --watch",
+    "test:unit": "jest --config jest.unit.config.js --verbose",
+    "test:unit:watch": "jest --config jest.unit.config.js --watch",
+    "test:integration": "node --experimental-vm-modules node_modules/.bin/jest --config jest.integration.config.js --verbose",
+    "test:integration:watch": "node --experimental-vm-modules node_modules/.bin/jest --config jest.integration.config.js --watch",
     "package": "yarn clean && yarn build && bash ./scripts/package.sh",
     "generate:token": "ts-node scripts/generate-ocpi-token.ts",
     "hash:token": "ts-node scripts/hash-ocpi-token.ts"
@@ -31,6 +33,7 @@
     "jest": "^30.0.0",
     "prettier": "^3.8.3",
     "ts-jest": "^29.4.9",
+    "testcontainers": "^10.13.0",
     "ts-node": "^10.9.2",
     "typescript": "^5.9.3"
   },
