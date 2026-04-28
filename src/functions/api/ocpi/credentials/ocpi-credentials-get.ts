@@ -6,9 +6,7 @@ import {
     prepareOCPIResponse,
     withVersionCheck,
 } from '/opt/nodejs/utils/api.utils';
-import { getCredentials } from '/opt/nodejs/db/ocpi-credentials/ocpi-credentials.db';
 import { OCPICredential } from '/opt/nodejs/db/ocpi-credentials/ocpi-credentials.model';
-import { extractToken } from '/opt/nodejs/utils/ocpi-utils';
 import { getPartySecret } from '/opt/nodejs/utils/secrets.utils';
 import { BFE_ROLE } from '/opt/nodejs/config.constants';
 
@@ -18,45 +16,34 @@ import { BFE_ROLE } from '/opt/nodejs/config.constants';
  */
 export const handler = withVersionCheck(
     async (
-        event: APIGatewayProxyEventV2WithLambdaAuthorizer<OCPIAuthorizerContext>,
+        _event: APIGatewayProxyEventV2WithLambdaAuthorizer<OCPIAuthorizerContext>,
+        authContext: OCPIAuthorizerContext,
     ): Promise<APIGatewayProxyResult> => {
         try {
-
-            const authorizationHeader =
-                event.headers.authorization ?? event.headers.Authorization;
-
-            if (!authorizationHeader) {
-                return ErrorHandler.handleBadRequestError(
-                    2001,
-                    'Missing Authorization header!',
-                    401,
-                );
+            if (!process.env.BASE_URL) {
+                throw new Error('BASE_URL environment variable is not set');
             }
 
-            const token = extractToken(authorizationHeader);
-
-            if (!token) {
-                return ErrorHandler.handleBadRequestError(
-                    2001,
-                    'Invalid Authorization header!',
-                    401,
+            if (!authContext.credentialsSecretRef) {
+                console.warn(
+                    `[OCPI][credentials/get] Rejected — missing credentials secret reference for ${authContext.partnerId}`,
                 );
-            }
 
-            const credentials = await getCredentials(token);
-
-            if (!credentials) {
                 return ErrorHandler.handleBadRequestError(
                     2000,
-                    'Credentials not found!',
+                    'Credentials secret reference not found!',
                     404,
                 );
             }
 
-            // DynamoDB stores the Secrets Manager reference instead of the plaintext token.
-            const partySecret = await getPartySecret(credentials.token);
+            // Load TOKEN_C from Secrets Manager using the reference provided by the authorizer.
+            const partySecret = await getPartySecret(authContext.credentialsSecretRef);
 
             if (!partySecret) {
+                console.warn(
+                    `[OCPI][credentials/get] Rejected — credentials secret not found for ${authContext.partnerId}`,
+                );
+
                 return ErrorHandler.handleBadRequestError(
                     2000,
                     'Credentials secret not found!',
@@ -72,7 +59,10 @@ export const handler = withVersionCheck(
 
             return prepareOCPIResponse(response);
         } catch (err) {
-            console.error('[OCPI][credentials/get] Unexpected error:', err);
+            console.error(
+                `[OCPI][credentials/get] Unexpected error for party ${authContext.partnerId}:`,
+                err,
+            );
             return ErrorHandler.handleError(err);
         }
     },
