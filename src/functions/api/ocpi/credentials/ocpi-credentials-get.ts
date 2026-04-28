@@ -66,8 +66,7 @@ export const handler = withVersionCheck(
 
             const response: OCPICredential = {
                 token: partySecret.CREDENTIALS_TOKEN_C,
-                url: credentials.url,
-                hub_party_id: credentials.hub_party_id,
+                url: `${process.env.BASE_URL}/ocpi/versions`,
                 roles: [BFE_ROLE],
             };
 
