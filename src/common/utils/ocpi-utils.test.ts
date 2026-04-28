@@ -1,29 +1,28 @@
 import { extractToken, getPartnerId } from './ocpi-utils';
 import {
-  OCPICredential,
   OCPICredentialItem,
 } from '/opt/nodejs/db/ocpi-credentials/ocpi-credentials.model';
 
 describe('test getPartnerId', () => {
   it('returns CPO role if present', () => {
-    const credentials = {
+    const credentialsItem = {
       roles: [
         { role: 'EMSP', party_id: 'ABC', country_code: 'DE' },
         { role: 'CPO', party_id: 'XYZ', country_code: 'CH' },
       ],
-    } as OCPICredential;
+    } as OCPICredentialItem;
 
-    const result = getPartnerId(credentials);
+    const result = getPartnerId(credentialsItem);
 
     expect(result).toBe('CPO-XYZ-CH');
   });
 
   it('falls back to first role if no CPO exists', () => {
-    const credentials = {
+    const credentialsItem = {
       roles: [{ role: 'EMSP', party_id: 'ABC', country_code: 'DE' }],
-    } as OCPICredential;
+    } as OCPICredentialItem;
 
-    const result = getPartnerId(credentials);
+    const result = getPartnerId(credentialsItem);
 
     expect(result).toBe('EMSP-ABC-DE');
   });

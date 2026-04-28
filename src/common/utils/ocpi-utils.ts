@@ -1,4 +1,8 @@
-import { OCPICredential, OCPICredentialRole } from '/opt/nodejs/db/ocpi-credentials/ocpi-credentials.model';
+import {
+  OCPICredential,
+  OCPICredentialItem,
+  OCPICredentialRole
+} from '/opt/nodejs/db/ocpi-credentials/ocpi-credentials.model';
 
 export function validateCredentialsPayload(credentials: OCPICredential, primaryRole: OCPICredentialRole | undefined): string | null {
   if (!credentials.token) {
@@ -28,7 +32,7 @@ export function validateCredentialsPayload(credentials: OCPICredential, primaryR
   return null;
 }
 
-export const getPartnerId = (credentials: OCPICredential): string => {
+export const getPartnerId = (credentials: OCPICredentialItem): string => {
   if (credentials?.roles?.length > 0) {
     const role =
       credentials.roles.find((role) => role.role === 'CPO') ??

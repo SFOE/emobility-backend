@@ -7,7 +7,11 @@ export interface OCPICredential {
   roles: OCPICredentialRole[];
 }
 
-export interface OCPICredentialItem extends OCPICredential, DbKeys {
+export interface OCPICredentialItem extends DbKeys {
+  secretRef: string;
+  url: string;
+  hub_party_id?: string;
+  roles: OCPICredentialRole[];
   bootstrapToken?: boolean;
   createdAt: string;
 }
