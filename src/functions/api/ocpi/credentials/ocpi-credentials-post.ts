@@ -54,8 +54,8 @@ export const handler = withVersionCheck(
 
       // Generate TOKEN_C and persist both tokens; DynamoDB holds only the Secrets Manager reference
       const newToken = generateToken();
-      const tokenBSecretRef = await savePartySecret(primaryRole, credentials.token, newToken);
-      await saveNewCredentials(credentials, newToken, tokenBSecretRef);
+      const secretRef = await savePartySecret(primaryRole, credentials.token, newToken);
+      await saveNewCredentials(credentials, newToken, secretRef);
 
       // Bootstrap token is single-use; invalidate it now that registration succeeded
       const bootstrapToken = extractToken(event.headers?.authorization || event.headers?.Authorization);

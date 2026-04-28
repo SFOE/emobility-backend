@@ -8,7 +8,7 @@ export interface OCPICredential {
 }
 
 export interface OCPICredentialItem extends DbKeys {
-  credentialsSecretRef: string;
+  secretRef: string;
   url: string;
   hub_party_id?: string;
   roles: OCPICredentialRole[];

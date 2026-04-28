@@ -24,7 +24,7 @@ export const handler = withVersionCheck(
                 throw new Error('BASE_URL environment variable is not set');
             }
 
-            if (!authContext.credentialsSecretRef) {
+            if (!authContext.secretRef) {
                 console.warn(
                     `[OCPI][credentials/get] Rejected — missing credentials secret reference for ${authContext.partnerId}`,
                 );
@@ -37,7 +37,7 @@ export const handler = withVersionCheck(
             }
 
             // Load TOKEN_C from Secrets Manager using the reference provided by the authorizer.
-            const partySecret = await getPartySecret(authContext.credentialsSecretRef);
+            const partySecret = await getPartySecret(authContext.secretRef);
 
             if (!partySecret) {
                 console.warn(
