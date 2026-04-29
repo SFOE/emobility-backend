@@ -27,6 +27,7 @@ export const handler = async (event: APIGatewayRequestAuthorizerEventV2) => {
     const context: OCPIAuthorizerContext = {
       isBootstrap: item.bootstrapToken ?? false,
       partnerId: getPartnerId(item),
+      secretRef: item.secretRef,
     };
 
     // Successfully authenticated

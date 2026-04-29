@@ -44,7 +44,7 @@ jobs:
 
       # Run automated tests
       - name: Run tests
-        run: yarn test --passWithNoTests
+        run: yarn test:unit
 
       # Build TypeScript output
       - name: Build application

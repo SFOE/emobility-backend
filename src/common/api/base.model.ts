@@ -8,4 +8,5 @@ export interface OCPIResponse<T> {
 export interface OCPIAuthorizerContext {
   isBootstrap: boolean;
   partnerId: string;
+  secretRef?: string;
 }

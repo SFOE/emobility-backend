@@ -10,3 +10,5 @@ export const BFE_ROLE: OCPICredentialRole = {
   party_id: 'BFE',
   country_code: 'CH',
 };
+
+export const BFE_HUB_PARTY_ID = `${BFE_ROLE.country_code}${BFE_ROLE.party_id}`;
