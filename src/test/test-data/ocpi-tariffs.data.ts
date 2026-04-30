@@ -3,8 +3,8 @@ import { Tariff } from '../../common/db/ocpi-tariffs/ocpi-tariffs.model';
 // A minimal but realistic tariff: 0.35 CHF/kWh, 7.7% VAT, taxes included.
 export const VALID_TARIFF: Tariff = {
   country_code: 'DE',
-  party_id: 'XYZ',
-  id: 'TARIFF-001',
+  party_id: 'EMSP',
+  id: 'KKK',
   currency: 'CHF',
   elements: [
     {

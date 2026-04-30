@@ -7,6 +7,9 @@ const { country_code, party_id } = VALID_TARIFF;
 export const CPO_AUTH_CONTEXT: OCPIAuthorizerContext = {
   isBootstrap: false,
   partnerId: `CPO-${party_id}-${country_code}`,
+  role: 'CPO',
+  country_code,
+  party_id,
 };
 
 // Builds a full API Gateway event for PUT /tariffs with sensible defaults; individual fields can be overridden.

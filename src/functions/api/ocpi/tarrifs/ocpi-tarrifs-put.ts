@@ -17,6 +17,12 @@ export const handler = withVersionCheck(
         return ErrorHandler.handleBadRequestError(2000, 'Bootstrap tokens are not allowed for tariff operations.', 405);
       }
 
+      // Only CPOs are the data owner of tariffs per OCPI spec
+      if (authContext.role !== 'CPO') {
+        console.warn(`[OCPI][tarrifs/put] Rejected — non-CPO role '${authContext.role}' used by ${authContext.partnerId}`);
+        return ErrorHandler.handleBadRequestError(2000, 'Only CPOs are allowed to push tariffs.', 405);
+      }
+
       // Parse and validate the incoming tariff payload
       const bodyResult = parseRequestBody<Tariff>(event.body);
       if (!bodyResult.ok) {
@@ -25,18 +31,24 @@ export const handler = withVersionCheck(
       }
       const tariff = bodyResult.data;
 
-      // Enforce Client Owned Objects: path params must match the body identifiers
       const pathCountryCode = event.pathParameters?.country_code;
       const pathPartyId = event.pathParameters?.party_id;
       const pathTariffId = event.pathParameters?.tariff_id;
 
+      // Enforce Client Owned Objects: authenticated party must own the namespace in the path
+      if (authContext.country_code !== pathCountryCode || authContext.party_id !== pathPartyId) {
+        console.warn(`[OCPI][tarrifs/put] Rejected — ownership mismatch for ${authContext.partnerId}: auth=${authContext.country_code}/${authContext.party_id}, path=${pathCountryCode}/${pathPartyId}`);
+        return ErrorHandler.handleBadRequestError(2001, 'Authenticated party does not own this tariff namespace.');
+      }
+
+      // Enforce body consistency: path params must match the body identifiers
       if (
         tariff.country_code !== pathCountryCode ||
         tariff.party_id !== pathPartyId ||
         tariff.id !== pathTariffId
       ) {
         const partyRef = `${pathCountryCode}/${pathPartyId}/${pathTariffId}`;
-        console.warn(`[OCPI][tarrifs/put] Rejected — ownership mismatch for ${authContext.partnerId}: path=${partyRef}, body=${tariff.country_code}/${tariff.party_id}/${tariff.id}`);
+        console.warn(`[OCPI][tarrifs/put] Rejected — body mismatch for ${authContext.partnerId}: path=${partyRef}, body=${tariff.country_code}/${tariff.party_id}/${tariff.id}`);
         return ErrorHandler.handleBadRequestError(2001, 'Tariff identifiers in path and body do not match.');
       }
 

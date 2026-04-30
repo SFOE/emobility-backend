@@ -11,23 +11,33 @@ describe('ocpi-tarrifs-put handler', () => {
   // Bootstrap tokens are single-use for the credentials handshake — not for tariff pushes.
   describe('bootstrap token guard', () => {
     it('rejects with 405 and OCPI 2000 when a bootstrap token is used', async () => {
-      const result = await handler(buildEvent({ authContext: { isBootstrap: true, partnerId: 'CPO-XYZ-DE' } }));
+      const result = await handler(buildEvent({ authContext: { isBootstrap: true, partnerId: 'CPO-XYZ-DE', role: 'CPO' } }));
 
       expect(result.statusCode).toBe(405);
       expect(parseBody(result).status_code).toBe(2000);
     });
   });
 
-  // Client Owned Objects: the CPO may only write to its own namespace.
+  // Only CPOs are data owners of tariffs per OCPI spec.
+  describe('role guard', () => {
+    it('rejects with 405 and OCPI 2000 when a non-CPO role pushes a tariff', async () => {
+      const result = await handler(buildEvent({ authContext: { isBootstrap: false, partnerId: 'EMSP-XYZ-DE', role: 'EMSP' } }));
+
+      expect(result.statusCode).toBe(405);
+      expect(parseBody(result).status_code).toBe(2000);
+    });
+  });
+
+  // Client Owned Objects: authenticated party must own the namespace in the path.
   describe('ownership guard', () => {
-    it('rejects with 400 and OCPI 2001 when country_code in body does not match path', async () => {
+    it('rejects with 400 and OCPI 2001 when authenticated country_code does not match path', async () => {
       const result = await handler(buildEvent({ country_code: 'CH' }));
 
       expect(result.statusCode).toBe(400);
       expect(parseBody(result).status_code).toBe(2001);
     });
 
-    it('rejects with 400 and OCPI 2001 when party_id in body does not match path', async () => {
+    it('rejects with 400 and OCPI 2001 when authenticated party_id does not match path', async () => {
       const result = await handler(buildEvent({ party_id: 'AAA' }));
 
       expect(result.statusCode).toBe(400);

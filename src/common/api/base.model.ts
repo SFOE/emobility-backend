@@ -9,4 +9,7 @@ export interface OCPIAuthorizerContext {
   isBootstrap: boolean;
   partnerId: string;
   secretRef?: string;
+  role?: string;
+  country_code?: string;
+  party_id?: string;
 }
