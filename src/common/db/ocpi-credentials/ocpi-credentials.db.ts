@@ -7,9 +7,9 @@ import {
 import { hashToken } from '/opt/nodejs/utils/crypto.utils';
 
 export const saveNewCredentials = async (
-  credentials: OCPICredential,
-  generatedToken: string,
-  secretRef: string,
+    credentials: OCPICredential,
+    generatedToken: string,
+    secretRef: string,
 ): Promise<void> => {
   // hash new generated access token
   const tokenHash = hashToken(generatedToken);
@@ -28,14 +28,14 @@ export const saveNewCredentials = async (
 };
 
 export const getCredentials = async (
-  token: string,
+    token: string,
 ): Promise<OCPICredentialItem | null> => {
   const tokenHash = hashToken(token);
 
   return await queryBySk<OCPICredentialItem>(
-    OCPI_CREDENTIALS_TABLE_NAME,
-    `TOKEN#${tokenHash}`,
-    'CREDENTIALS',
+      OCPI_CREDENTIALS_TABLE_NAME,
+      `TOKEN#${tokenHash}`,
+      'CREDENTIALS',
   );
 };
 
@@ -43,41 +43,10 @@ export const invalidateBootstrapToken = async (token: string): Promise<void> => 
   const tokenHash = hashToken(token);
 
   await updateItem(
-    OCPI_CREDENTIALS_TABLE_NAME,
-    `TOKEN#${tokenHash}`,
-    'CREDENTIALS',
-    'SET bootstrapToken = :val',
-    { ':val': false },
+      OCPI_CREDENTIALS_TABLE_NAME,
+      `TOKEN#${tokenHash}`,
+      'CREDENTIALS',
+      'SET bootstrapToken = :val',
+      { ':val': false },
   );
-};
-
-export const updateCredentials = async (
-    currentToken: string,
-    updatedCredentials: OCPICredential,
-): Promise<OCPICredentialItem | null> => {
-  // Load existing credentials by the currently valid token.
-  const existingCredentials = await getCredentials(currentToken);
-
-  if (!existingCredentials) {
-    return null;
-  }
-
-  // Keep the current lookup key until token rotation is handled via Secrets Manager.
-  const tokenHash = hashToken(currentToken);
-
-  const credentialItem: OCPICredentialItem = {
-    ...existingCredentials,
-    pk: `TOKEN#${tokenHash}`,
-    sk: 'CREDENTIALS',
-    token: updatedCredentials.token,
-    url: updatedCredentials.url,
-    hub_party_id: updatedCredentials.hub_party_id,
-    roles: updatedCredentials.roles,
-    updatedAt: new Date().toISOString(),
-  };
-
-  // Overwrite the existing credential item with the updated partner data.
-  await saveItem(OCPI_CREDENTIALS_TABLE_NAME, credentialItem);
-
-  return credentialItem;
 };
