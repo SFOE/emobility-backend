@@ -9,7 +9,7 @@ import { handler } from './ocpi-credentials-post';
 import { partySecretExists, savePartySecret } from '/opt/nodejs/utils/secrets.utils';
 import { saveNewCredentials, invalidateBootstrapToken } from '/opt/nodejs/db/ocpi-credentials/ocpi-credentials.db';
 import { generateToken } from '/opt/nodejs/utils/crypto.utils';
-import { extractToken } from '/opt/nodejs/utils/ocpi-utils';
+import { extractToken, getPrimaryRole, validateCredentialsPayload } from '/opt/nodejs/utils/ocpi-utils';
 import { BFE_ROLE } from '/opt/nodejs/config.constants';
 import { buildEvent } from '../../../../test/fixtures/ocpi-credentials.fixture';
 import { BOOTSTRAP_TOKEN, SECRET_ID, VALID_CREDENTIAL } from '../../../../test/test-data/ocpi-credentials.data';
@@ -21,6 +21,9 @@ const mockSaveNewCredentials = saveNewCredentials as jest.MockedFunction<typeof 
 const mockInvalidateBootstrapToken = invalidateBootstrapToken as jest.MockedFunction<typeof invalidateBootstrapToken>;
 const mockGenerateToken = generateToken as jest.MockedFunction<typeof generateToken>;
 const mockExtractToken = extractToken as jest.MockedFunction<typeof extractToken>;
+const mockGetPrimaryRole = getPrimaryRole as jest.MockedFunction<typeof getPrimaryRole>;
+const mockValidateCredentialsPayload =
+    validateCredentialsPayload as jest.MockedFunction<typeof validateCredentialsPayload>;
 
 // Parses the JSON body from a handler result.
 function parseBody(result: APIGatewayProxyResult) {
@@ -42,6 +45,9 @@ describe('ocpi-credentials-post handler', () => {
     mockSaveNewCredentials.mockResolvedValue(undefined);
     mockExtractToken.mockReturnValue(BOOTSTRAP_TOKEN);
     mockInvalidateBootstrapToken.mockResolvedValue(undefined);
+
+    mockGetPrimaryRole.mockReturnValue(VALID_CREDENTIAL.roles[0]);
+    mockValidateCredentialsPayload.mockReturnValue(null);
   });
 
   // BASE_URL is required — without it the handler cannot build its versions URL.
