@@ -28,6 +28,7 @@ export const handler = async (event: APIGatewayRequestAuthorizerEventV2) => {
       isBootstrap: item.bootstrapToken ?? false,
       partnerId: getPartnerId(item),
       secretRef: item.secretRef,
+      credentialPk: item.pk
     };
 
     // Successfully authenticated

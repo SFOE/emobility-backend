@@ -1,5 +1,5 @@
 import {
-  DeleteCommand
+  DeleteCommand,
   GetCommand,
   GetCommandInput,
   PutCommand,

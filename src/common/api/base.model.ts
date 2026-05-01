@@ -9,4 +9,5 @@ export interface OCPIAuthorizerContext {
   isBootstrap: boolean;
   partnerId: string;
   secretRef?: string;
+  credentialPk?: string;
 }
