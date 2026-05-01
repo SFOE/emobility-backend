@@ -56,3 +56,13 @@ export const extractToken = (authHeader?: string): string | null => {
 
   return match[1].trim();
 };
+
+/**
+ * Resolves the primary OCPI role from a credentials payload.
+ * Prefers CPO and falls back to the first available role.
+ */
+export const getPrimaryRole: (credentials: OCPICredential) => (OCPICredentialRole) = (
+    credentials: OCPICredential,
+): OCPICredentialRole => {
+  return credentials.roles?.find((r) => r.role === 'CPO') ?? credentials.roles?.[0];
+};

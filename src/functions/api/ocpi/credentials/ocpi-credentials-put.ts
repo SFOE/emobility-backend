@@ -6,10 +6,12 @@ import { OCPICredential } from '/opt/nodejs/db/ocpi-credentials/ocpi-credentials
 import { rotateCredentialsToken } from '/opt/nodejs/db/ocpi-credentials/ocpi-credentials.db';
 import { BFE_HUB_PARTY_ID, BFE_ROLE } from '/opt/nodejs/config.constants';
 import {
+    getRequiredBaseUrl,
     prepareOCPIResponse,
     withVersionCheck,
 } from '/opt/nodejs/utils/api.utils';
 import {
+    getPrimaryRole,
     validateCredentialsPayload,
 } from '/opt/nodejs/utils/ocpi-utils';
 import { generateToken } from '/opt/nodejs/utils/crypto.utils';
@@ -25,9 +27,7 @@ export const handler = withVersionCheck(
         authContext: OCPIAuthorizerContext,
     ): Promise<APIGatewayProxyResult> => {
         try {
-            if (!process.env.BASE_URL) {
-                throw new Error('BASE_URL environment variable is not set');
-            }
+            const baseUrl = getRequiredBaseUrl();
 
             if (authContext.isBootstrap) {
                 return ErrorHandler.handleBadRequestError(
@@ -53,9 +53,7 @@ export const handler = withVersionCheck(
             }
 
             const updatedCredentials = JSON.parse(event.body) as OCPICredential;
-            const primaryRole =
-                updatedCredentials.roles?.find((role) => role.role === 'CPO') ??
-                updatedCredentials.roles?.[0];
+            const primaryRole = getPrimaryRole(updatedCredentials);
 
             const validationError = validateCredentialsPayload(
                 updatedCredentials,
@@ -86,7 +84,7 @@ export const handler = withVersionCheck(
 
             const response: OCPICredential = {
                 token: newTokenC,
-                url: `${process.env.BASE_URL}/ocpi/versions`,
+                url: `${baseUrl}/ocpi/versions`,
                 hub_party_id: BFE_HUB_PARTY_ID,
                 roles: [BFE_ROLE],
             };

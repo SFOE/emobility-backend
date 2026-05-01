@@ -3,6 +3,7 @@ import { APIGatewayProxyEventV2WithLambdaAuthorizer } from 'aws-lambda/trigger/a
 import { ErrorHandler } from '/opt/nodejs/api/error/api-error-handler';
 import { OCPIAuthorizerContext } from '/opt/nodejs/api/base.model';
 import {
+    getRequiredBaseUrl,
     prepareOCPIResponse,
     withVersionCheck,
 } from '/opt/nodejs/utils/api.utils';
@@ -20,9 +21,7 @@ export const handler = withVersionCheck(
         authContext: OCPIAuthorizerContext,
     ): Promise<APIGatewayProxyResult> => {
         try {
-            if (!process.env.BASE_URL) {
-                throw new Error('BASE_URL environment variable is not set');
-            }
+            const baseUrl = getRequiredBaseUrl();
 
             if (!authContext.secretRef) {
                 console.warn(
@@ -53,7 +52,7 @@ export const handler = withVersionCheck(
 
             const response: OCPICredential = {
                 token: partySecret.CREDENTIALS_TOKEN_C,
-                url: `${process.env.BASE_URL}/ocpi/versions`,
+                url: `${baseUrl}/ocpi/versions`,
                 hub_party_id: BFE_HUB_PARTY_ID,
                 roles: [BFE_ROLE],
             };
