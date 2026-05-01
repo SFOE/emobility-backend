@@ -42,7 +42,7 @@ jobs:
 
       # Run automated tests before packaging
       - name: Run tests
-        run: yarn test --passWithNoTests
+        run: yarn test:unit
 
       # Clean, build, and package Lambda and layer artifacts into ZIP files
       - name: Package artifacts
