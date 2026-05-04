@@ -54,3 +54,43 @@ export function buildEvent(overrides: {
     isBase64Encoded: false,
   } as unknown as APIGatewayProxyEventV2WithLambdaAuthorizer<OCPIAuthorizerContext>;
 }
+
+// Builds a full API Gateway event for DELETE /tariffs with sensible defaults; individual fields can be overridden.
+export function buildDeleteEvent(overrides: {
+  authContext?: Partial<OCPIAuthorizerContext>;
+  version?: string;
+  country_code?: string;
+  party_id?: string;
+  tariff_id?: string;
+} = {}): APIGatewayProxyEventV2WithLambdaAuthorizer<OCPIAuthorizerContext> {
+  const {
+    authContext = CPO_AUTH_CONTEXT,
+    version = '2.2.1',
+    country_code: pathCountryCode = VALID_TARIFF.country_code,
+    party_id: pathPartyId = VALID_TARIFF.party_id,
+    tariff_id: pathTariffId = TARIFF_ID,
+  } = overrides;
+
+  return {
+    version: '2.0',
+    routeKey: `DELETE /ocpi/{version}/tariffs/{country_code}/{party_id}/{tariff_id}`,
+    rawPath: `/ocpi/${version}/tariffs/${pathCountryCode}/${pathPartyId}/${pathTariffId}`,
+    rawQueryString: '',
+    headers: {},
+    requestContext: {
+      authorizer: { lambda: authContext as OCPIAuthorizerContext },
+      accountId: '000000000000',
+      apiId: 'test',
+      domainName: 'localhost',
+      domainPrefix: 'test',
+      http: { method: 'DELETE', path: `/ocpi/${version}/tariffs/${pathCountryCode}/${pathPartyId}/${pathTariffId}`, protocol: 'HTTP/1.1', sourceIp: '127.0.0.1', userAgent: 'jest' },
+      requestId: 'test-request-id',
+      routeKey: `DELETE /ocpi/{version}/tariffs/{country_code}/{party_id}/{tariff_id}`,
+      stage: '$default',
+      time: '01/Jan/2025:00:00:00 +0000',
+      timeEpoch: 1735689600000,
+    },
+    pathParameters: { version, country_code: pathCountryCode, party_id: pathPartyId, tariff_id: pathTariffId },
+    isBase64Encoded: false,
+  } as unknown as APIGatewayProxyEventV2WithLambdaAuthorizer<OCPIAuthorizerContext>;
+}
