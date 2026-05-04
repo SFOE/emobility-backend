@@ -4,6 +4,7 @@ import { ErrorHandler } from '/opt/nodejs/api/error/api-error-handler';
 import { OCPIAuthorizerContext } from '/opt/nodejs/api/base.model';
 import { parseRequestBody, prepareOCPIResponse, withVersionCheck } from '/opt/nodejs/utils/api.utils';
 import { Tariff } from '/opt/nodejs/db/ocpi-tariffs/ocpi-tariffs.model';
+import { assertBodyConsistency, assertNotBootstrap, assertOwnership, assertRole } from '/opt/nodejs/utils/ocpi-guards';
 
 export const handler = withVersionCheck(
   async (
@@ -11,17 +12,15 @@ export const handler = withVersionCheck(
     authContext: OCPIAuthorizerContext,
   ): Promise<APIGatewayProxyResult> => {
     try {
-      // Only registered parties may push tariffs — bootstrap tokens are not permitted here
-      if (authContext.isBootstrap) {
-        console.warn(`[OCPI][tarrifs/put] Rejected — bootstrap token used by ${authContext.partnerId}`);
-        return ErrorHandler.handleBadRequestError(2000, 'Bootstrap tokens are not allowed for tariff operations.', 405);
-      }
+      const pathCountryCode = event.pathParameters?.country_code;
+      const pathPartyId = event.pathParameters?.party_id;
+      const pathTariffId = event.pathParameters?.tariff_id;
 
-      // Only CPOs are the data owner of tariffs per OCPI spec
-      if (authContext.role !== 'CPO') {
-        console.warn(`[OCPI][tarrifs/put] Rejected — non-CPO role '${authContext.role}' used by ${authContext.partnerId}`);
-        return ErrorHandler.handleBadRequestError(2000, 'Only CPOs are allowed to push tariffs.', 405);
-      }
+      const guardError = 
+        assertNotBootstrap(authContext, 'tarrifs/put') ??
+        assertRole(authContext, 'CPO', 'tarrifs/put') ??
+        assertOwnership(authContext, pathCountryCode, pathPartyId, 'tarrifs/put');
+      if (guardError) return guardError;
 
       // Parse and validate the incoming tariff payload
       const bodyResult = parseRequestBody<Tariff>(event.body);
@@ -31,26 +30,8 @@ export const handler = withVersionCheck(
       }
       const tariff = bodyResult.data;
 
-      const pathCountryCode = event.pathParameters?.country_code;
-      const pathPartyId = event.pathParameters?.party_id;
-      const pathTariffId = event.pathParameters?.tariff_id;
-
-      // Enforce Client Owned Objects: authenticated party must own the namespace in the path
-      if (authContext.country_code !== pathCountryCode || authContext.party_id !== pathPartyId) {
-        console.warn(`[OCPI][tarrifs/put] Rejected — ownership mismatch for ${authContext.partnerId}: auth=${authContext.country_code}/${authContext.party_id}, path=${pathCountryCode}/${pathPartyId}`);
-        return ErrorHandler.handleBadRequestError(2001, 'Authenticated party does not own this tariff namespace.');
-      }
-
-      // Enforce body consistency: path params must match the body identifiers
-      if (
-        tariff.country_code !== pathCountryCode ||
-        tariff.party_id !== pathPartyId ||
-        tariff.id !== pathTariffId
-      ) {
-        const partyRef = `${pathCountryCode}/${pathPartyId}/${pathTariffId}`;
-        console.warn(`[OCPI][tarrifs/put] Rejected — body mismatch for ${authContext.partnerId}: path=${partyRef}, body=${tariff.country_code}/${tariff.party_id}/${tariff.id}`);
-        return ErrorHandler.handleBadRequestError(2001, 'Tariff identifiers in path and body do not match.');
-      }
+      const bodyError = assertBodyConsistency(tariff, pathCountryCode, pathPartyId, pathTariffId, 'tarrifs/put', authContext.partnerId);
+      if (bodyError) return bodyError;
 
       // Data Lakehouse connection not yet available — tariff received and acknowledged
       console.info(`[OCPI][tarrifs/put] Received tariff ${tariff.country_code}/${tariff.party_id}/${tariff.id} from ${authContext.partnerId}`);
