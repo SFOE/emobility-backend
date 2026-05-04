@@ -3,6 +3,7 @@ module.exports = {
   testEnvironment: 'node',
   roots: ['<rootDir>/src'],
   testMatch: ['**/*.integration.test.ts'],
+  maxWorkers: 1,
   moduleNameMapper: {
     '^/opt/nodejs/(.*)$': '<rootDir>/src/common/$1',
   },
