@@ -32,15 +32,8 @@ export function validateCredentialsPayload(credentials: OCPICredential, primaryR
   return null;
 }
 
-export const getPrimaryRole = (credentials: OCPICredentialItem): OCPICredentialRole | null => {
-  if (!credentials?.roles?.length) {
-    return null;
-  }
-  return credentials.roles.find((r) => r.role === 'CPO') ?? credentials.roles[0];
-};
-
 export const getPartnerId = (credentials: OCPICredentialItem): string => {
-  const primary = getPrimaryRole(credentials);
+  const primary = getPrimaryRole(credentials.roles);
   if (!primary) {
     return 'unknown';
   }
@@ -58,4 +51,14 @@ export const extractToken = (authHeader?: string): string | null => {
   }
 
   return match[1].trim();
+};
+
+/**
+ * Resolves the primary OCPI role from a credentials payload.
+ * Prefers CPO and falls back to the first available role.
+ */
+export const getPrimaryRole = (
+    roles: OCPICredentialRole[],
+): OCPICredentialRole => {
+  return roles?.find((role) => role.role === 'CPO') ?? roles?.[0];
 };

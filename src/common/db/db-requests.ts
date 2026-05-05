@@ -1,4 +1,5 @@
 import {
+  DeleteCommand,
   GetCommand,
   GetCommandInput,
   PutCommand,
@@ -146,6 +147,28 @@ export const updateItem = async (
   } catch (err) {
     console.error(err);
     const message = `Error updating item in DynamoDB table ${tableName}`;
+    throw new Error(message);
+  }
+};
+
+/**
+ * Deletes an item from a DynamoDB table by primary key.
+ */
+export const deleteItem = async (
+    tableName: string,
+    pk: string,
+    sk: string,
+): Promise<void> => {
+  try {
+    await dynamoDocClient.send(
+        new DeleteCommand({
+          TableName: tableName,
+          Key: { pk, sk },
+        }),
+    );
+  } catch (err) {
+    console.error(err);
+    const message = `Error deleting item from DynamoDB table ${tableName}`;
     throw new Error(message);
   }
 };

@@ -2,13 +2,13 @@ import { APIGatewayProxyResult } from 'aws-lambda';
 import { APIGatewayProxyEventV2WithLambdaAuthorizer } from 'aws-lambda/trigger/api-gateway-proxy';
 import { ErrorHandler } from '/opt/nodejs/api/error/api-error-handler';
 import { OCPIAuthorizerContext } from '/opt/nodejs/api/base.model';
-import { parseRequestBody, prepareOCPIResponse, withVersionCheck } from '/opt/nodejs/utils/api.utils';
+import {getRequiredBaseUrl, parseRequestBody, prepareOCPIResponse, withVersionCheck} from '/opt/nodejs/utils/api.utils';
 import { OCPICredential } from '/opt/nodejs/db/ocpi-credentials/ocpi-credentials.model';
 import { invalidateBootstrapToken, saveNewCredentials } from '/opt/nodejs/db/ocpi-credentials/ocpi-credentials.db';
 import { BFE_ROLE } from '/opt/nodejs/config.constants';
 import { generateToken } from '/opt/nodejs/utils/crypto.utils';
 import { partySecretExists, savePartySecret } from '/opt/nodejs/utils/secrets.utils';
-import { extractToken, validateCredentialsPayload } from '/opt/nodejs/utils/ocpi-utils';
+import { extractToken, validateCredentialsPayload, getPrimaryRole } from '/opt/nodejs/utils/ocpi-utils';
 
 export const handler = withVersionCheck(
   async (
@@ -16,10 +16,7 @@ export const handler = withVersionCheck(
     authContext: OCPIAuthorizerContext,
   ): Promise<APIGatewayProxyResult> => {
     try {
-      // Fail fast on missing config before any business logic or async work
-      if (!process.env.BASE_URL) {
-        throw new Error('BASE_URL environment variable is not set');
-      }
+      const baseUrl = getRequiredBaseUrl();
 
       // Only bootstrap tokens are permitted for the initial registration handshake
       if (!authContext.isBootstrap) {
@@ -36,7 +33,7 @@ export const handler = withVersionCheck(
       const credentials = bodyResult.data;
 
       // Prefer the CPO role as primary identifier; fall back to first entry for non-CPO parties
-      const primaryRole = credentials.roles?.find((r) => r.role === 'CPO') ?? credentials.roles?.[0];
+      const primaryRole = getPrimaryRole(credentials.roles);
       const partyRef = `${primaryRole?.role}/${primaryRole?.country_code}/${primaryRole?.party_id}`;
 
       // Validate token and primary role fields according to the OCPI credentials spec
@@ -69,7 +66,7 @@ export const handler = withVersionCheck(
       // Return BFE's own credentials (TOKEN_C + versions URL + role) to the registering party
       return prepareOCPIResponse({
         token: newToken,
-        url: `${process.env.BASE_URL}/ocpi/versions`,
+        url: `${baseUrl}/ocpi/versions`,
         roles: [BFE_ROLE],
       } satisfies OCPICredential);
     } catch (err) {

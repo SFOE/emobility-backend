@@ -63,3 +63,14 @@ export const withVersionCheck =
 
     return handler(event, authContext, version);
   };
+
+/**
+ * Returns the configured public base URL or fails fast if it is missing.
+ */
+export const getRequiredBaseUrl = (): string => {
+  if (!process.env.BASE_URL) {
+    throw new Error('BASE_URL environment variable is not set');
+  }
+
+  return process.env.BASE_URL;
+};

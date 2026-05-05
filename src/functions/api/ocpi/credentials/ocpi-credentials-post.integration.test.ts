@@ -1,6 +1,6 @@
 // globalSetup sets AWS_ENDPOINT_URL_* before workers spawn, so static SDK clients already point to Ministack.
 import { APIGatewayProxyResult } from 'aws-lambda';
-import { DynamoDBClient, CreateTableCommand } from '@aws-sdk/client-dynamodb';
+import { DynamoDBClient, CreateTableCommand, ResourceInUseException } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocument } from '@aws-sdk/lib-dynamodb';
 import { SecretsManagerClient, GetSecretValueCommand } from '@aws-sdk/client-secrets-manager';
 import { hashToken } from '/opt/nodejs/utils/crypto.utils';
@@ -16,20 +16,28 @@ const dynamoDoc = DynamoDBDocument.from(dynamoClient);
 const secretsClient = new SecretsManagerClient(clientConfig);
 
 async function createTable(): Promise<void> {
-  await dynamoClient.send(
-    new CreateTableCommand({
-      TableName: TABLE_NAME,
-      KeySchema: [
-        { AttributeName: 'pk', KeyType: 'HASH' },
-        { AttributeName: 'sk', KeyType: 'RANGE' },
-      ],
-      AttributeDefinitions: [
-        { AttributeName: 'pk', AttributeType: 'S' },
-        { AttributeName: 'sk', AttributeType: 'S' },
-      ],
-      BillingMode: 'PAY_PER_REQUEST',
-    }),
-  );
+  try {
+    await dynamoClient.send(
+        new CreateTableCommand({
+          TableName: TABLE_NAME,
+          KeySchema: [
+            {AttributeName: 'pk', KeyType: 'HASH'},
+            {AttributeName: 'sk', KeyType: 'RANGE'},
+          ],
+          AttributeDefinitions: [
+            {AttributeName: 'pk', AttributeType: 'S'},
+            {AttributeName: 'sk', AttributeType: 'S'},
+          ],
+          BillingMode: 'PAY_PER_REQUEST',
+        }),
+    );
+  } catch (err) {
+    if (err instanceof ResourceInUseException) {
+      return;
+    }
+
+    throw err;
+  }
 }
 
 async function seedBootstrapToken(): Promise<void> {
@@ -68,7 +76,7 @@ describe('ocpi-credentials-post integration', () => {
       sk: 'CREDENTIALS',
       url: VALID_CREDENTIAL.url,
       // token field holds the Secrets Manager reference path, not plaintext
-      token: SECRET_ID,
+      secretRef: SECRET_ID,
     });
   });
 
