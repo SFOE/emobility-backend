@@ -10,4 +10,7 @@ export interface OCPIAuthorizerContext {
   partnerId: string;
   secretRef?: string;
   credentialPk?: string;
+  role?: string;
+  country_code?: string;
+  party_id?: string;
 }

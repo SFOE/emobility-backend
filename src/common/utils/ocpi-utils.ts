@@ -32,16 +32,19 @@ export function validateCredentialsPayload(credentials: OCPICredential, primaryR
   return null;
 }
 
-export const getPartnerId = (credentials: OCPICredentialItem): string => {
-  if (credentials?.roles?.length > 0) {
-    const role =
-      credentials.roles.find((role) => role.role === 'CPO') ??
-      credentials.roles[0];
-
-    return `${role.role}-${role.party_id}-${role.country_code}`;
+export const getPrimaryRole = (credentials: OCPICredentialItem): OCPICredentialRole | null => {
+  if (!credentials?.roles?.length) {
+    return null;
   }
+  return credentials.roles.find((r) => r.role === 'CPO') ?? credentials.roles[0];
+};
 
-  return 'unknown';
+export const getPartnerId = (credentials: OCPICredentialItem): string => {
+  const primary = getPrimaryRole(credentials);
+  if (!primary) {
+    return 'unknown';
+  }
+  return `${primary.role}-${primary.party_id}-${primary.country_code}`;
 };
 
 export const extractToken = (authHeader?: string): string | null => {
