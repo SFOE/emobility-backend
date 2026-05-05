@@ -28,9 +28,9 @@ export const handler = async (event: APIGatewayRequestAuthorizerEventV2) => {
       isBootstrap: item.bootstrapToken ?? false,
       partnerId: getPartnerId(item),
       secretRef: item.secretRef,
-      role: getPrimaryRole(item)?.role,
-      country_code: getPrimaryRole(item)?.country_code,
-      party_id: getPrimaryRole(item)?.party_id,
+      role: getPrimaryRole(item.roles)?.role,
+      country_code: getPrimaryRole(item.roles)?.country_code,
+      party_id: getPrimaryRole(item.roles)?.party_id,
       credentialPk: item.pk
     };
 

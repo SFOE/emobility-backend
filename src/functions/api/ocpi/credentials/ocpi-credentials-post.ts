@@ -33,7 +33,7 @@ export const handler = withVersionCheck(
       const credentials = bodyResult.data;
 
       // Prefer the CPO role as primary identifier; fall back to first entry for non-CPO parties
-      const primaryRole = getPrimaryRole(credentials);
+      const primaryRole = getPrimaryRole(credentials.roles);
       const partyRef = `${primaryRole?.role}/${primaryRole?.country_code}/${primaryRole?.party_id}`;
 
       // Validate token and primary role fields according to the OCPI credentials spec

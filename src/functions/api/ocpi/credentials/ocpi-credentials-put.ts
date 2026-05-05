@@ -53,7 +53,7 @@ export const handler = withVersionCheck(
             }
 
             const updatedCredentials = JSON.parse(event.body) as OCPICredential;
-            const primaryRole = getPrimaryRole(updatedCredentials);
+            const primaryRole = getPrimaryRole(updatedCredentials.roles);
 
             const validationError = validateCredentialsPayload(
                 updatedCredentials,
