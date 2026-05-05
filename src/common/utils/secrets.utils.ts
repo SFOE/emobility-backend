@@ -1,10 +1,11 @@
 import {
-  SecretsManagerClient,
   CreateSecretCommand,
+  DeleteSecretCommand,
   DescribeSecretCommand,
   GetSecretValueCommand,
   ResourceNotFoundException,
-  UpdateSecretCommand
+  SecretsManagerClient,
+  UpdateSecretCommand,
 } from '@aws-sdk/client-secrets-manager';
 import { Aws } from '/opt/nodejs/aws.constants';
 import { OCPICredentialRole } from '/opt/nodejs/db/ocpi-credentials/ocpi-credentials.model';
@@ -124,4 +125,27 @@ export const updatePartySecret = async (
         SecretString: JSON.stringify(secretValue),
       }),
   );
+};
+
+/**
+ * Deletes the stored OCPI party secret from AWS Secrets Manager.
+ *
+ * This is used when an existing OCPI credentials connection is terminated.
+ */
+export const deletePartySecret = async (secretRef: string): Promise<void> => {
+  try {
+    await secretsClient.send(
+        new DeleteSecretCommand({
+          SecretId: secretRef,
+          // Immediately deletes the secret without a recovery window to fully terminate the OCPI connection
+          ForceDeleteWithoutRecovery: true,
+        }),
+    );
+  } catch (err) {
+    if (err instanceof ResourceNotFoundException) {
+      return;
+    }
+
+    throw err;
+  }
 };
