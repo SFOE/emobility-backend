@@ -20,7 +20,7 @@ export const handler = withVersionCheck(
         assertNotBootstrap(authContext, 'tarrifs/put') ??
         assertRole(authContext, 'CPO', 'tarrifs/put') ??
         assertOwnership(authContext, pathCountryCode, pathPartyId, 'tarrifs/put');
-      if (guardError) return guardError;
+      if (guardError) {return guardError;}
 
       // Parse and validate the incoming tariff payload
       const bodyResult = parseRequestBody<Tariff>(event.body);
@@ -31,7 +31,7 @@ export const handler = withVersionCheck(
       const tariff = bodyResult.data;
 
       const bodyError = assertBodyConsistency(tariff, pathCountryCode, pathPartyId, pathTariffId, 'tarrifs/put', authContext.partnerId);
-      if (bodyError) return bodyError;
+      if (bodyError) {return bodyError;}
 
       // Data Lakehouse connection not yet available — tariff received and acknowledged
       console.info(`[OCPI][tarrifs/put] Received tariff ${tariff.country_code}/${tariff.party_id}/${tariff.id} from ${authContext.partnerId}`);

@@ -15,11 +15,11 @@ export const handler = withVersionCheck(
       const pathPartyId = event.pathParameters?.party_id;
       const pathTariffId = event.pathParameters?.tariff_id;
 
-      const guardError = 
+      const guardError =
         assertNotBootstrap(authContext, 'tarrifs/delete') ??
         assertRole(authContext, 'CPO', 'tarrifs/delete') ??
         assertOwnership(authContext, pathCountryCode, pathPartyId, 'tarrifs/delete');
-      if (guardError) return guardError;
+      if (guardError) {return guardError;}
 
       // Data Lakehouse connection not yet available — deletion acknowledged
       console.info(`[OCPI][tarrifs/delete] Received delete for tariff ${pathCountryCode}/${pathPartyId}/${pathTariffId} from ${authContext.partnerId}`);

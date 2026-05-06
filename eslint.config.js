@@ -25,6 +25,8 @@ module.exports = [
     rules: {
       ...tseslint.configs.recommended.rules,
 
+      curly: ['error', 'all'],
+
       '@typescript-eslint/no-explicit-any': 'warn',
       '@typescript-eslint/no-unused-vars': [
         'error',
