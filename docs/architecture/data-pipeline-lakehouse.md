@@ -125,26 +125,54 @@ parst den Body und schreibt dann:
 
 ```
 s3://its2-raw-data/
-  oicp/
-    tariffs/
-      year=2026/month=05/day=06/
-        CH_EBP_tariff-001_20260506T143022Z.json
+  tariffs/
+    year=2026/month=05/day=06/
+      CH_EBP_tariff-001_PUT_20260506T143022Z.json
 ```
 
-**Key-Format:** `{type}/year={Y}/month={MM}/day={DD}/{party_id}_{object_id}_{timestamp}Z.json`
+**Key-Format:** `{type}/year={YYYY}/month={MM}/day={DD}/{country_code}_{party_id}_{object_id}_{action}_{timestamp}.json`
 
 Inhalt: unverändertes JSON-Payload wie vom CPO gesendet.
+
+#### Warum dieses Format?
+
+Das Format folgt der **Hive Partition Convention** (`year=`, `month=`, `day=`), die von AWS Athena
+und Glue nativ erkannt wird:
+
+```sql
+SELECT * FROM raw_tariffs
+WHERE year = '2026' AND month = '05'
+-- Scannt nur den entsprechenden Ordner, nicht den gesamten Bucket
+```
+
+| Bestandteil | Vorteil |
+|---|---|
+| `{type}/` als Top-Level | Alle OCPI-Module im selben Bucket sauber trennbar |
+| `year=/month=/day=` | Hive-kompatibel → Athena/Glue erkennen Partitionen automatisch |
+| `{country_code}_{party_id}` im Dateinamen | CPO-Herkunft ohne Datei öffnen erkennbar |
+| `{action}` im Dateinamen | PUT vs. DELETE ohne Datei öffnen erkennbar |
+| ISO-Timestamp | Chronologische Sortierung via S3 List Objects |
+| Timestamp je Event | Kein Überschreiben – jedes Event bekommt eine eigene Datei, Audit Trail bleibt vollständig |
+
+**Hinweis:** Bei hochfrequenten Updates (z.B. EVSE-Status alle paar Sekunden) entstehen viele kleine
+Dateien. Im Rohdaten-Bucket ist das erwünscht (vollständiger Audit Trail). Im Bronze-Layer sollte
+der Lambda Loader diese Files zu grösseren Parquet-Files zusammenfassen (Compaction).
 
 ### Schritt 3: Metadaten in SQS
 
 ```json
 {
-  "bucket": "its2-raw-data",
-  "key": "oicp/tariffs/year=2026/month=05/day=06/CH_EBP_tariff-001_20260506T143022Z.json",
-  "type": "tariff",
-  "party_id": "CH/CPO/EBP",
+  "action": "PUT",
+  "type": "tariffs",
+  "object_id": "tariff-001",
+  "country_code": "CH",
+  "party_id": "EBP",
+  "ocpi_version": "2.3.0",
   "received_at": "2026-05-06T14:30:22Z",
-  "ocpi_version": "2.3.0"
+  "raw": {
+    "bucket": "its2-raw-data",
+    "key": "tariff/year=2026/month=05/day=06/CH_EBP_tariff-001_PUT_20260506T143022Z.json"
+  }
 }
 ```
 
