@@ -4,7 +4,7 @@ import { ErrorHandler } from '/opt/nodejs/api/error/api-error-handler';
 import { OCPIAuthorizerContext } from '/opt/nodejs/api/base.model';
 import { parseRequestBody, prepareOCPIResponse, withVersionCheck } from '/opt/nodejs/utils/api.utils';
 import { Tariff } from '/opt/nodejs/db/ocpi-tariffs/ocpi-tariffs.model';
-import { assertBodyConsistency, assertNotBootstrap, assertOwnership, assertRole } from '/opt/nodejs/utils/ocpi-guards';
+import { assertBodyConsistency, assertNotBootstrap, assertOwnership, assertRole, assertSafeIdentifiers } from '/opt/nodejs/utils/ocpi-guards';
 import { publishIngestionEvent, putRawToS3 } from '/opt/nodejs/storage/ingestion.utils';
 import { Aws } from '/opt/nodejs/aws.constants';
 
@@ -33,31 +33,39 @@ export const handler = withVersionCheck(
       }
       const tariff = bodyResult.data;
 
-      const bodyError = assertBodyConsistency(tariff, pathCountryCode, pathPartyId, pathTariffId, 'tarrifs/put', authContext.partnerId);
-      if (bodyError) {return bodyError;}
+      const bodyError =
+        assertBodyConsistency(tariff, pathCountryCode, pathPartyId, pathTariffId, 'tarrifs/put', authContext.partnerId) ??
+        assertSafeIdentifiers(tariff, 'tarrifs/put', authContext.partnerId);
+      if (bodyError) return bodyError;
 
-      const s3Key = await putRawToS3(
-        tariff,
-        'tariffs',
-        'PUT',
-        tariff.country_code,
-        tariff.party_id,
-        tariff.id,
-      );
+      const receivedAt = new Date().toISOString();
 
-      await publishIngestionEvent({
-        action: 'PUT',
-        type: 'tariffs',
-        object_id: tariff.id,
-        country_code: tariff.country_code,
-        party_id: tariff.party_id,
-        ocpi_version: ocpiVersion,
-        received_at: new Date().toISOString(),
-        raw: {
-          bucket: Aws.rawDataBucketName,
-          key: s3Key,
-        },
-      });
+      let s3Key: string;
+      try {
+        s3Key = await putRawToS3(tariff, 'tariffs', 'PUT', tariff.country_code, tariff.party_id, tariff.id, receivedAt);
+      } catch (err) {
+        console.error(`[OCPI][tarrifs/put] S3 write failed for ${tariff.country_code}/${tariff.party_id}/${tariff.id} from ${authContext.partnerId}:`, err);
+        return ErrorHandler.handleError(err);
+      }
+
+      try {
+        await publishIngestionEvent({
+          action: 'PUT',
+          type: 'tariffs',
+          object_id: tariff.id,
+          country_code: tariff.country_code,
+          party_id: tariff.party_id,
+          ocpi_version: ocpiVersion,
+          received_at: receivedAt,
+          raw: {
+            bucket: Aws.rawDataBucketName,
+            key: s3Key,
+          },
+        });
+      } catch (err) {
+        console.error(`[OCPI][tarrifs/put] SQS publish failed — orphaned S3 object at s3://${Aws.rawDataBucketName}/${s3Key} from ${authContext.partnerId}:`, err);
+        return ErrorHandler.handleError(err);
+      }
 
       console.info(`[OCPI][tarrifs/put] Ingested tariff ${tariff.country_code}/${tariff.party_id}/${tariff.id} from ${authContext.partnerId} → s3:${s3Key}`);
 

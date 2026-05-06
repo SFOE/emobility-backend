@@ -31,6 +31,28 @@ export function assertOwnership(
   return ErrorHandler.handleBadRequestError(2001, 'Authenticated party does not own this namespace.');
 }
 
+const SAFE_IDENTIFIER_PATTERN = /^[a-zA-Z0-9\-]+$/;
+
+// Enforces that object identifiers only contain safe characters (alphanumeric + hyphen).
+// Prevents special characters like /, ?, # from breaking S3 key paths.
+export function assertSafeIdentifiers(
+  body: { country_code: string; party_id: string; id: string },
+  label: string,
+  partnerId: string,
+): APIGatewayProxyResult | null {
+  const fields: [string, string][] = [
+    ['country_code', body.country_code],
+    ['party_id', body.party_id],
+    ['id', body.id],
+  ];
+
+  const invalid = fields.find(([, value]) => !SAFE_IDENTIFIER_PATTERN.test(value));
+  if (!invalid) return null;
+
+  console.warn(`[OCPI][${label}] Rejected — invalid characters in ${invalid[0]} "${invalid[1]}" from ${partnerId}`);
+  return ErrorHandler.handleBadRequestError(2001, `Invalid characters in field: ${invalid[0]}`);
+}
+
 // Enforces that path identifiers match the body identifiers (country_code, party_id, id).
 export function assertBodyConsistency(
   body: { country_code: string; party_id: string; id: string },

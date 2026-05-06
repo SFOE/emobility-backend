@@ -19,7 +19,7 @@ export interface IngestionEvent {
   raw: {
     bucket: string;
     key: string;
-  };
+  } | null;
 }
 
 /**
@@ -53,10 +53,10 @@ export const putRawToS3 = async (
   countryCode: string,
   partyId: string,
   objectId: string,
+  receivedAt: string,
 ): Promise<string> => {
   const bucket = Aws.rawDataBucketName;
-  const timestamp = new Date();
-  const key = buildS3Key(type, action, countryCode, partyId, objectId, timestamp);
+  const key = buildS3Key(type, action, countryCode, partyId, objectId, new Date(receivedAt));
 
   await s3Client.send(
     new PutObjectCommand({
