@@ -58,11 +58,11 @@ console.info(`[OCPI][tarrifs/put] Received tariff ...`);
 
 Das Vorgehen kombiniert drei etablierte Enterprise-Patterns:
 
-| Pattern | Beschreibung |
-|---|---|
-| **Medallion Architecture** | Bronze-Schicht speichert Rohdaten as-is; Silver/Gold veredeln weiter |
-| **Transactional Outbox** | Erst persistent speichern, dann Event publizieren — nie umgekehrt |
-| **Decoupled Ingestion Pipeline** | Empfang und Verarbeitung sind vollständig entkoppelt über SQS |
+| Pattern                          | Beschreibung                                                         |
+| -------------------------------- | -------------------------------------------------------------------- |
+| **Medallion Architecture**       | Bronze-Schicht speichert Rohdaten as-is; Silver/Gold veredeln weiter |
+| **Transactional Outbox**         | Erst persistent speichern, dann Event publizieren — nie umgekehrt    |
+| **Decoupled Ingestion Pipeline** | Empfang und Verarbeitung sind vollständig entkoppelt über SQS        |
 
 Dies ist ein **bewährtes AWS-natives Pattern** (verwendet u.a. von AWS selbst in Lake Formation-Referenzarchitekturen).
 
@@ -99,6 +99,7 @@ finden ausschliesslich im Loader statt — der Endpunkt muss nicht angepasst wer
 ### Observability
 
 Die SQS-Queue-Tiefe ist ein natürlicher Gesundheitsindikator:
+
 - Tiefe steigt → Loader läuft nicht oder zu langsam
 - DLQ erhält Nachrichten → Transformationsfehler → Alarm
 
@@ -145,14 +146,14 @@ WHERE year = '2026' AND month = '05'
 -- Scannt nur den entsprechenden Ordner, nicht den gesamten Bucket
 ```
 
-| Bestandteil | Vorteil |
-|---|---|
-| `{type}/` als Top-Level | Alle OCPI-Module im selben Bucket sauber trennbar |
-| `year=/month=/day=` | Hive-kompatibel → Athena/Glue erkennen Partitionen automatisch |
-| `{country_code}_{party_id}` im Dateinamen | CPO-Herkunft ohne Datei öffnen erkennbar |
-| `{action}` im Dateinamen | PUT vs. DELETE ohne Datei öffnen erkennbar |
-| ISO-Timestamp | Chronologische Sortierung via S3 List Objects |
-| Timestamp je Event | Kein Überschreiben – jedes Event bekommt eine eigene Datei, Audit Trail bleibt vollständig |
+| Bestandteil                               | Vorteil                                                                                    |
+| ----------------------------------------- | ------------------------------------------------------------------------------------------ |
+| `{type}/` als Top-Level                   | Alle OCPI-Module im selben Bucket sauber trennbar                                          |
+| `year=/month=/day=`                       | Hive-kompatibel → Athena/Glue erkennen Partitionen automatisch                             |
+| `{country_code}_{party_id}` im Dateinamen | CPO-Herkunft ohne Datei öffnen erkennbar                                                   |
+| `{action}` im Dateinamen                  | PUT vs. DELETE ohne Datei öffnen erkennbar                                                 |
+| ISO-Timestamp                             | Chronologische Sortierung via S3 List Objects                                              |
+| Timestamp je Event                        | Kein Überschreiben – jedes Event bekommt eine eigene Datei, Audit Trail bleibt vollständig |
 
 **Hinweis:** Bei hochfrequenten Updates (z.B. EVSE-Status alle paar Sekunden) entstehen viele kleine
 Dateien. Im Rohdaten-Bucket ist das erwünscht (vollständiger Audit Trail). Im Bronze-Layer sollte
@@ -210,7 +211,11 @@ Im Tariff-Handler wird der Placeholder durch zwei Aufrufe ersetzt:
 await putRawData(tariff, { type: 'tariff', party_id: authContext.partnerId });
 
 // 2. Metadaten in SQS
-await publishIngestionEvent({ type: 'tariff', key: s3Key, party_id: authContext.partnerId });
+await publishIngestionEvent({
+  type: 'tariff',
+  key: s3Key,
+  party_id: authContext.partnerId,
+});
 ```
 
 ---
@@ -279,10 +284,10 @@ Full-Table-Scans.
 
 ### 6. Format im Bronze-Layer
 
-| Stufe | Format | Begründung |
-|---|---|---|
-| Rohdaten-Bucket | JSON (original) | Unverändertes Payload, maximale Kompatibilität |
-| Bronze-Layer | Parquet (komprimiert) | Spaltenorientiert, günstige Athena-Queries, Glue-kompatibel |
+| Stufe           | Format                | Begründung                                                  |
+| --------------- | --------------------- | ----------------------------------------------------------- |
+| Rohdaten-Bucket | JSON (original)       | Unverändertes Payload, maximale Kompatibilität              |
+| Bronze-Layer    | Parquet (komprimiert) | Spaltenorientiert, günstige Athena-Queries, Glue-kompatibel |
 
 Für den Übergang kann JSON Lines (`ndjson`) als Zwischenlösung verwendet werden, da kein
 Schema vorab definiert werden muss.
@@ -300,27 +305,41 @@ solides, cloud-natives Pattern für zuverlässige Daten-Ingestion. Die wichtigst
 - Replay bei Schema-Änderungen ohne erneute CPO-Kommunikation
 
 Die grössten Risiken ohne die vorgeschlagenen Verbesserungen sind:
+
 1. Kein DLQ → fehlgeschlagene Loader-Events werden still verworfen
 2. Keine Idempotenz → Doppelverarbeitung bei SQS-Redelivery möglich
 3. Flache S3-Struktur → teure Athena-Full-Scans ohne Partitionierung
 
 ---
 
-## Offene Fragen
+## Entscheidungslog
 
-### DELETE-Behandlung: Nur SQS oder Tombstone in S3?
+### DELETE-Behandlung: Nur SQS
 
-Bei einem DELETE-Request gibt es keinen Body — es stellt sich die Frage, ob das Ereignis
-nur über SQS weitergeleitet wird oder ob zusätzlich ein Tombstone-Objekt im Rohdaten-Bucket
-abgelegt werden soll.
+Bei einem DELETE-Request wird **kein S3-Objekt** geschrieben. Das Ereignis wird ausschliesslich
+als SQS-Nachricht weitergeleitet. Der Loader setzt daraufhin ein Soft-Delete im Bronze-Layer.
 
-**Option A – Nur SQS (kein S3-Objekt):**
-Einfacher, aber SQS-Nachrichten existieren maximal 14 Tage. Fällt der Loader in dieser Zeit
-aus, ist das DELETE-Ereignis spurlos verschwunden — kein Replay möglich.
+```json
+{
+  "action": "DELETE",
+  "type": "tariffs",
+  "object_id": "tariff-001",
+  "country_code": "CH",
+  "party_id": "EBP",
+  "ocpi_version": "2.3.0",
+  "received_at": "2026-05-06T16:00:00Z",
+  "raw": null
+}
+```
 
-**Option B – Tombstone in S3:**
-Das DELETE wird als eigenes Objekt im Rohdaten-Bucket persistiert (z.B.
-`CH_EBP_tariff-001_DELETE_20260506T160000Z.json`). Audit Trail bleibt vollständig,
-Replay ist jederzeit möglich. Relevant für EMBAG-Compliance.
+### OCPI-Version nicht im S3-Pfad
 
-> Entscheidung offen: Welche Variante wird umgesetzt?
+Der Rohdaten-Bucket-Pfad enthält keine OCPI-Version. Die Version ist bereits im SQS-Event
+(`ocpi_version`) enthalten — der Loader hat damit alle notwendigen Informationen.
+Der Pfad bleibt schlank:
+
+```
+tariffs/year=2026/month=05/day=06/CH_EBP_tariff-001_PUT_20260506T143022Z.json
+```
+
+Die OCPI-Version kann bei Bedarf als Partition im **Bronze-Layer** ergänzt werden.
