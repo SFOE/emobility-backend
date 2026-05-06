@@ -7,6 +7,7 @@
     "build": "tsc",
     "clean": "bash ./scripts/clean.sh",
     "lint": "eslint src",
+    "lint:fix": "eslint . --fix",
     "test:unit": "jest --config jest.unit.config.js --verbose",
     "test:unit:watch": "jest --config jest.unit.config.js --watch",
     "test:integration": "node --experimental-vm-modules node_modules/.bin/jest --config jest.integration.config.js --verbose",

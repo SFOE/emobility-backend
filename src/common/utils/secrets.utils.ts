@@ -97,7 +97,7 @@ export const partySecretExists = async (role: OCPICredentialRole): Promise<boole
     await secretsClient.send(new DescribeSecretCommand({ SecretId: secretName }));
     return true;
   } catch (err) {
-    if (err instanceof ResourceNotFoundException) return false;
+    if (err instanceof ResourceNotFoundException) {return false;}
     throw err;
   }
 };
