@@ -22,11 +22,7 @@ export interface IngestionEvent {
   } | null;
 }
 
-/**
- * Builds the S3 object key for a raw ingestion payload.
- *
- * Format: {type}/year={YYYY}/month={MM}/day={DD}/{country_code}_{party_id}_{object_id}_{action}_{timestamp}.json
- */
+// Builds the S3 key: {type}/year={YYYY}/month={MM}/day={DD}/{country_code}_{party_id}_{object_id}_{action}_{timestamp}.json
 const buildS3Key = (
   type: IngestionObjectType,
   action: IngestionAction,
@@ -42,10 +38,7 @@ const buildS3Key = (
   return `${type}/year=${year}/month=${month}/day=${day}/${countryCode}_${partyId}_${objectId}_${action}_${ts}.json`;
 };
 
-/**
- * Writes the raw request payload as-is to the S3 raw data bucket.
- * Returns the S3 key of the stored object.
- */
+// Writes the raw payload to S3 and returns the object key.
 export const putRawToS3 = async (
   payload: unknown,
   type: IngestionObjectType,
@@ -56,7 +49,14 @@ export const putRawToS3 = async (
   receivedAt: string,
 ): Promise<string> => {
   const bucket = Aws.rawDataBucketName;
-  const key = buildS3Key(type, action, countryCode, partyId, objectId, new Date(receivedAt));
+  const key = buildS3Key(
+    type,
+    action,
+    countryCode,
+    partyId,
+    objectId,
+    new Date(receivedAt),
+  );
 
   await s3Client.send(
     new PutObjectCommand({
@@ -70,11 +70,10 @@ export const putRawToS3 = async (
   return key;
 };
 
-/**
- * Publishes an ingestion event to the SQS queue so the Lambda Loader
- * can pick up the raw object and write it to the Data Lakehouse.
- */
-export const publishIngestionEvent = async (event: IngestionEvent): Promise<void> => {
+// Publishes an ingestion event to SQS for downstream processing.
+export const publishIngestionEvent = async (
+  event: IngestionEvent,
+): Promise<void> => {
   await sqsClient.send(
     new SendMessageCommand({
       QueueUrl: Aws.ingestionQueueUrl,
