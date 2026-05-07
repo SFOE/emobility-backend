@@ -81,3 +81,14 @@ export const rotateCredentialsToken = async (
 
   return credentialItem;
 };
+
+/**
+ * Deletes an OCPI credentials mapping from DynamoDB.
+ *
+ * This removes the token lookup item so the related TOKEN_C can no longer be used.
+ */
+export const deleteCredentials = async (
+    credentialPk: string,
+): Promise<void> => {
+  await deleteItem(OCPI_CREDENTIALS_TABLE_NAME, credentialPk, 'CREDENTIALS');
+};
