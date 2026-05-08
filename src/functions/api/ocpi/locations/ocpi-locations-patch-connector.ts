@@ -20,12 +20,14 @@ export const handler = withVersionCheck(
     _ocpiVersion: string,
   ): Promise<APIGatewayProxyResult> => {
     try {
-      // Identifiers from the request URL path — e.g. PATCH /locations/{country_code}/{party_id}/{location_id}
+      // Identifiers from the request URL path — e.g. PATCH /locations/{country_code}/{party_id}/{location_id}/{evse_uid}/{connector_id}
       const pathCountryCode = event.pathParameters?.country_code;
       const pathPartyId = event.pathParameters?.party_id;
       const pathLocationId = event.pathParameters?.location_id;
+      const pathEvseUid = event.pathParameters?.evse_uid;
+      const pathConnectorId = event.pathParameters?.connector_id;
 
-      // Only registered CPOs may push partial location updates in their own namespace; bootstrap tokens and other roles are rejected
+      // Only registered CPOs may push partial connector updates in their own namespace; bootstrap tokens and other roles are rejected
       const guardError =
         assertNotBootstrap(authContext, 'locations/patch') ??
         assertRole(authContext, 'CPO', 'locations/patch') ??
@@ -39,8 +41,7 @@ export const handler = withVersionCheck(
         return guardError;
       }
 
-      // PATCH body is a partial object — parse as a generic map to avoid enforcing
-      // all mandatory fields, but last_updated MUST be present per OCPI spec
+      // PATCH body is a partial object — parse as a generic map to avoid enforcing all mandatory fields, but last_updated MUST be present per OCPI spec
       const bodyResult = parseRequestBody<Record<string, unknown>>(event.body);
       if (!bodyResult.ok) {
         console.warn(
@@ -63,9 +64,9 @@ export const handler = withVersionCheck(
         );
       }
 
-      // TODO: persist raw location patch payload to S3 and publish ingestion event to SQS
+      // TODO: persist raw connector patch payload to S3 and publish ingestion event to SQS
       console.info(
-        `[OCPI][locations/patch] Partial update for ${pathCountryCode}/${pathPartyId}/${pathLocationId} received from ${authContext.partnerId}`,
+        `[OCPI][locations/patch] Partial update for ${pathCountryCode}/${pathPartyId}/${pathLocationId}/${pathEvseUid}/${pathConnectorId} received from ${authContext.partnerId}`,
       );
 
       // PATCH returns no data per OCPI spec
