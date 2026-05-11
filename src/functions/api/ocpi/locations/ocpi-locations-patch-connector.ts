@@ -12,12 +12,17 @@ import {
   assertOwnership,
   assertRole,
 } from '/opt/nodejs/utils/ocpi-guards';
+import {
+  publishIngestionEvent,
+  putRawToS3,
+} from '/opt/nodejs/utils/ingestion.utils';
+import { Aws } from '/opt/nodejs/aws.constants';
 
 export const handler = withVersionCheck(
   async (
     event: APIGatewayProxyEventV2WithLambdaAuthorizer<OCPIAuthorizerContext>,
     authContext: OCPIAuthorizerContext,
-    _ocpiVersion: string,
+    ocpiVersion: string,
   ): Promise<APIGatewayProxyResult> => {
     try {
       // Identifiers from the request URL path — e.g. PATCH /locations/{country_code}/{party_id}/{location_id}/{evse_uid}/{connector_id}
@@ -64,10 +69,57 @@ export const handler = withVersionCheck(
         );
       }
 
-      // TODO: persist raw connector patch payload to S3 and publish ingestion event to SQS
-      console.info(
-        `[OCPI][locations/patch] Partial update for ${pathCountryCode}/${pathPartyId}/${pathLocationId}/${pathEvseUid}/${pathConnectorId} received from ${authContext.partnerId}`,
-      );
+      const receivedAt = new Date().toISOString();
+      const objectId = `${pathLocationId}_${pathEvseUid}_${pathConnectorId}`;
+
+      // Persist the raw connector patch payload to S3 as the canonical ingestion record
+      let s3Key: string;
+      try {
+        s3Key = await putRawToS3(
+          patch,
+          'locations',
+          'PATCH',
+          pathCountryCode!,
+          pathPartyId!,
+          objectId,
+          receivedAt,
+        );
+        console.info(
+          `[OCPI][locations/patch] Raw connector patch stored to s3://${Aws.rawDataBucketName}/${s3Key} from ${authContext.partnerId}`,
+        );
+      } catch (err) {
+        console.error(
+          `[OCPI][locations/patch] S3 write failed for ${pathCountryCode}/${pathPartyId}/${pathLocationId}/${pathEvseUid}/${pathConnectorId} from ${authContext.partnerId}:`,
+          err,
+        );
+        return ErrorHandler.handleError(err);
+      }
+
+      // Publish an ingestion event to SQS so downstream processors can pick up the S3 object
+      try {
+        await publishIngestionEvent({
+          action: 'PATCH',
+          type: 'locations',
+          object_id: objectId,
+          country_code: pathCountryCode!,
+          party_id: pathPartyId!,
+          ocpi_version: ocpiVersion,
+          received_at: receivedAt,
+          raw: {
+            bucket: Aws.rawDataBucketName,
+            key: s3Key,
+          },
+        });
+        console.info(
+          `[OCPI][locations/patch] Ingested connector patch ${pathCountryCode}/${pathPartyId}/${pathLocationId}/${pathEvseUid}/${pathConnectorId} from ${authContext.partnerId} → s3:${s3Key}`,
+        );
+      } catch (err) {
+        console.error(
+          `[OCPI][locations/patch] SQS publish failed — orphaned S3 object at s3://${Aws.rawDataBucketName}/${s3Key} from ${authContext.partnerId}:`,
+          err,
+        );
+        return ErrorHandler.handleError(err);
+      }
 
       // PATCH returns no data per OCPI spec
       return prepareOCPIResponse(null);
