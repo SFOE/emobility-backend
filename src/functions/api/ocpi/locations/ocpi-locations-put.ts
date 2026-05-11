@@ -106,6 +106,7 @@ export const handler = withVersionCheck(
             bucket: Aws.rawDataBucketName,
             key: s3Key,
           },
+          delta: null,
         });
         console.info(
           `[OCPI][locations/put] Ingested location ${location.country_code}/${location.party_id}/${location.id} from ${authContext.partnerId} → s3:${s3Key}`,

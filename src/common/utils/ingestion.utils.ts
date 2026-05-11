@@ -20,6 +20,8 @@ export interface IngestionEvent {
     bucket: string;
     key: string;
   } | null;
+  // Embedded patch delta — only set for PATCH actions, null otherwise
+  delta: Record<string, unknown> | null;
 }
 
 // Builds the S3 key: {type}/year={YYYY}/month={MM}/day={DD}/{country_code}_{party_id}_{object_id}_{action}_{timestamp}.json

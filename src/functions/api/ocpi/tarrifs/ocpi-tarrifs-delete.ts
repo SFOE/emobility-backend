@@ -52,6 +52,7 @@ export const handler = withVersionCheck(
           ocpi_version: ocpiVersion,
           received_at: receivedAt,
           raw: null,
+          delta: null,
         });
         console.info(
           `[OCPI][tarrifs/delete] Delete event published for tariff ${pathCountryCode}/${pathPartyId}/${pathTariffId} from ${authContext.partnerId}`,

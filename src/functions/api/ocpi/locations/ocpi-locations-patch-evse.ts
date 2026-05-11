@@ -12,11 +12,7 @@ import {
   assertOwnership,
   assertRole,
 } from '/opt/nodejs/utils/ocpi-guards';
-import {
-  publishIngestionEvent,
-  putRawToS3,
-} from '/opt/nodejs/utils/ingestion.utils';
-import { Aws } from '/opt/nodejs/aws.constants';
+import { publishIngestionEvent } from '/opt/nodejs/utils/ingestion.utils';
 
 export const handler = withVersionCheck(
   async (
@@ -71,30 +67,7 @@ export const handler = withVersionCheck(
       const receivedAt = new Date().toISOString();
       const objectId = `${pathLocationId}_${pathEvseUid}`;
 
-      // Persist the raw EVSE patch payload to S3 as the canonical ingestion record
-      let s3Key: string;
-      try {
-        s3Key = await putRawToS3(
-          patch,
-          'locations',
-          'PATCH',
-          pathCountryCode!,
-          pathPartyId!,
-          objectId,
-          receivedAt,
-        );
-        console.info(
-          `[OCPI][locations/patch] Raw EVSE patch stored to s3://${Aws.rawDataBucketName}/${s3Key} from ${authContext.partnerId}`,
-        );
-      } catch (err) {
-        console.error(
-          `[OCPI][locations/patch] S3 write failed for ${pathCountryCode}/${pathPartyId}/${pathLocationId}/${pathEvseUid} from ${authContext.partnerId}:`,
-          err,
-        );
-        return ErrorHandler.handleError(err);
-      }
-
-      // Publish an ingestion event to SQS so downstream processors can pick up the S3 object
+      // Publish ingestion event to SQS — delta embedded directly, no S3 write for PATCH
       try {
         await publishIngestionEvent({
           action: 'PATCH',
@@ -104,17 +77,15 @@ export const handler = withVersionCheck(
           party_id: pathPartyId!,
           ocpi_version: ocpiVersion,
           received_at: receivedAt,
-          raw: {
-            bucket: Aws.rawDataBucketName,
-            key: s3Key,
-          },
+          raw: null,
+          delta: patch,
         });
         console.info(
-          `[OCPI][locations/patch] Ingested EVSE patch ${pathCountryCode}/${pathPartyId}/${pathLocationId}/${pathEvseUid} from ${authContext.partnerId} → s3:${s3Key}`,
+          `[OCPI][locations/patch] Ingested EVSE patch ${pathCountryCode}/${pathPartyId}/${pathLocationId}/${pathEvseUid} from ${authContext.partnerId}`,
         );
       } catch (err) {
         console.error(
-          `[OCPI][locations/patch] SQS publish failed — orphaned S3 object at s3://${Aws.rawDataBucketName}/${s3Key} from ${authContext.partnerId}:`,
+          `[OCPI][locations/patch] SQS publish failed for ${pathCountryCode}/${pathPartyId}/${pathLocationId}/${pathEvseUid} from ${authContext.partnerId}:`,
           err,
         );
         return ErrorHandler.handleError(err);
