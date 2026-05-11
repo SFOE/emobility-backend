@@ -79,7 +79,7 @@ export const handler = withVersionCheck(
           'PUT',
           pathCountryCode!,
           pathPartyId!,
-          objectId,
+          [`location_id=${pathLocationId}`, `evse_uid=${evse.uid}`],
           receivedAt,
         );
         console.info(

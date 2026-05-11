@@ -80,7 +80,7 @@ export const handler = withVersionCheck(
           'PUT',
           pathCountryCode!,
           pathPartyId!,
-          objectId,
+          [`location_id=${pathLocationId}`, `evse_uid=${pathEvseUid}`, `connector_id=${connector.id}`],
           receivedAt,
         );
         console.info(

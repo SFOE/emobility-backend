@@ -78,7 +78,7 @@ export const handler = withVersionCheck(
           'PUT',
           location.country_code,
           location.party_id,
-          location.id,
+          [`location_id=${location.id}`],
           receivedAt,
         );
         console.info(

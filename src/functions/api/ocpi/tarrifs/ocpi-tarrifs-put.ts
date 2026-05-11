@@ -78,7 +78,7 @@ export const handler = withVersionCheck(
           'PUT',
           tariff.country_code,
           tariff.party_id,
-          tariff.id,
+          [`tariff_id=${tariff.id}`],
           receivedAt,
         );
         console.info(

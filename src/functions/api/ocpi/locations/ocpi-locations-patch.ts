@@ -40,8 +40,7 @@ export const handler = withVersionCheck(
         return guardError;
       }
 
-      // PATCH body is a partial object — parse as a generic map to avoid enforcing
-      // all mandatory fields, but last_updated MUST be present per OCPI spec
+      // PATCH body is a partial object — parse as generic map, but last_updated MUST be present per OCPI spec
       const bodyResult = parseRequestBody<Record<string, unknown>>(event.body);
       if (!bodyResult.ok) {
         console.warn(
