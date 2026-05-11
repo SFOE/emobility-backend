@@ -9,16 +9,22 @@ import {
 } from '/opt/nodejs/utils/api.utils';
 import { Location } from '/opt/nodejs/db/ocpi-locations/ocpi-locations.model';
 import {
+  assertBodyConsistency,
   assertNotBootstrap,
   assertOwnership,
   assertRole,
 } from '/opt/nodejs/utils/ocpi-guards';
+import {
+  publishIngestionEvent,
+  putRawToS3,
+} from '/opt/nodejs/utils/ingestion.utils';
+import { Aws } from '/opt/nodejs/aws.constants';
 
 export const handler = withVersionCheck(
   async (
     event: APIGatewayProxyEventV2WithLambdaAuthorizer<OCPIAuthorizerContext>,
     authContext: OCPIAuthorizerContext,
-    _ocpiVersion: string,
+    ocpiVersion: string,
   ): Promise<APIGatewayProxyResult> => {
     try {
       // Identifiers from the request URL path — e.g. PUT /locations/{country_code}/{party_id}/{location_id}
@@ -50,26 +56,68 @@ export const handler = withVersionCheck(
       }
       const location = bodyResult.data;
 
-      if (
-        location.country_code !== pathCountryCode ||
-        location.party_id !== pathPartyId ||
-        location.id !== pathLocationId
-      ) {
-        console.warn(
-          `[OCPI][locations/put] Rejected — body mismatch for ${authContext.partnerId}: ` +
-            `path=${pathCountryCode}/${pathPartyId}/${pathLocationId}, ` +
-            `body=${location.country_code}/${location.party_id}/${location.id}`,
+      // Ensure path identifiers match the body and contain no characters that would break S3 key paths
+      const bodyError = assertBodyConsistency(
+        location,
+        pathCountryCode,
+        pathPartyId,
+        pathLocationId,
+        'locations/put',
+        authContext.partnerId,
+      );
+      if (bodyError) {return bodyError;}
+
+      const receivedAt = new Date().toISOString();
+
+      // Persist the raw location payload to S3 as the canonical ingestion record
+      let s3Key: string;
+      try {
+        s3Key = await putRawToS3(
+          location,
+          'locations',
+          'PUT',
+          location.country_code,
+          location.party_id,
+          [`location_id=${location.id}`],
+          receivedAt,
         );
-        return ErrorHandler.handleBadRequestError(
-          2001,
-          'Identifiers in path and body do not match.',
+        console.info(
+          `[OCPI][locations/put] Raw location stored to s3://${Aws.rawDataBucketName}/${s3Key} from ${authContext.partnerId}`,
         );
+      } catch (err) {
+        console.error(
+          `[OCPI][locations/put] S3 write failed for ${location.country_code}/${location.party_id}/${location.id} from ${authContext.partnerId}:`,
+          err,
+        );
+        return ErrorHandler.handleError(err);
       }
 
-      // TODO: persist raw location payload to S3 and publish ingestion event to SQS
-      console.info(
-        `[OCPI][locations/put] Location ${location.country_code}/${location.party_id}/${location.id} received from ${authContext.partnerId}`,
-      );
+      // Publish an ingestion event to SQS so downstream processors can pick up the S3 object
+      try {
+        await publishIngestionEvent({
+          action: 'PUT',
+          type: 'locations',
+          object_id: location.id,
+          country_code: location.country_code,
+          party_id: location.party_id,
+          ocpi_version: ocpiVersion,
+          received_at: receivedAt,
+          raw: {
+            bucket: Aws.rawDataBucketName,
+            key: s3Key,
+          },
+          delta: null,
+        });
+        console.info(
+          `[OCPI][locations/put] Ingested location ${location.country_code}/${location.party_id}/${location.id} from ${authContext.partnerId} → s3:${s3Key}`,
+        );
+      } catch (err) {
+        console.error(
+          `[OCPI][locations/put] SQS publish failed — orphaned S3 object at s3://${Aws.rawDataBucketName}/${s3Key} from ${authContext.partnerId}:`,
+          err,
+        );
+        return ErrorHandler.handleError(err);
+      }
 
       // PUT returns no data per OCPI spec
       return prepareOCPIResponse(null);

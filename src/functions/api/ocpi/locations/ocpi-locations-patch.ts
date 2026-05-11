@@ -12,12 +12,13 @@ import {
   assertOwnership,
   assertRole,
 } from '/opt/nodejs/utils/ocpi-guards';
+import { publishIngestionEvent } from '/opt/nodejs/utils/ingestion.utils';
 
 export const handler = withVersionCheck(
   async (
     event: APIGatewayProxyEventV2WithLambdaAuthorizer<OCPIAuthorizerContext>,
     authContext: OCPIAuthorizerContext,
-    _ocpiVersion: string,
+    ocpiVersion: string,
   ): Promise<APIGatewayProxyResult> => {
     try {
       // Identifiers from the request URL path — e.g. PATCH /locations/{country_code}/{party_id}/{location_id}
@@ -39,8 +40,7 @@ export const handler = withVersionCheck(
         return guardError;
       }
 
-      // PATCH body is a partial object — parse as a generic map to avoid enforcing
-      // all mandatory fields, but last_updated MUST be present per OCPI spec
+      // PATCH body is a partial object — parse as generic map, but last_updated MUST be present per OCPI spec
       const bodyResult = parseRequestBody<Record<string, unknown>>(event.body);
       if (!bodyResult.ok) {
         console.warn(
@@ -63,10 +63,31 @@ export const handler = withVersionCheck(
         );
       }
 
-      // TODO: persist raw location patch payload to S3 and publish ingestion event to SQS
-      console.info(
-        `[OCPI][locations/patch] Partial update for ${pathCountryCode}/${pathPartyId}/${pathLocationId} received from ${authContext.partnerId}`,
-      );
+      const receivedAt = new Date().toISOString();
+
+      // Publish ingestion event to SQS — delta embedded directly, no S3 write for PATCH
+      try {
+        await publishIngestionEvent({
+          action: 'PATCH',
+          type: 'locations',
+          object_id: pathLocationId!,
+          country_code: pathCountryCode!,
+          party_id: pathPartyId!,
+          ocpi_version: ocpiVersion,
+          received_at: receivedAt,
+          raw: null,
+          delta: patch,
+        });
+        console.info(
+          `[OCPI][locations/patch] Ingested location patch ${pathCountryCode}/${pathPartyId}/${pathLocationId} from ${authContext.partnerId}`,
+        );
+      } catch (err) {
+        console.error(
+          `[OCPI][locations/patch] SQS publish failed for ${pathCountryCode}/${pathPartyId}/${pathLocationId} from ${authContext.partnerId}:`,
+          err,
+        );
+        return ErrorHandler.handleError(err);
+      }
 
       // PATCH returns no data per OCPI spec
       return prepareOCPIResponse(null);

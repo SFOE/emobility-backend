@@ -12,12 +12,13 @@ import {
   assertOwnership,
   assertRole,
 } from '/opt/nodejs/utils/ocpi-guards';
+import { publishIngestionEvent } from '/opt/nodejs/utils/ingestion.utils';
 
 export const handler = withVersionCheck(
   async (
     event: APIGatewayProxyEventV2WithLambdaAuthorizer<OCPIAuthorizerContext>,
     authContext: OCPIAuthorizerContext,
-    _ocpiVersion: string,
+    ocpiVersion: string,
   ): Promise<APIGatewayProxyResult> => {
     try {
       // Identifiers from the request URL path — e.g. PATCH /locations/{country_code}/{party_id}/{location_id}/{evse_uid}
@@ -63,10 +64,32 @@ export const handler = withVersionCheck(
         );
       }
 
-      // TODO: persist raw EVSE patch payload to S3 and publish ingestion event to SQS
-      console.info(
-        `[OCPI][locations/patch] Partial update for ${pathCountryCode}/${pathPartyId}/${pathLocationId}/${pathEvseUid} received from ${authContext.partnerId}`,
-      );
+      const receivedAt = new Date().toISOString();
+      const objectId = `${pathLocationId}_${pathEvseUid}`;
+
+      // Publish ingestion event to SQS — delta embedded directly, no S3 write for PATCH
+      try {
+        await publishIngestionEvent({
+          action: 'PATCH',
+          type: 'locations',
+          object_id: objectId,
+          country_code: pathCountryCode!,
+          party_id: pathPartyId!,
+          ocpi_version: ocpiVersion,
+          received_at: receivedAt,
+          raw: null,
+          delta: patch,
+        });
+        console.info(
+          `[OCPI][locations/patch] Ingested EVSE patch ${pathCountryCode}/${pathPartyId}/${pathLocationId}/${pathEvseUid} from ${authContext.partnerId}`,
+        );
+      } catch (err) {
+        console.error(
+          `[OCPI][locations/patch] SQS publish failed for ${pathCountryCode}/${pathPartyId}/${pathLocationId}/${pathEvseUid} from ${authContext.partnerId}:`,
+          err,
+        );
+        return ErrorHandler.handleError(err);
+      }
 
       // PATCH returns no data per OCPI spec
       return prepareOCPIResponse(null);

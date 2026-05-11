@@ -78,7 +78,7 @@ export const handler = withVersionCheck(
           'PUT',
           tariff.country_code,
           tariff.party_id,
-          tariff.id,
+          [`tariff_id=${tariff.id}`],
           receivedAt,
         );
         console.info(
@@ -106,6 +106,7 @@ export const handler = withVersionCheck(
             bucket: Aws.rawDataBucketName,
             key: s3Key,
           },
+          delta: null,
         });
         console.info(
           `[OCPI][tarrifs/put] Ingested tariff ${tariff.country_code}/${tariff.party_id}/${tariff.id} from ${authContext.partnerId} → s3:${s3Key}`,

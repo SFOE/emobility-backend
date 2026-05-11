@@ -13,12 +13,17 @@ import {
   assertOwnership,
   assertRole,
 } from '/opt/nodejs/utils/ocpi-guards';
+import {
+  publishIngestionEvent,
+  putRawToS3,
+} from '/opt/nodejs/utils/ingestion.utils';
+import { Aws } from '/opt/nodejs/aws.constants';
 
 export const handler = withVersionCheck(
   async (
     event: APIGatewayProxyEventV2WithLambdaAuthorizer<OCPIAuthorizerContext>,
     authContext: OCPIAuthorizerContext,
-    _ocpiVersion: string,
+    ocpiVersion: string,
   ): Promise<APIGatewayProxyResult> => {
     try {
       // Identifiers from the request URL path — e.g. PUT /locations/{country_code}/{party_id}/{location_id}/{evse_uid}/{connector_id}
@@ -63,10 +68,58 @@ export const handler = withVersionCheck(
         );
       }
 
-      // TODO: persist raw connector payload to S3 and publish ingestion event to SQS
-      console.info(
-        `[OCPI][locations/put] Connector ${pathCountryCode}/${pathPartyId}/${pathLocationId}/${pathEvseUid}/${connector.id} received from ${authContext.partnerId}`,
-      );
+      const receivedAt = new Date().toISOString();
+      const objectId = `${pathLocationId}_${pathEvseUid}_${connector.id}`;
+
+      // Persist the raw connector payload to S3 as the canonical ingestion record
+      let s3Key: string;
+      try {
+        s3Key = await putRawToS3(
+          connector,
+          'locations',
+          'PUT',
+          pathCountryCode!,
+          pathPartyId!,
+          [`location_id=${pathLocationId}`, `evse_uid=${pathEvseUid}`, `connector_id=${connector.id}`],
+          receivedAt,
+        );
+        console.info(
+          `[OCPI][locations/put] Raw connector stored to s3://${Aws.rawDataBucketName}/${s3Key} from ${authContext.partnerId}`,
+        );
+      } catch (err) {
+        console.error(
+          `[OCPI][locations/put] S3 write failed for ${pathCountryCode}/${pathPartyId}/${pathLocationId}/${pathEvseUid}/${connector.id} from ${authContext.partnerId}:`,
+          err,
+        );
+        return ErrorHandler.handleError(err);
+      }
+
+      // Publish an ingestion event to SQS so downstream processors can pick up the S3 object
+      try {
+        await publishIngestionEvent({
+          action: 'PUT',
+          type: 'locations',
+          object_id: objectId,
+          country_code: pathCountryCode!,
+          party_id: pathPartyId!,
+          ocpi_version: ocpiVersion,
+          received_at: receivedAt,
+          raw: {
+            bucket: Aws.rawDataBucketName,
+            key: s3Key,
+          },
+          delta: null,
+        });
+        console.info(
+          `[OCPI][locations/put] Ingested connector ${pathCountryCode}/${pathPartyId}/${pathLocationId}/${pathEvseUid}/${connector.id} from ${authContext.partnerId} → s3:${s3Key}`,
+        );
+      } catch (err) {
+        console.error(
+          `[OCPI][locations/put] SQS publish failed — orphaned S3 object at s3://${Aws.rawDataBucketName}/${s3Key} from ${authContext.partnerId}:`,
+          err,
+        );
+        return ErrorHandler.handleError(err);
+      }
 
       // PUT returns no data per OCPI spec
       return prepareOCPIResponse(null);

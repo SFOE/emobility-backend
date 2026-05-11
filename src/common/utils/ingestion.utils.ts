@@ -20,22 +20,25 @@ export interface IngestionEvent {
     bucket: string;
     key: string;
   } | null;
+  // Embedded patch delta — only set for PATCH actions, null otherwise
+  delta: Record<string, unknown> | null;
 }
 
-// Builds the S3 key: {type}/year={YYYY}/month={MM}/day={DD}/{country_code}_{party_id}_{object_id}_{action}_{timestamp}.json
+// Builds an S3 key with Hive-style partitions (year/month/day/country/party + resource segments) for Athena/Glue auto-discovery.
 const buildS3Key = (
   type: IngestionObjectType,
   action: IngestionAction,
   countryCode: string,
   partyId: string,
-  objectId: string,
+  resourceSegments: string[],
   timestamp: Date,
 ): string => {
   const year = timestamp.getUTCFullYear();
   const month = String(timestamp.getUTCMonth() + 1).padStart(2, '0');
   const day = String(timestamp.getUTCDate()).padStart(2, '0');
   const ts = timestamp.toISOString().replace(/[:.]/g, '').replace('Z', 'Z');
-  return `${type}/year=${year}/month=${month}/day=${day}/${countryCode}_${partyId}_${objectId}_${action}_${ts}.json`;
+  const resource = resourceSegments.join('/');
+  return `${type}/year=${year}/month=${month}/day=${day}/country=${countryCode}/party=${partyId}/${resource}/${action}_${ts}.json`;
 };
 
 // Writes the raw payload to S3 and returns the object key.
@@ -45,7 +48,7 @@ export const putRawToS3 = async (
   action: IngestionAction,
   countryCode: string,
   partyId: string,
-  objectId: string,
+  resourceSegments: string[],
   receivedAt: string,
 ): Promise<string> => {
   const bucket = Aws.rawDataBucketName;
@@ -54,7 +57,7 @@ export const putRawToS3 = async (
     action,
     countryCode,
     partyId,
-    objectId,
+    resourceSegments,
     new Date(receivedAt),
   );
 
