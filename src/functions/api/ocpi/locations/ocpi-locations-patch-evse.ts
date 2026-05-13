@@ -65,13 +65,13 @@ export const handler = withVersionCheck(
       }
 
       const receivedAt = new Date().toISOString();
-      const objectId = `${pathLocationId}_${pathEvseUid}`;
+      const objectId = `${pathLocationId}*${pathEvseUid}`;
 
       // Publish ingestion event to SQS — delta embedded directly, no S3 write for PATCH
       try {
         await publishIngestionEvent({
           action: 'PATCH',
-          type: 'locations',
+          type: 'evse',
           object_id: objectId,
           country_code: pathCountryCode!,
           party_id: pathPartyId!,

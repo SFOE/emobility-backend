@@ -6,7 +6,7 @@ const s3Client = new S3Client({ region: Aws.region });
 const sqsClient = new SQSClient({ region: Aws.region });
 
 export type IngestionAction = 'PUT' | 'PATCH' | 'DELETE';
-export type IngestionObjectType = 'tariffs' | 'locations';
+export type IngestionObjectType = 'tariffs' | 'locations' | 'evse' | 'connector';
 
 export interface IngestionEvent {
   action: IngestionAction;

@@ -69,14 +69,14 @@ export const handler = withVersionCheck(
       }
 
       const receivedAt = new Date().toISOString();
-      const objectId = `${pathLocationId}_${pathEvseUid}_${connector.id}`;
+      const objectId = `${pathLocationId}*${pathEvseUid}*${connector.id}`;
 
       // Persist the raw connector payload to S3 as the canonical ingestion record
       let s3Key: string;
       try {
         s3Key = await putRawToS3(
           connector,
-          'locations',
+          'connector',
           'PUT',
           pathCountryCode!,
           pathPartyId!,
@@ -98,7 +98,7 @@ export const handler = withVersionCheck(
       try {
         await publishIngestionEvent({
           action: 'PUT',
-          type: 'locations',
+          type: 'connector',
           object_id: objectId,
           country_code: pathCountryCode!,
           party_id: pathPartyId!,
