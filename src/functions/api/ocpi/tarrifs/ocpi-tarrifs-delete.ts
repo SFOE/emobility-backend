@@ -27,13 +27,13 @@ export const handler = withVersionCheck(
 
       // Only registered CPOs may delete tariffs in their own namespace; bootstrap tokens and other roles are rejected
       const guardError =
-        assertNotBootstrap(authContext, 'tarrifs/delete') ??
-        assertRole(authContext, 'CPO', 'tarrifs/delete') ??
+        assertNotBootstrap(authContext, 'tariffs/delete') ??
+        assertRole(authContext, 'CPO', 'tariffs/delete') ??
         assertOwnership(
           authContext,
           pathCountryCode,
           pathPartyId,
-          'tarrifs/delete',
+          'tariffs/delete',
         );
       if (guardError) {
         return guardError;
@@ -55,11 +55,11 @@ export const handler = withVersionCheck(
           delta: null,
         });
         console.info(
-          `[OCPI][tarrifs/delete] Delete event published for tariff ${pathCountryCode}/${pathPartyId}/${pathTariffId} from ${authContext.partnerId}`,
+          `[OCPI][tariffs/delete] Delete event published for tariff ${pathCountryCode}/${pathPartyId}/${pathTariffId} from ${authContext.partnerId}`,
         );
       } catch (err) {
         console.error(
-          `[OCPI][tarrifs/delete] SQS publish failed for ${pathCountryCode}/${pathPartyId}/${pathTariffId} from ${authContext.partnerId}:`,
+          `[OCPI][tariffs/delete] SQS publish failed for ${pathCountryCode}/${pathPartyId}/${pathTariffId} from ${authContext.partnerId}:`,
           err,
         );
         return ErrorHandler.handleError(err);
@@ -69,7 +69,7 @@ export const handler = withVersionCheck(
       return prepareOCPIResponse(null);
     } catch (err) {
       console.error(
-        `[OCPI][tarrifs/delete] Unexpected error for party ${authContext.partnerId}:`,
+        `[OCPI][tariffs/delete] Unexpected error for party ${authContext.partnerId}:`,
         err,
       );
       return ErrorHandler.handleError(err);

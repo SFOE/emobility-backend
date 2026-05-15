@@ -34,13 +34,13 @@ export const handler = withVersionCheck(
 
       // Only registered CPOs may push tariffs in their own namespace; bootstrap tokens and other roles are rejected
       const guardError =
-        assertNotBootstrap(authContext, 'tarrifs/put') ??
-        assertRole(authContext, 'CPO', 'tarrifs/put') ??
+        assertNotBootstrap(authContext, 'tariffs/put') ??
+        assertRole(authContext, 'CPO', 'tariffs/put') ??
         assertOwnership(
           authContext,
           pathCountryCode,
           pathPartyId,
-          'tarrifs/put',
+          'tariffs/put',
         );
       if (guardError) {
         return guardError;
@@ -50,7 +50,7 @@ export const handler = withVersionCheck(
       const bodyResult = parseRequestBody<Tariff>(event.body);
       if (!bodyResult.ok) {
         console.warn(
-          `[OCPI][tarrifs/put] Rejected — invalid or missing request body from ${authContext.partnerId}`,
+          `[OCPI][tariffs/put] Rejected — invalid or missing request body from ${authContext.partnerId}`,
         );
         return bodyResult.error;
       }
@@ -62,7 +62,7 @@ export const handler = withVersionCheck(
         pathCountryCode,
         pathPartyId,
         pathTariffId,
-        'tarrifs/put',
+        'tariffs/put',
         authContext.partnerId,
       );
       if (bodyError) {return bodyError;}
@@ -82,11 +82,11 @@ export const handler = withVersionCheck(
           receivedAt,
         );
         console.info(
-          `[OCPI][tarrifs/put] Raw tariff stored to s3://${Aws.rawDataBucketName}/${s3Key} from ${authContext.partnerId}`,
+          `[OCPI][tariffs/put] Raw tariff stored to s3://${Aws.rawDataBucketName}/${s3Key} from ${authContext.partnerId}`,
         );
       } catch (err) {
         console.error(
-          `[OCPI][tarrifs/put] S3 write failed for ${tariff.country_code}/${tariff.party_id}/${tariff.id} from ${authContext.partnerId}:`,
+          `[OCPI][tariffs/put] S3 write failed for ${tariff.country_code}/${tariff.party_id}/${tariff.id} from ${authContext.partnerId}:`,
           err,
         );
         return ErrorHandler.handleError(err);
@@ -109,11 +109,11 @@ export const handler = withVersionCheck(
           delta: null,
         });
         console.info(
-          `[OCPI][tarrifs/put] Ingested tariff ${tariff.country_code}/${tariff.party_id}/${tariff.id} from ${authContext.partnerId} → s3:${s3Key}`,
+          `[OCPI][tariffs/put] Ingested tariff ${tariff.country_code}/${tariff.party_id}/${tariff.id} from ${authContext.partnerId} → s3:${s3Key}`,
         );
       } catch (err) {
         console.error(
-          `[OCPI][tarrifs/put] SQS publish failed — orphaned S3 object at s3://${Aws.rawDataBucketName}/${s3Key} from ${authContext.partnerId}:`,
+          `[OCPI][tariffs/put] SQS publish failed — orphaned S3 object at s3://${Aws.rawDataBucketName}/${s3Key} from ${authContext.partnerId}:`,
           err,
         );
         return ErrorHandler.handleError(err);
@@ -123,7 +123,7 @@ export const handler = withVersionCheck(
       return prepareOCPIResponse(null);
     } catch (err) {
       console.error(
-        `[OCPI][tarrifs/put] Unexpected error for party ${authContext.partnerId}:`,
+        `[OCPI][tariffs/put] Unexpected error for party ${authContext.partnerId}:`,
         err,
       );
       return ErrorHandler.handleError(err);
