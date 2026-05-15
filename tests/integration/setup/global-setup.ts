@@ -23,4 +23,10 @@ export default async function globalSetup(): Promise<void> {
   process.env.AWS_SECRET_ACCESS_KEY = 'test';
   process.env.MINISTACK_ENDPOINT = endpoint;
   process.env.BASE_URL = 'https://bfe-integration-test.example.com';
+
+  // Aws resources
+  process.env.AWS_REGION = 'eu-central-1';
+  process.env.RAW_DATA_BUCKET_NAME = 'emobility-test-ocpi-rawdata-bucket';
+  process.env.INGESTION_QUEUE_URL =
+      'https://sqs.eu-central-1.amazonaws.com/000000000000/emobility-test-ingestion-queue';
 }
