@@ -1,12 +1,12 @@
-jest.mock('/opt/nodejs/utils/secrets.utils');
-jest.mock('/opt/nodejs/db/ocpi-credentials/ocpi-credentials.db');
+jest.mock('../../../../../../src/common/utils/secrets.utils');
+jest.mock('../../../../../../src/common/db/ocpi-credentials/ocpi-credentials.db');
 
 import { APIGatewayProxyResult } from 'aws-lambda';
-import { handler } from './ocpi-credentials-delete';
-import { deletePartySecret } from '/opt/nodejs/utils/secrets.utils';
-import { deleteCredentials } from '/opt/nodejs/db/ocpi-credentials/ocpi-credentials.db';
-import { buildEvent } from '../../../../test/fixtures/ocpi-credentials.fixture';
-import { SECRET_ID } from '../../../../test/test-data/ocpi-credentials.data';
+import { handler } from '../../../../../../src/functions/api/ocpi/credentials/ocpi-credentials-delete';
+import { deletePartySecret } from '../../../../../../src/common/utils/secrets.utils';
+import { deleteCredentials } from '../../../../../../src/common/db/ocpi-credentials/ocpi-credentials.db';
+import { buildEvent } from '../../../../../shared/fixtures/ocpi-credentials.fixture';
+import { SECRET_ID } from '../../../../../shared/test-data/ocpi-credentials.data';
 
 const mockDeletePartySecret = deletePartySecret as jest.MockedFunction<
     typeof deletePartySecret

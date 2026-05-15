@@ -1,4 +1,4 @@
-import { generateToken, hashToken } from './crypto.utils';
+import { generateToken, hashToken } from '../../../../src/common/utils/crypto.utils';
 
 describe('generateToken', () => {
   it('returns a 64-char hex string by default (32 bytes)', () => {

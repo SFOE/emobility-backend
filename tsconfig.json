@@ -1,7 +1,7 @@
 {
   "compilerOptions": {
     "target": "ES2022",
-    "module": "commonjs",
+    "module": "NodeNext",
     "lib": ["ES2022"],
     "outDir": "./dist",
     "rootDir": "./src",
@@ -10,8 +10,8 @@
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
     "resolveJsonModule": true,
-    "moduleResolution": "node",
-    "types": ["node", "aws-lambda", "jest"],
+    "moduleResolution": "NodeNext",
+    "types": ["node", "aws-lambda"],
     "declaration": true,
     "declarationMap": true,
     "sourceMap": true,
@@ -19,11 +19,10 @@
     "noUnusedParameters": true,
     "noImplicitReturns": true,
     "noFallthroughCasesInSwitch": true,
-    "baseUrl": "./src",
     "paths": {
-      "/opt/nodejs/*": ["common/*"]
+      "/opt/nodejs/*": ["./src/common/*"]
     }
   },
   "include": ["src/**/*"],
-  "exclude": ["node_modules", "dist", "**/*.spec.ts"]
+  "exclude": ["node_modules", "dist", "tests", "**/*.spec.ts"]
 }

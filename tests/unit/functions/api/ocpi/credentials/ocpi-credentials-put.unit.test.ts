@@ -1,24 +1,24 @@
 // Mocks, prevents real AWS calls during tests.
-jest.mock('/opt/nodejs/utils/secrets.utils');
-jest.mock('/opt/nodejs/db/ocpi-credentials/ocpi-credentials.db');
-jest.mock('/opt/nodejs/utils/crypto.utils');
-jest.mock('/opt/nodejs/utils/ocpi-utils');
+jest.mock('../../../../../../src/common/utils/secrets.utils');
+jest.mock('../../../../../../src/common/db/ocpi-credentials/ocpi-credentials.db');
+jest.mock('../../../../../../src/common/utils/crypto.utils');
+jest.mock('../../../../../../src/common/utils/ocpi-utils');
 
 import { APIGatewayProxyResult } from 'aws-lambda';
-import { handler } from './ocpi-credentials-put';
-import { updatePartySecret } from '/opt/nodejs/utils/secrets.utils';
-import { rotateCredentialsToken } from '/opt/nodejs/db/ocpi-credentials/ocpi-credentials.db';
-import { generateToken } from '/opt/nodejs/utils/crypto.utils';
+import { handler } from '../../../../../../src/functions/api/ocpi/credentials/ocpi-credentials-put';
+import { updatePartySecret } from '../../../../../../src/common/utils/secrets.utils';
+import { rotateCredentialsToken } from '../../../../../../src/common/db/ocpi-credentials/ocpi-credentials.db';
+import { generateToken } from '../../../../../../src/common/utils/crypto.utils';
 import {
     getPrimaryRole,
     validateCredentialsPayload,
-} from '/opt/nodejs/utils/ocpi-utils';
-import { BFE_HUB_PARTY_ID, BFE_ROLE } from '/opt/nodejs/config.constants';
-import { buildEvent } from '../../../../test/fixtures/ocpi-credentials.fixture';
+} from '../../../../../../src/common/utils/ocpi-utils';
+import { BFE_HUB_PARTY_ID, BFE_ROLE } from '../../../../../../src/common/config.constants';
+import { buildEvent } from '../../../../../shared/fixtures/ocpi-credentials.fixture';
 import {
     SECRET_ID,
     VALID_CREDENTIAL,
-} from '../../../../test/test-data/ocpi-credentials.data';
+} from '../../../../../shared/test-data/ocpi-credentials.data';
 
 const mockUpdatePartySecret = updatePartySecret as jest.MockedFunction<typeof updatePartySecret>;
 const mockRotateCredentialsToken = rotateCredentialsToken as jest.MockedFunction<typeof rotateCredentialsToken>;
