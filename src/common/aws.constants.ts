@@ -1,11 +1,11 @@
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocument } from '@aws-sdk/lib-dynamodb';
+import { getRequiredLambdaEnv } from '/opt/nodejs/utils/api.utils';
 
 export const Aws = {
-  region: 'eu-central-1',
-  rawDataBucketName: 'emobility-dev-ocpi-rawdata-bucket',
-  ingestionQueueUrl:
-    'https://sqs.eu-central-1.amazonaws.com/312605937711/emobility-dev-ocpi-ingestion-queue',
+  region: process.env.AWS_REGION ?? 'eu-central-1',
+  rawDataBucketName: getRequiredLambdaEnv('RAW_DATA_BUCKET_NAME'),  // emobility-dev-ocpi-rawdata-bucket
+  ingestionQueueUrl: getRequiredLambdaEnv('INGESTION_QUEUE_URL'), // https://sqs.eu-central-1.amazonaws.com/312605937711/emobility-dev-ocpi-ingestion-queue
 };
 
 const dynamoDBClient = new DynamoDBClient({ region: Aws.region });
