@@ -1,23 +1,18 @@
 module.exports = {
   preset: 'ts-jest',
   testEnvironment: 'node',
-  roots: ['<rootDir>/src'],
+  roots: ['<rootDir>/tests/integration'],
   testMatch: ['**/*.integration.test.ts'],
   maxWorkers: 1,
   moduleNameMapper: {
     '^/opt/nodejs/(.*)$': '<rootDir>/src/common/$1',
   },
   transform: {
-    '^.+\\.ts$': 'ts-jest',
+    '^.+\\.ts$': ['ts-jest', { tsconfig: './tsconfig.test.json' }],
   },
-  globalSetup: '<rootDir>/src/test/integration/global-setup.ts',
-  globalTeardown: '<rootDir>/src/test/integration/global-teardown.ts',
-  collectCoverageFrom: [
-    'src/**/*.ts',
-    '!src/**/*.test.ts',
-    '!src/**/*.integration.test.ts',
-    '!src/test/**/*.ts',
-  ],
+  globalSetup: '<rootDir>/tests/integration/setup/global-setup.ts',
+  globalTeardown: '<rootDir>/tests/integration/setup/global-teardown.ts',
+  collectCoverageFrom: ['src/**/*.ts'],
   coverageDirectory: 'coverage/integration',
   coverageReporters: ['text', 'lcov', 'html'],
   testTimeout: 60000,

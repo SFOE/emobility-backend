@@ -3,11 +3,11 @@ import { APIGatewayProxyResult } from 'aws-lambda';
 import { DynamoDBClient, CreateTableCommand, ResourceInUseException } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocument } from '@aws-sdk/lib-dynamodb';
 import { SecretsManagerClient, GetSecretValueCommand } from '@aws-sdk/client-secrets-manager';
-import { hashToken } from '/opt/nodejs/utils/crypto.utils';
-import { handler } from './ocpi-credentials-post';
-import { OCPI_CREDENTIALS_TABLE_NAME as TABLE_NAME } from '/opt/nodejs/db/db-table-names.constants';
-import { buildEvent } from '../../../../test/fixtures/ocpi-credentials.fixture';
-import { VALID_CREDENTIAL, BOOTSTRAP_TOKEN, SECRET_ID } from '../../../../test/test-data/ocpi-credentials.data';
+import { hashToken } from '../../../../../../src/common/utils/crypto.utils';
+import { handler } from '../../../../../../src/functions/api/ocpi/credentials/ocpi-credentials-post';
+import { OCPI_CREDENTIALS_TABLE_NAME as TABLE_NAME } from '../../../../../../src/common/db/db-table-names.constants';
+import { buildEvent } from '../../../../../shared/fixtures/ocpi-credentials.fixture';
+import { VALID_CREDENTIAL, BOOTSTRAP_TOKEN, SECRET_ID } from '../../../../../shared/test-data/ocpi-credentials.data';
 
 // AWS clients — endpoint configured via env vars set in globalSetup.
 const clientConfig = { region: 'eu-central-1' };

@@ -7,14 +7,14 @@ import {
     GetSecretValueCommand,
     SecretsManagerClient,
 } from '@aws-sdk/client-secrets-manager';
-import { hashToken } from '/opt/nodejs/utils/crypto.utils';
-import { handler } from './ocpi-credentials-put';
-import { OCPI_CREDENTIALS_TABLE_NAME as TABLE_NAME } from '/opt/nodejs/db/db-table-names.constants';
-import { buildEvent } from '../../../../test/fixtures/ocpi-credentials.fixture';
+import { hashToken } from '../../../../../../src/common/utils/crypto.utils';
+import { handler } from '../../../../../../src/functions/api/ocpi/credentials/ocpi-credentials-put';
+import { OCPI_CREDENTIALS_TABLE_NAME as TABLE_NAME } from '../../../../../../src/common/db/db-table-names.constants';
+import { buildEvent } from '../../../../../shared/fixtures/ocpi-credentials.fixture';
 import {
     SECRET_ID,
     VALID_CREDENTIAL,
-} from '../../../../test/test-data/ocpi-credentials.data';
+} from '../../../../../shared/test-data/ocpi-credentials.data';
 
 const clientConfig = { region: 'eu-central-1' };
 const dynamoClient = new DynamoDBClient(clientConfig);

@@ -1,18 +1,18 @@
 // Mocks, prevents real AWS calls during tests.
-jest.mock('/opt/nodejs/utils/secrets.utils');
-jest.mock('/opt/nodejs/db/ocpi-credentials/ocpi-credentials.db');
-jest.mock('/opt/nodejs/utils/crypto.utils');
-jest.mock('/opt/nodejs/utils/ocpi-utils');
+jest.mock('../../../../../../src/common/utils/secrets.utils');
+jest.mock('../../../../../../src/common/db/ocpi-credentials/ocpi-credentials.db');
+jest.mock('../../../../../../src/common/utils/crypto.utils');
+jest.mock('../../../../../../src/common/utils/ocpi-utils');
 
 import { APIGatewayProxyResult } from 'aws-lambda';
-import { handler } from './ocpi-credentials-post';
-import { partySecretExists, savePartySecret } from '/opt/nodejs/utils/secrets.utils';
-import { saveNewCredentials, invalidateBootstrapToken } from '/opt/nodejs/db/ocpi-credentials/ocpi-credentials.db';
-import { generateToken } from '/opt/nodejs/utils/crypto.utils';
-import { extractToken, getPrimaryRole, validateCredentialsPayload } from '/opt/nodejs/utils/ocpi-utils';
-import { BFE_ROLE } from '/opt/nodejs/config.constants';
-import { buildEvent } from '../../../../test/fixtures/ocpi-credentials.fixture';
-import { BOOTSTRAP_TOKEN, SECRET_ID, VALID_CREDENTIAL } from '../../../../test/test-data/ocpi-credentials.data';
+import { handler } from '../../../../../../src/functions/api/ocpi/credentials/ocpi-credentials-post';
+import { partySecretExists, savePartySecret } from '../../../../../../src/common/utils/secrets.utils';
+import { saveNewCredentials, invalidateBootstrapToken } from '../../../../../../src/common/db/ocpi-credentials/ocpi-credentials.db';
+import { generateToken } from '../../../../../../src/common/utils/crypto.utils';
+import { extractToken, getPrimaryRole, validateCredentialsPayload } from '../../../../../../src/common/utils/ocpi-utils';
+import { BFE_ROLE } from '../../../../../../src/common/config.constants';
+import { buildEvent } from '../../../../../shared/fixtures/ocpi-credentials.fixture';
+import { BOOTSTRAP_TOKEN, SECRET_ID, VALID_CREDENTIAL } from '../../../../../shared/test-data/ocpi-credentials.data';
 
 // Cast to typed mocks so TypeScript allows mock configuration.
 const mockPartySecretExists = partySecretExists as jest.MockedFunction<typeof partySecretExists>;
