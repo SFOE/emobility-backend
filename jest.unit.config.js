@@ -8,7 +8,7 @@ module.exports = {
     '^/opt/nodejs/(.*)$': '<rootDir>/src/common/$1',
   },
   transform: {
-    '^.+\\.ts$': ['ts-jest', { tsconfig: './tsconfig.test.json' }],
+    '^.+\\.ts$': ['ts-jest', { tsconfig: './tests/tsconfig.json' }],
   },
   collectCoverageFrom: ['src/**/*.ts'],
   coverageDirectory: 'coverage/unit',
