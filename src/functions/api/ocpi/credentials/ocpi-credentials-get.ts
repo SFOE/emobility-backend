@@ -8,7 +8,7 @@ import {
     withVersionCheck,
 } from '/opt/nodejs/utils/api.utils';
 import { OCPICredential } from '/opt/nodejs/db/ocpi-credentials/ocpi-credentials.model';
-import { getPartySecret } from '/opt/nodejs/utils/secrets.utils';
+import { getPartySecret } from '/opt/nodejs/aws/secrets-manager';
 import { BFE_ROLE, BFE_HUB_PARTY_ID } from '/opt/nodejs/config.constants';
 
 /**

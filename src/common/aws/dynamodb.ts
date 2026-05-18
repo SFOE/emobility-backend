@@ -1,5 +1,7 @@
+import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import {
   DeleteCommand,
+  DynamoDBDocument,
   GetCommand,
   GetCommandInput,
   PutCommand,
@@ -8,7 +10,10 @@ import {
   ScanCommandInput,
   UpdateCommand,
 } from '@aws-sdk/lib-dynamodb';
-import { dynamoDocClient } from '/opt/nodejs/aws.constants';
+import { Aws } from '/opt/nodejs/aws/constants';
+
+const dynamoDBClient = new DynamoDBClient({ region: Aws.region });
+const dynamoDocClient = DynamoDBDocument.from(dynamoDBClient);
 
 export const getItem = async <T>(
   tableName: string,
@@ -151,20 +156,17 @@ export const updateItem = async (
   }
 };
 
-/**
- * Deletes an item from a DynamoDB table by primary key.
- */
 export const deleteItem = async (
-    tableName: string,
-    pk: string,
-    sk: string,
+  tableName: string,
+  pk: string,
+  sk: string,
 ): Promise<void> => {
   try {
     await dynamoDocClient.send(
-        new DeleteCommand({
-          TableName: tableName,
-          Key: { pk, sk },
-        }),
+      new DeleteCommand({
+        TableName: tableName,
+        Key: { pk, sk },
+      }),
     );
   } catch (err) {
     console.error(err);

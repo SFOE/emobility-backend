@@ -7,7 +7,7 @@ import { OCPICredential } from '/opt/nodejs/db/ocpi-credentials/ocpi-credentials
 import { invalidateBootstrapToken, saveNewCredentials } from '/opt/nodejs/db/ocpi-credentials/ocpi-credentials.db';
 import { BFE_ROLE } from '/opt/nodejs/config.constants';
 import { generateToken } from '/opt/nodejs/utils/crypto.utils';
-import { partySecretExists, savePartySecret } from '/opt/nodejs/utils/secrets.utils';
+import { partySecretExists, savePartySecret } from '/opt/nodejs/aws/secrets-manager';
 import { extractToken, validateCredentialsPayload, getPrimaryRole } from '/opt/nodejs/utils/ocpi-utils';
 
 export const handler = withVersionCheck(

@@ -13,11 +13,9 @@ import {
   assertOwnership,
   assertRole,
 } from '/opt/nodejs/utils/ocpi-guards';
-import {
-  publishIngestionEvent,
-  putRawToS3,
-} from '/opt/nodejs/utils/ingestion.utils';
-import { Aws } from '/opt/nodejs/aws.constants';
+import { putRawToS3 } from '/opt/nodejs/aws/s3';
+import { publishIngestionEvent } from '/opt/nodejs/aws/sqs';
+import { Aws } from '/opt/nodejs/aws/constants';
 
 export const handler = withVersionCheck(
   async (
