@@ -1,4 +1,4 @@
-import { queryByPk, queryBySk } from '/opt/nodejs/db/db-requests';
+import { queryByPk, queryBySk } from '/opt/nodejs/aws/dynamodb';
 import { OCPI_VERSION_TABLE_NAME } from '/opt/nodejs/db/db-table-names.constants';
 import {
   OCPIVersion,

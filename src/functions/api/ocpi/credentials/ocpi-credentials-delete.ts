@@ -4,7 +4,7 @@ import { ErrorHandler } from '/opt/nodejs/api/error/api-error-handler';
 import { OCPIAuthorizerContext } from '/opt/nodejs/api/base.model';
 import { deleteCredentials } from '/opt/nodejs/db/ocpi-credentials/ocpi-credentials.db';
 import { prepareOCPIResponse, withVersionCheck } from '/opt/nodejs/utils/api.utils';
-import { deletePartySecret } from '/opt/nodejs/utils/secrets.utils';
+import { deletePartySecret } from '/opt/nodejs/aws/secrets-manager';
 
 /**
  * Handles DELETE /ocpi/{version}/credentials.

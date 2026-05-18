@@ -1,4 +1,4 @@
-import { queryBySk, saveItem, updateItem, deleteItem } from '/opt/nodejs/db/db-requests';
+import { queryBySk, saveItem, updateItem, deleteItem } from '/opt/nodejs/aws/dynamodb';
 import { OCPI_CREDENTIALS_TABLE_NAME } from '/opt/nodejs/db/db-table-names.constants';
 import {
   OCPICredential,
