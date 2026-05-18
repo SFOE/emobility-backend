@@ -9,7 +9,9 @@ import {
 } from '@aws-sdk/client-secrets-manager';
 import { hashToken } from '../../../../../../src/common/utils/crypto.utils';
 import { handler } from '../../../../../../src/functions/api/ocpi/credentials/ocpi-credentials-put';
-import { OCPI_CREDENTIALS_TABLE_NAME as TABLE_NAME } from '../../../../../../src/common/db/db-table-names.constants';
+import { Aws } from '../../../../../../src/common/aws/constants';
+
+const TABLE_NAME = Aws.dynamoDBTables.credentials;
 import { buildEvent } from '../../../../../shared/fixtures/ocpi-credentials.fixture';
 import {
     SECRET_ID,
@@ -154,7 +156,7 @@ describe('ocpi-credentials-put integration', () => {
         expect(data.roles[0].country_code).toBe('CH');
     });
 
-    it('rejects bootstrap tokens with 403 and does not rotate credentials', async () => {
+    it('rejects bootstrap tokens with 405 and does not rotate credentials', async () => {
         const result = await handler(
             buildEvent({
                 authContext: {
@@ -164,7 +166,7 @@ describe('ocpi-credentials-put integration', () => {
             }),
         );
 
-        expect(result.statusCode).toBe(403);
+        expect(result.statusCode).toBe(405);
         expect(parseBody(result).status_code).toBe(2000);
 
         const oldItem = await dynamoDoc.get({

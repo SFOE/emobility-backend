@@ -2,7 +2,13 @@ import { APIGatewayProxyResult } from 'aws-lambda';
 import { APIGatewayProxyEventV2WithLambdaAuthorizer } from 'aws-lambda/trigger/api-gateway-proxy';
 import { ErrorHandler } from '/opt/nodejs/api/error/api-error-handler';
 import { OCPIAuthorizerContext } from '/opt/nodejs/api/base.model';
-import {getRequiredBaseUrl, parseRequestBody, prepareOCPIResponse, withVersionCheck} from '/opt/nodejs/utils/api.utils';
+import { prepareOCPIResponse } from '/opt/nodejs/utils/api.utils';
+import {
+  assertIsBootstrap,
+  getRequiredBaseUrl,
+  parseRequestBody,
+  withVersionCheck,
+} from '/opt/nodejs/utils/ocpi-guards';
 import { OCPICredential } from '/opt/nodejs/db/ocpi-credentials/ocpi-credentials.model';
 import { invalidateBootstrapToken, saveNewCredentials } from '/opt/nodejs/db/ocpi-credentials/ocpi-credentials.db';
 import { BFE_ROLE } from '/opt/nodejs/config.constants';
@@ -11,22 +17,17 @@ import { partySecretExists, savePartySecret } from '/opt/nodejs/aws/secrets-mana
 import { extractToken, validateCredentialsPayload, getPrimaryRole } from '/opt/nodejs/utils/ocpi-utils';
 
 export const handler = withVersionCheck(
-  async (
+  (_, auth) => assertIsBootstrap(auth, 'credentials/post'),
+)(async (
     event: APIGatewayProxyEventV2WithLambdaAuthorizer<OCPIAuthorizerContext>,
     authContext: OCPIAuthorizerContext,
   ): Promise<APIGatewayProxyResult> => {
     try {
       const baseUrl = getRequiredBaseUrl();
 
-      // Only bootstrap tokens are permitted for the initial registration handshake
-      if (!authContext.isBootstrap) {
-        console.warn(`[OCPI][credentials/post] Rejected — ${authContext.partnerId} is already registered`);
-        return ErrorHandler.handleBadRequestError(2000, 'Only bootstrap tokens are allowed, client already has a token!', 405);
-      }
-
       // Parse and validate the incoming credentials payload
       const bodyResult = parseRequestBody<OCPICredential>(event.body);
-      if (!bodyResult.ok) {
+      if (!bodyResult.success) {
         console.warn(`[OCPI][credentials/post] Rejected — invalid or missing request body from ${authContext.partnerId}`);
         return bodyResult.error;
       }
@@ -73,5 +74,4 @@ export const handler = withVersionCheck(
       console.error(`[OCPI][credentials/post] Unexpected error for party ${authContext.partnerId}:`, err);
       return ErrorHandler.handleError(err);
     }
-  },
-);
+  });

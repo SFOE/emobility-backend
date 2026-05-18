@@ -2,51 +2,38 @@ import { APIGatewayProxyResult } from 'aws-lambda';
 import { APIGatewayProxyEventV2WithLambdaAuthorizer } from 'aws-lambda/trigger/api-gateway-proxy';
 import { ErrorHandler } from '/opt/nodejs/api/error/api-error-handler';
 import { OCPIAuthorizerContext } from '/opt/nodejs/api/base.model';
-import {
-  parseRequestBody,
-  prepareOCPIResponse,
-  withVersionCheck,
-} from '/opt/nodejs/utils/api.utils';
+import { prepareOCPIResponse } from '/opt/nodejs/utils/api.utils';
 import { Tariff } from '/opt/nodejs/db/ocpi-tariffs/ocpi-tariffs.model';
 import {
   assertBodyConsistency,
   assertNotBootstrap,
   assertOwnership,
   assertRole,
+  parseRequestBody,
+  withVersionCheck,
 } from '/opt/nodejs/utils/ocpi-guards';
 import { putRawToS3 } from '/opt/nodejs/aws/s3';
 import { publishIngestionEvent } from '/opt/nodejs/aws/sqs';
 import { Aws } from '/opt/nodejs/aws/constants';
 
 export const handler = withVersionCheck(
-  async (
+  (event, auth) =>
+    assertNotBootstrap(auth, 'tariffs/put') ??
+    assertRole(auth, 'CPO', 'tariffs/put') ??
+    assertOwnership(auth, event.pathParameters?.country_code, event.pathParameters?.party_id, 'tariffs/put'),
+)(async (
     event: APIGatewayProxyEventV2WithLambdaAuthorizer<OCPIAuthorizerContext>,
     authContext: OCPIAuthorizerContext,
     ocpiVersion: string,
   ): Promise<APIGatewayProxyResult> => {
     try {
-      // Identifiers from the request URL path — e.g. PUT /tariffs/{country_code}/{party_id}/{tariff_id}
       const pathCountryCode = event.pathParameters?.country_code;
       const pathPartyId = event.pathParameters?.party_id;
       const pathTariffId = event.pathParameters?.tariff_id;
 
-      // Only registered CPOs may push tariffs in their own namespace; bootstrap tokens and other roles are rejected
-      const guardError =
-        assertNotBootstrap(authContext, 'tariffs/put') ??
-        assertRole(authContext, 'CPO', 'tariffs/put') ??
-        assertOwnership(
-          authContext,
-          pathCountryCode,
-          pathPartyId,
-          'tariffs/put',
-        );
-      if (guardError) {
-        return guardError;
-      }
-
       // Parse and validate the incoming tariff payload
       const bodyResult = parseRequestBody<Tariff>(event.body);
-      if (!bodyResult.ok) {
+      if (!bodyResult.success) {
         console.warn(
           `[OCPI][tariffs/put] Rejected — invalid or missing request body from ${authContext.partnerId}`,
         );
@@ -126,5 +113,4 @@ export const handler = withVersionCheck(
       );
       return ErrorHandler.handleError(err);
     }
-  },
-);
+  });

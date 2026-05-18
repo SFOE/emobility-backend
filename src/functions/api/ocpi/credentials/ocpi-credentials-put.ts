@@ -5,11 +5,14 @@ import { OCPIAuthorizerContext } from '/opt/nodejs/api/base.model';
 import { OCPICredential } from '/opt/nodejs/db/ocpi-credentials/ocpi-credentials.model';
 import { rotateCredentialsToken } from '/opt/nodejs/db/ocpi-credentials/ocpi-credentials.db';
 import { BFE_HUB_PARTY_ID, BFE_ROLE } from '/opt/nodejs/config.constants';
+import { prepareOCPIResponse } from '/opt/nodejs/utils/api.utils';
 import {
+    assertContextComplete,
+    assertNotBootstrap,
     getRequiredBaseUrl,
-    prepareOCPIResponse,
+    parseRequestBody,
     withVersionCheck,
-} from '/opt/nodejs/utils/api.utils';
+} from '/opt/nodejs/utils/ocpi-guards';
 import {
     getPrimaryRole,
     validateCredentialsPayload,
@@ -22,37 +25,21 @@ import { updatePartySecret } from '/opt/nodejs/aws/secrets-manager';
  * Updates credentials for an already registered OCPI party and rotates TOKEN_C.
  */
 export const handler = withVersionCheck(
-    async (
+    (_, auth) =>
+        assertNotBootstrap(auth, 'credentials/put') ??
+        assertContextComplete(auth, 'credentials/put'),
+)(async (
         event: APIGatewayProxyEventV2WithLambdaAuthorizer<OCPIAuthorizerContext>,
         authContext: OCPIAuthorizerContext,
     ): Promise<APIGatewayProxyResult> => {
         try {
             const baseUrl = getRequiredBaseUrl();
 
-            if (authContext.isBootstrap) {
-                return ErrorHandler.handleBadRequestError(
-                    2000,
-                    'Bootstrap token cannot be used to update credentials!',
-                    403,
-                );
+            const bodyResult = parseRequestBody<OCPICredential>(event.body);
+            if (!bodyResult.success) {
+                return bodyResult.error;
             }
-
-            if (!authContext.secretRef || !authContext.credentialPk) {
-                return ErrorHandler.handleBadRequestError(
-                    2000,
-                    'Credential context is incomplete!',
-                    403,
-                );
-            }
-
-            if (!event.body) {
-                return ErrorHandler.handleBadRequestError(
-                    2001,
-                    'Missing credentials payload!',
-                );
-            }
-
-            const updatedCredentials = JSON.parse(event.body) as OCPICredential;
+            const updatedCredentials = bodyResult.data;
             const primaryRole = getPrimaryRole(updatedCredentials.roles);
 
             const validationError = validateCredentialsPayload(
@@ -69,17 +56,17 @@ export const handler = withVersionCheck(
 
             // Update TOKEN_B and TOKEN_C in Secrets Manager for the existing party.
             await updatePartySecret(
-                authContext.secretRef,
+                authContext.secretRef!,
                 updatedCredentials.token,
                 newTokenC,
             );
 
             // Rotate the DynamoDB lookup key from old TOKEN_C to new TOKEN_C.
             await rotateCredentialsToken(
-                authContext.credentialPk,
+                authContext.credentialPk!,
                 updatedCredentials,
                 newTokenC,
-                authContext.secretRef,
+                authContext.secretRef!,
             );
 
             const response: OCPICredential = {
@@ -97,5 +84,4 @@ export const handler = withVersionCheck(
             );
             return ErrorHandler.handleError(err);
         }
-    },
-);
+    });
