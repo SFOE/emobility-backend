@@ -71,7 +71,7 @@ describe('ocpi-credentials-put handler', () => {
     });
 
     describe('bootstrap token guard', () => {
-        it('rejects with 403 and OCPI 2000 when request uses a bootstrap token', async () => {
+        it('rejects with 405 and OCPI 2000 when request uses a bootstrap token', async () => {
             const result = await handler(
                 buildEvent({
                     authContext: {
@@ -81,7 +81,7 @@ describe('ocpi-credentials-put handler', () => {
                 }),
             );
 
-            expect(result.statusCode).toBe(403);
+            expect(result.statusCode).toBe(405);
             expect(parseBody(result).status_code).toBe(2000);
         });
 

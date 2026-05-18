@@ -1,4 +1,4 @@
-import { DbKeys } from '/opt/nodejs/db/base.model';
+import { DbKeys } from '/opt/nodejs/aws/dynamodb';
 
 export interface OCPICredential {
   token: string;

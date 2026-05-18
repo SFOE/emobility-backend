@@ -2,42 +2,29 @@ import { APIGatewayProxyResult } from 'aws-lambda';
 import { APIGatewayProxyEventV2WithLambdaAuthorizer } from 'aws-lambda/trigger/api-gateway-proxy';
 import { OCPIAuthorizerContext } from '/opt/nodejs/api/base.model';
 import { ErrorHandler } from '/opt/nodejs/api/error/api-error-handler';
-import {
-  prepareOCPIResponse,
-  withVersionCheck,
-} from '/opt/nodejs/utils/api.utils';
+import { prepareOCPIResponse } from '/opt/nodejs/utils/api.utils';
 import {
   assertNotBootstrap,
   assertOwnership,
   assertRole,
+  withVersionCheck,
 } from '/opt/nodejs/utils/ocpi-guards';
 import { publishIngestionEvent } from '/opt/nodejs/aws/sqs';
 
 export const handler = withVersionCheck(
-  async (
+  (event, auth) =>
+    assertNotBootstrap(auth, 'tariffs/delete') ??
+    assertRole(auth, 'CPO', 'tariffs/delete') ??
+    assertOwnership(auth, event.pathParameters?.country_code, event.pathParameters?.party_id, 'tariffs/delete'),
+)(async (
     event: APIGatewayProxyEventV2WithLambdaAuthorizer<OCPIAuthorizerContext>,
     authContext: OCPIAuthorizerContext,
     ocpiVersion: string,
   ): Promise<APIGatewayProxyResult> => {
     try {
-      // Identifiers from the request URL path — e.g. DELETE /tariffs/{country_code}/{party_id}/{tariff_id}
       const pathCountryCode = event.pathParameters?.country_code;
       const pathPartyId = event.pathParameters?.party_id;
       const pathTariffId = event.pathParameters?.tariff_id;
-
-      // Only registered CPOs may delete tariffs in their own namespace; bootstrap tokens and other roles are rejected
-      const guardError =
-        assertNotBootstrap(authContext, 'tariffs/delete') ??
-        assertRole(authContext, 'CPO', 'tariffs/delete') ??
-        assertOwnership(
-          authContext,
-          pathCountryCode,
-          pathPartyId,
-          'tariffs/delete',
-        );
-      if (guardError) {
-        return guardError;
-      }
 
       const receivedAt = new Date().toISOString();
 
@@ -74,5 +61,4 @@ export const handler = withVersionCheck(
       );
       return ErrorHandler.handleError(err);
     }
-  },
-);
+  });
