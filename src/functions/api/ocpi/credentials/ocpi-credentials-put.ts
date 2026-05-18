@@ -15,7 +15,7 @@ import {
     validateCredentialsPayload,
 } from '/opt/nodejs/utils/ocpi-utils';
 import { generateToken } from '/opt/nodejs/utils/crypto.utils';
-import { updatePartySecret } from '/opt/nodejs/utils/secrets.utils';
+import { updatePartySecret } from '/opt/nodejs/aws/secrets-manager';
 
 /**
  * Handles PUT /ocpi/{version}/credentials.

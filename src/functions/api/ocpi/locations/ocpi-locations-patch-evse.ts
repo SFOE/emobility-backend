@@ -12,7 +12,7 @@ import {
   assertOwnership,
   assertRole,
 } from '/opt/nodejs/utils/ocpi-guards';
-import { publishIngestionEvent } from '/opt/nodejs/utils/ingestion.utils';
+import { publishIngestionEvent } from '/opt/nodejs/aws/sqs';
 
 export const handler = withVersionCheck(
   async (
