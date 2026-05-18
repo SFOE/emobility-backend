@@ -8,7 +8,7 @@ import {
   UpdateSecretCommand,
 } from '@aws-sdk/client-secrets-manager';
 import { Aws } from '/opt/nodejs/aws/constants';
-import { OCPICredentialRole } from '/opt/nodejs/db/ocpi-credentials/ocpi-credentials.model';
+import { OCPICredentialRole } from '/opt/nodejs/modules/ocpi-credentials/ocpi-credentials.model';
 
 const secretsClient = new SecretsManagerClient({ region: Aws.region });
 

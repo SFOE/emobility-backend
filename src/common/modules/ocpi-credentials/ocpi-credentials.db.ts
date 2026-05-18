@@ -5,7 +5,7 @@ const TABLE = Aws.dynamoDBTables.credentials;
 import {
   OCPICredential,
   OCPICredentialItem,
-} from '/opt/nodejs/db/ocpi-credentials/ocpi-credentials.model';
+} from '/opt/nodejs/modules/ocpi-credentials/ocpi-credentials.model';
 import { hashToken } from '/opt/nodejs/utils/crypto.utils';
 
 export const saveNewCredentials = async (

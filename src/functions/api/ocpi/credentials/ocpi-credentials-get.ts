@@ -4,7 +4,7 @@ import { ErrorHandler } from '/opt/nodejs/api/error/api-error-handler';
 import { OCPIAuthorizerContext } from '/opt/nodejs/api/base.model';
 import { prepareOCPIResponse } from '/opt/nodejs/utils/api.utils';
 import { getRequiredBaseUrl, withVersionCheck } from '/opt/nodejs/utils/ocpi-guards';
-import { OCPICredential } from '/opt/nodejs/db/ocpi-credentials/ocpi-credentials.model';
+import { OCPICredential } from '/opt/nodejs/modules/ocpi-credentials/ocpi-credentials.model';
 import { getPartySecret } from '/opt/nodejs/aws/secrets-manager';
 import { BFE_ROLE, BFE_HUB_PARTY_ID } from '/opt/nodejs/config.constants';
 

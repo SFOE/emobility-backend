@@ -9,8 +9,8 @@ import {
   parseRequestBody,
   withVersionCheck,
 } from '/opt/nodejs/utils/ocpi-guards';
-import { OCPICredential } from '/opt/nodejs/db/ocpi-credentials/ocpi-credentials.model';
-import { invalidateBootstrapToken, saveNewCredentials } from '/opt/nodejs/db/ocpi-credentials/ocpi-credentials.db';
+import { OCPICredential } from '/opt/nodejs/modules/ocpi-credentials/ocpi-credentials.model';
+import { invalidateBootstrapToken, saveNewCredentials } from '/opt/nodejs/modules/ocpi-credentials/ocpi-credentials.db';
 import { BFE_ROLE } from '/opt/nodejs/config.constants';
 import { generateToken } from '/opt/nodejs/utils/crypto.utils';
 import { partySecretExists, savePartySecret } from '/opt/nodejs/aws/secrets-manager';

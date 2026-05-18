@@ -3,7 +3,7 @@ import { APIGatewayProxyEventV2WithLambdaAuthorizer } from 'aws-lambda/trigger/a
 import { ErrorHandler } from '/opt/nodejs/api/error/api-error-handler';
 import { OCPIAuthorizerContext } from '/opt/nodejs/api/base.model';
 import { prepareOCPIResponse } from '/opt/nodejs/utils/api.utils';
-import { Location } from '/opt/nodejs/db/ocpi-locations/ocpi-locations.model';
+import { Location } from '/opt/nodejs/modules/ocpi-locations/ocpi-locations.model';
 import {
   assertBodyConsistency,
   assertNotBootstrap,

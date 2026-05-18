@@ -1,4 +1,4 @@
-import { OCPICredentialItem, OCPICredentialRole } from '/opt/nodejs/db/ocpi-credentials/ocpi-credentials.model';
+import { OCPICredentialItem, OCPICredentialRole } from '/opt/nodejs/modules/ocpi-credentials/ocpi-credentials.model';
 
 export { validateCredentialsPayload } from '/opt/nodejs/utils/ocpi-guards';
 

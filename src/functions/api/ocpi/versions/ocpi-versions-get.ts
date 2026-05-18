@@ -1,5 +1,5 @@
 import { APIGatewayProxyEvent, APIGatewayProxyResult } from 'aws-lambda';
-import { getOCPIVersions } from '/opt/nodejs/db/ocpi-version/ocpi-version.db';
+import { getOCPIVersions } from '/opt/nodejs/modules/ocpi-version/ocpi-version.db';
 import { ErrorHandler } from '/opt/nodejs/api/error/api-error-handler';
 import { prepareOCPIResponse } from '/opt/nodejs/utils/api.utils';
 

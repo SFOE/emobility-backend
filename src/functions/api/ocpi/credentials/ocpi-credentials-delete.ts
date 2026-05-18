@@ -2,7 +2,7 @@ import { APIGatewayProxyResult } from 'aws-lambda';
 import { APIGatewayProxyEventV2WithLambdaAuthorizer } from 'aws-lambda/trigger/api-gateway-proxy';
 import { ErrorHandler } from '/opt/nodejs/api/error/api-error-handler';
 import { OCPIAuthorizerContext } from '/opt/nodejs/api/base.model';
-import { deleteCredentials } from '/opt/nodejs/db/ocpi-credentials/ocpi-credentials.db';
+import { deleteCredentials } from '/opt/nodejs/modules/ocpi-credentials/ocpi-credentials.db';
 import { prepareOCPIResponse } from '/opt/nodejs/utils/api.utils';
 import {
     assertContextComplete,

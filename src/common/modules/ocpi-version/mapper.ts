@@ -3,7 +3,7 @@ import {
   OCPIVersionDetails,
   OCPIVersionDetailsItem,
   OCPIVersionItem,
-} from '/opt/nodejs/db/ocpi-version/ocpi-version.model';
+} from '/opt/nodejs/modules/ocpi-version/ocpi-version.model';
 
 export const toOCPIVersion = (item: OCPIVersionItem): OCPIVersion => ({
   version: item.version,
