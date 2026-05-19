@@ -1,5 +1,5 @@
 import { APIGatewayRequestAuthorizerEventV2 } from 'aws-lambda';
-import { getCredentials } from '/opt/nodejs/db/ocpi-credentials/ocpi-credentials.db';
+import { getCredentials } from '/opt/nodejs/modules/ocpi-credentials/ocpi-credentials.db';
 import { OCPIAuthorizerContext } from '/opt/nodejs/api/base.model';
 import { extractToken, getPartnerId, getPrimaryRole } from '/opt/nodejs/utils/ocpi-utils';
 

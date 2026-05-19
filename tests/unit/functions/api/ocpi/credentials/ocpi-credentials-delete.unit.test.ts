@@ -1,10 +1,10 @@
 jest.mock('../../../../../../src/common/aws/secrets-manager');
-jest.mock('../../../../../../src/common/db/ocpi-credentials/ocpi-credentials.db');
+jest.mock('../../../../../../src/common/modules/ocpi-credentials/ocpi-credentials.db');
 
 import { APIGatewayProxyResult } from 'aws-lambda';
 import { handler } from '../../../../../../src/functions/api/ocpi/credentials/ocpi-credentials-delete';
 import { deletePartySecret } from '../../../../../../src/common/aws/secrets-manager';
-import { deleteCredentials } from '../../../../../../src/common/db/ocpi-credentials/ocpi-credentials.db';
+import { deleteCredentials } from '../../../../../../src/common/modules/ocpi-credentials/ocpi-credentials.db';
 import { buildEvent } from '../../../../../shared/fixtures/ocpi-credentials.fixture';
 import { SECRET_ID } from '../../../../../shared/test-data/ocpi-credentials.data';
 
@@ -36,7 +36,7 @@ describe('ocpi-credentials-delete handler', () => {
     });
 
     describe('bootstrap token guard', () => {
-        it('rejects with 403 and OCPI 2000 when request uses a bootstrap token', async () => {
+        it('rejects with 405 and OCPI 2000 when request uses a bootstrap token', async () => {
             const result = await handler(
                 buildEvent({
                     authContext: {
@@ -46,7 +46,7 @@ describe('ocpi-credentials-delete handler', () => {
                 }),
             );
 
-            expect(result.statusCode).toBe(403);
+            expect(result.statusCode).toBe(405);
             expect(parseBody(result).status_code).toBe(2000);
         });
 

@@ -1,19 +1,21 @@
 import { queryByPk, queryBySk } from '/opt/nodejs/aws/dynamodb';
-import { OCPI_VERSION_TABLE_NAME } from '/opt/nodejs/db/db-table-names.constants';
+import { Aws } from '/opt/nodejs/aws/constants';
+
+const TABLE = Aws.dynamoDBTables.versions;
 import {
   OCPIVersion,
   OCPIVersionDetails,
   OCPIVersionDetailsItem,
   OCPIVersionItem,
-} from '/opt/nodejs/db/ocpi-version/ocpi-version.model';
+} from '/opt/nodejs/modules/ocpi-version/ocpi-version.model';
 import {
   toOCPIVersion,
   toOCPIVersionDetails,
-} from '/opt/nodejs/db/ocpi-version/mapper';
+} from '/opt/nodejs/modules/ocpi-version/mapper';
 
 export const getOCPIVersions = async (): Promise<OCPIVersion[]> => {
   const items = await queryByPk<OCPIVersionItem>(
-    OCPI_VERSION_TABLE_NAME,
+    TABLE,
     'VERSION',
   );
 
@@ -24,7 +26,7 @@ export const getOCPIVersionDetails = async (
   version: string,
 ): Promise<OCPIVersionDetails | null> => {
   const item = await queryBySk<OCPIVersionDetailsItem>(
-    OCPI_VERSION_TABLE_NAME,
+    TABLE,
     'VERSION_DETAILS',
     version,
   );

@@ -2,49 +2,36 @@ import { APIGatewayProxyResult } from 'aws-lambda';
 import { APIGatewayProxyEventV2WithLambdaAuthorizer } from 'aws-lambda/trigger/api-gateway-proxy';
 import { ErrorHandler } from '/opt/nodejs/api/error/api-error-handler';
 import { OCPIAuthorizerContext } from '/opt/nodejs/api/base.model';
-import {
-  parseRequestBody,
-  prepareOCPIResponse,
-  withVersionCheck,
-} from '/opt/nodejs/utils/api.utils';
+import { prepareOCPIResponse } from '/opt/nodejs/utils/api.utils';
 import {
   assertNotBootstrap,
   assertOwnership,
   assertRole,
+  parseRequestBody,
+  withVersionCheck,
 } from '/opt/nodejs/utils/ocpi-guards';
 import { publishIngestionEvent } from '/opt/nodejs/aws/sqs';
 
 export const handler = withVersionCheck(
-  async (
+  (event, auth) =>
+    assertNotBootstrap(auth, 'locations/patch') ??
+    assertRole(auth, 'CPO', 'locations/patch') ??
+    assertOwnership(auth, event.pathParameters?.country_code, event.pathParameters?.party_id, 'locations/patch'),
+)(async (
     event: APIGatewayProxyEventV2WithLambdaAuthorizer<OCPIAuthorizerContext>,
     authContext: OCPIAuthorizerContext,
     ocpiVersion: string,
   ): Promise<APIGatewayProxyResult> => {
     try {
-      // Identifiers from the request URL path — e.g. PATCH /locations/{country_code}/{party_id}/{location_id}/{evse_uid}/{connector_id}
       const pathCountryCode = event.pathParameters?.country_code;
       const pathPartyId = event.pathParameters?.party_id;
       const pathLocationId = event.pathParameters?.location_id;
       const pathEvseUid = event.pathParameters?.evse_uid;
       const pathConnectorId = event.pathParameters?.connector_id;
 
-      // Only registered CPOs may push partial connector updates in their own namespace; bootstrap tokens and other roles are rejected
-      const guardError =
-        assertNotBootstrap(authContext, 'locations/patch') ??
-        assertRole(authContext, 'CPO', 'locations/patch') ??
-        assertOwnership(
-          authContext,
-          pathCountryCode,
-          pathPartyId,
-          'locations/patch',
-        );
-      if (guardError) {
-        return guardError;
-      }
-
       // PATCH body is a partial object — parse as a generic map to avoid enforcing all mandatory fields, but last_updated MUST be present per OCPI spec
       const bodyResult = parseRequestBody<Record<string, unknown>>(event.body);
-      if (!bodyResult.ok) {
+      if (!bodyResult.success) {
         console.warn(
           `[OCPI][locations/patch] Rejected — invalid or missing request body from ${authContext.partnerId}`,
         );
@@ -101,5 +88,4 @@ export const handler = withVersionCheck(
       );
       return ErrorHandler.handleError(err);
     }
-  },
-);
+  });

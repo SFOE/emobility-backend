@@ -1,9 +1,11 @@
 import { queryBySk, saveItem, updateItem, deleteItem } from '/opt/nodejs/aws/dynamodb';
-import { OCPI_CREDENTIALS_TABLE_NAME } from '/opt/nodejs/db/db-table-names.constants';
+import { Aws } from '/opt/nodejs/aws/constants';
+
+const TABLE = Aws.dynamoDBTables.credentials;
 import {
   OCPICredential,
   OCPICredentialItem,
-} from '/opt/nodejs/db/ocpi-credentials/ocpi-credentials.model';
+} from '/opt/nodejs/modules/ocpi-credentials/ocpi-credentials.model';
 import { hashToken } from '/opt/nodejs/utils/crypto.utils';
 
 export const saveNewCredentials = async (
@@ -24,7 +26,7 @@ export const saveNewCredentials = async (
   };
 
   // store new credentials of the cpo
-  await saveItem(OCPI_CREDENTIALS_TABLE_NAME, credentialItem);
+  await saveItem(TABLE, credentialItem);
 };
 
 export const getCredentials = async (
@@ -33,7 +35,7 @@ export const getCredentials = async (
   const tokenHash = hashToken(token);
 
   return await queryBySk<OCPICredentialItem>(
-      OCPI_CREDENTIALS_TABLE_NAME,
+      TABLE,
       `TOKEN#${tokenHash}`,
       'CREDENTIALS',
   );
@@ -43,7 +45,7 @@ export const invalidateBootstrapToken = async (token: string): Promise<void> => 
   const tokenHash = hashToken(token);
 
   await updateItem(
-      OCPI_CREDENTIALS_TABLE_NAME,
+      TABLE,
       `TOKEN#${tokenHash}`,
       'CREDENTIALS',
       'SET bootstrapToken = :val',
@@ -74,10 +76,10 @@ export const rotateCredentialsToken = async (
   };
 
   // Create the new mapping for the rotated TOKEN_C.
-  await saveItem(OCPI_CREDENTIALS_TABLE_NAME, credentialItem);
+  await saveItem(TABLE, credentialItem);
 
   // Remove the old mapping so the previous TOKEN_C no longer works.
-  await deleteItem(OCPI_CREDENTIALS_TABLE_NAME, oldCredentialPk, 'CREDENTIALS');
+  await deleteItem(TABLE, oldCredentialPk, 'CREDENTIALS');
 
   return credentialItem;
 };
@@ -90,5 +92,5 @@ export const rotateCredentialsToken = async (
 export const deleteCredentials = async (
     credentialPk: string,
 ): Promise<void> => {
-  await deleteItem(OCPI_CREDENTIALS_TABLE_NAME, credentialPk, 'CREDENTIALS');
+  await deleteItem(TABLE, credentialPk, 'CREDENTIALS');
 };

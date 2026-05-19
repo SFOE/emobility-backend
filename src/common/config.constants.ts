@@ -1,4 +1,4 @@
-import { OCPICredentialRole } from '/opt/nodejs/db/ocpi-credentials/ocpi-credentials.model';
+import { OCPICredentialRole } from '/opt/nodejs/modules/ocpi-credentials/ocpi-credentials.model';
 
 export const SUPPORTED_VERSIONS = ['2.2.1', '2.3.0'];
 

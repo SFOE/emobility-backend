@@ -1,4 +1,10 @@
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
+
+// Base DynamoDB item key shape
+export interface DbKeys {
+  pk: string;
+  sk?: string;
+}
 import {
   DeleteCommand,
   DynamoDBDocument,

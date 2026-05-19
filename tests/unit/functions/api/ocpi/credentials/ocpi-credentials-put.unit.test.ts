@@ -1,13 +1,13 @@
 // Mocks, prevents real AWS calls during tests.
 jest.mock('../../../../../../src/common/aws/secrets-manager');
-jest.mock('../../../../../../src/common/db/ocpi-credentials/ocpi-credentials.db');
+jest.mock('../../../../../../src/common/modules/ocpi-credentials/ocpi-credentials.db');
 jest.mock('../../../../../../src/common/utils/crypto.utils');
 jest.mock('../../../../../../src/common/utils/ocpi-utils');
 
 import { APIGatewayProxyResult } from 'aws-lambda';
 import { handler } from '../../../../../../src/functions/api/ocpi/credentials/ocpi-credentials-put';
 import { updatePartySecret } from '../../../../../../src/common/aws/secrets-manager';
-import { rotateCredentialsToken } from '../../../../../../src/common/db/ocpi-credentials/ocpi-credentials.db';
+import { rotateCredentialsToken } from '../../../../../../src/common/modules/ocpi-credentials/ocpi-credentials.db';
 import { generateToken } from '../../../../../../src/common/utils/crypto.utils';
 import {
     getPrimaryRole,
@@ -71,7 +71,7 @@ describe('ocpi-credentials-put handler', () => {
     });
 
     describe('bootstrap token guard', () => {
-        it('rejects with 403 and OCPI 2000 when request uses a bootstrap token', async () => {
+        it('rejects with 405 and OCPI 2000 when request uses a bootstrap token', async () => {
             const result = await handler(
                 buildEvent({
                     authContext: {
@@ -81,7 +81,7 @@ describe('ocpi-credentials-put handler', () => {
                 }),
             );
 
-            expect(result.statusCode).toBe(403);
+            expect(result.statusCode).toBe(405);
             expect(parseBody(result).status_code).toBe(2000);
         });
 

@@ -5,7 +5,9 @@ import { DynamoDBDocument } from '@aws-sdk/lib-dynamodb';
 import { SecretsManagerClient, GetSecretValueCommand } from '@aws-sdk/client-secrets-manager';
 import { hashToken } from '../../../../../../src/common/utils/crypto.utils';
 import { handler } from '../../../../../../src/functions/api/ocpi/credentials/ocpi-credentials-post';
-import { OCPI_CREDENTIALS_TABLE_NAME as TABLE_NAME } from '../../../../../../src/common/db/db-table-names.constants';
+import { Aws } from '../../../../../../src/common/aws/constants';
+
+const TABLE_NAME = Aws.dynamoDBTables.credentials;
 import { buildEvent } from '../../../../../shared/fixtures/ocpi-credentials.fixture';
 import { VALID_CREDENTIAL, BOOTSTRAP_TOKEN, SECRET_ID } from '../../../../../shared/test-data/ocpi-credentials.data';
 

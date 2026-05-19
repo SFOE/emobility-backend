@@ -2,12 +2,9 @@ import { APIGatewayProxyResult } from 'aws-lambda';
 import { APIGatewayProxyEventV2WithLambdaAuthorizer } from 'aws-lambda/trigger/api-gateway-proxy';
 import { ErrorHandler } from '/opt/nodejs/api/error/api-error-handler';
 import { OCPIAuthorizerContext } from '/opt/nodejs/api/base.model';
-import {
-    getRequiredBaseUrl,
-    prepareOCPIResponse,
-    withVersionCheck,
-} from '/opt/nodejs/utils/api.utils';
-import { OCPICredential } from '/opt/nodejs/db/ocpi-credentials/ocpi-credentials.model';
+import { prepareOCPIResponse } from '/opt/nodejs/utils/api.utils';
+import { getRequiredBaseUrl, withVersionCheck } from '/opt/nodejs/utils/ocpi-guards';
+import { OCPICredential } from '/opt/nodejs/modules/ocpi-credentials/ocpi-credentials.model';
 import { getPartySecret } from '/opt/nodejs/aws/secrets-manager';
 import { BFE_ROLE, BFE_HUB_PARTY_ID } from '/opt/nodejs/config.constants';
 
@@ -15,8 +12,7 @@ import { BFE_ROLE, BFE_HUB_PARTY_ID } from '/opt/nodejs/config.constants';
  * Handles GET /ocpi/{version}/credentials.
  * Returns BFE's currently registered credentials for the authenticated party.
  */
-export const handler = withVersionCheck(
-    async (
+export const handler = withVersionCheck()(async (
         _event: APIGatewayProxyEventV2WithLambdaAuthorizer<OCPIAuthorizerContext>,
         authContext: OCPIAuthorizerContext,
     ): Promise<APIGatewayProxyResult> => {
@@ -65,5 +61,4 @@ export const handler = withVersionCheck(
             );
             return ErrorHandler.handleError(err);
         }
-    },
-);
+    });

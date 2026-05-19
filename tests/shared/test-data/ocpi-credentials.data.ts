@@ -1,4 +1,4 @@
-import { OCPICredential } from '../../../src/common/db/ocpi-credentials/ocpi-credentials.model';
+import { OCPICredential } from '../../../src/common/modules/ocpi-credentials/ocpi-credentials.model';
 
 // Partner credential sent in the request body (token = TOKEN_B).
 export const VALID_CREDENTIAL: OCPICredential = {
