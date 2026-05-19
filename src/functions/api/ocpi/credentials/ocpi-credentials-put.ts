@@ -2,8 +2,8 @@ import { APIGatewayProxyResult } from 'aws-lambda';
 import { APIGatewayProxyEventV2WithLambdaAuthorizer } from 'aws-lambda/trigger/api-gateway-proxy';
 import { ErrorHandler } from '/opt/nodejs/api/error/api-error-handler';
 import { OCPIAuthorizerContext } from '/opt/nodejs/api/base.model';
-import { OCPICredential } from '/opt/nodejs/db/ocpi-credentials/ocpi-credentials.model';
-import { rotateCredentialsToken } from '/opt/nodejs/db/ocpi-credentials/ocpi-credentials.db';
+import { OCPICredential } from '/opt/nodejs/modules/ocpi-credentials/ocpi-credentials.model';
+import { rotateCredentialsToken } from '/opt/nodejs/modules/ocpi-credentials/ocpi-credentials.db';
 import { BFE_HUB_PARTY_ID, BFE_ROLE } from '/opt/nodejs/config.constants';
 import { prepareOCPIResponse } from '/opt/nodejs/utils/api.utils';
 import {

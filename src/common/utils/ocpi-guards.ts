@@ -6,7 +6,7 @@ import { SUPPORTED_VERSIONS } from '/opt/nodejs/config.constants';
 import {
   OCPICredential,
   OCPICredentialRole,
-} from '/opt/nodejs/db/ocpi-credentials/ocpi-credentials.model';
+} from '/opt/nodejs/modules/ocpi-credentials/ocpi-credentials.model';
 
 // Types
 export type OCPIHandler = (

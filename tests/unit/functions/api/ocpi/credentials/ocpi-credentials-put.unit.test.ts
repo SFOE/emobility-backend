@@ -1,13 +1,13 @@
 // Mocks, prevents real AWS calls during tests.
 jest.mock('../../../../../../src/common/aws/secrets-manager');
-jest.mock('../../../../../../src/common/db/ocpi-credentials/ocpi-credentials.db');
+jest.mock('../../../../../../src/common/modules/ocpi-credentials/ocpi-credentials.db');
 jest.mock('../../../../../../src/common/utils/crypto.utils');
 jest.mock('../../../../../../src/common/utils/ocpi-utils');
 
 import { APIGatewayProxyResult } from 'aws-lambda';
 import { handler } from '../../../../../../src/functions/api/ocpi/credentials/ocpi-credentials-put';
 import { updatePartySecret } from '../../../../../../src/common/aws/secrets-manager';
-import { rotateCredentialsToken } from '../../../../../../src/common/db/ocpi-credentials/ocpi-credentials.db';
+import { rotateCredentialsToken } from '../../../../../../src/common/modules/ocpi-credentials/ocpi-credentials.db';
 import { generateToken } from '../../../../../../src/common/utils/crypto.utils';
 import {
     getPrimaryRole,

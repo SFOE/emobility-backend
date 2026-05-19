@@ -7,11 +7,11 @@ import {
   OCPIVersionDetails,
   OCPIVersionDetailsItem,
   OCPIVersionItem,
-} from '/opt/nodejs/db/ocpi-version/ocpi-version.model';
+} from '/opt/nodejs/modules/ocpi-version/ocpi-version.model';
 import {
   toOCPIVersion,
   toOCPIVersionDetails,
-} from '/opt/nodejs/db/ocpi-version/mapper';
+} from '/opt/nodejs/modules/ocpi-version/mapper';
 
 export const getOCPIVersions = async (): Promise<OCPIVersion[]> => {
   const items = await queryByPk<OCPIVersionItem>(

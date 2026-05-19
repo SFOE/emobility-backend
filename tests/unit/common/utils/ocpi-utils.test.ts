@@ -1,7 +1,7 @@
 import { extractToken, getPartnerId } from '../../../../src/common/utils/ocpi-utils';
 import {
   OCPICredentialItem,
-} from '../../../../src/common/db/ocpi-credentials/ocpi-credentials.model';
+} from '../../../../src/common/modules/ocpi-credentials/ocpi-credentials.model';
 
 describe('test getPartnerId', () => {
   it('returns CPO role if present', () => {
