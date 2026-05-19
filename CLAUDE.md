@@ -37,5 +37,9 @@ Konsultiere diese Dateien BEVOR du Annahmen über Protokoll-Verhalten oder Daten
 **Tests (`tests/`)**
 - `unit/` – Unit Tests für einzelne Funktionen (gemockte Dependencies, spiegeln `src/`-Struktur)
 - `integration/` – Tests gegen gemockte lokale AWS Services mit Ministack; Docker muss dafür aktiv sein
-- `shared/fixtures/` – DynamoDB Setup/Teardown pro Test; `shared/test-data/` – Vordefinierte Testdaten. 
+- `shared/fixtures/` – DynamoDB Setup/Teardown pro Test; `shared/test-data/` – Vordefinierte Testdaten
+
+**Unit Test Scope:**
+- Handler-Tests testen nur Handler-eigene Orchestrierungslogik (alle Imports gemockt); Guards/Utils erhalten eigene Test-Dateien
+- Middleware-Guards (via `withVersionCheck`) gehören nicht in Handler-Tests; inline aufgerufene Funktionen werden über Mock-Rückgabewerte geprüft
 

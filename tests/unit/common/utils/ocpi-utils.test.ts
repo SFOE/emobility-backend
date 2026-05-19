@@ -1,4 +1,5 @@
-import { extractToken, getPartnerId } from '../../../../src/common/utils/ocpi-utils';
+import { extractToken, getPartnerId, getPrimaryRole } from '../../../../src/common/utils/ocpi-utils';
+import { OCPICredentialRole } from '../../../../src/common/db/ocpi-credentials/ocpi-credentials.model';
 import {
   OCPICredentialItem,
 } from '../../../../src/common/modules/ocpi-credentials/ocpi-credentials.model';
@@ -69,5 +70,26 @@ describe('test extractToken', () => {
 
   it('should trim whitespace around token', () => {
     expect(extractToken('Token    abc123   ')).toBe('abc123');
+  });
+});
+
+describe('test getPrimaryRole', () => {
+  it('returns the CPO role when present', () => {
+    const roles: OCPICredentialRole[] = [
+      { role: 'EMSP', party_id: 'ABC', country_code: 'DE', business_details: { name: 'Test EMSP' } },
+      { role: 'CPO', party_id: 'XYZ', country_code: 'CH', business_details: { name: 'Test CPO' } },
+    ];
+    expect(getPrimaryRole(roles)).toEqual(roles[1]);
+  });
+
+  it('falls back to the first role when no CPO exists', () => {
+    const roles: OCPICredentialRole[] = [
+      { role: 'EMSP', party_id: 'ABC', country_code: 'DE', business_details: { name: 'Test EMSP' } },
+    ];
+    expect(getPrimaryRole(roles)).toEqual(roles[0]);
+  });
+
+  it('returns undefined when roles array is empty', () => {
+    expect(getPrimaryRole([])).toBeUndefined();
   });
 });

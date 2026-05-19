@@ -70,66 +70,6 @@ describe('ocpi-credentials-put handler', () => {
         });
     });
 
-    describe('bootstrap token guard', () => {
-        it('rejects with 405 and OCPI 2000 when request uses a bootstrap token', async () => {
-            const result = await handler(
-                buildEvent({
-                    authContext: {
-                        ...AUTH_CONTEXT,
-                        isBootstrap: true,
-                    },
-                }),
-            );
-
-            expect(result.statusCode).toBe(405);
-            expect(parseBody(result).status_code).toBe(2000);
-        });
-
-        it('does not update Secrets Manager or DynamoDB when request uses a bootstrap token', async () => {
-            await handler(
-                buildEvent({
-                    authContext: {
-                        ...AUTH_CONTEXT,
-                        isBootstrap: true,
-                    },
-                }),
-            );
-
-            expect(mockUpdatePartySecret).not.toHaveBeenCalled();
-            expect(mockRotateCredentialsToken).not.toHaveBeenCalled();
-        });
-    });
-
-    describe('authorizer context guard', () => {
-        it('rejects with 403 when secretRef is missing', async () => {
-            const result = await handler(
-                buildEvent({
-                    authContext: {
-                        ...AUTH_CONTEXT,
-                        secretRef: undefined,
-                    },
-                }),
-            );
-
-            expect(result.statusCode).toBe(403);
-            expect(parseBody(result).status_code).toBe(2000);
-        });
-
-        it('rejects with 403 when credentialPk is missing', async () => {
-            const result = await handler(
-                buildEvent({
-                    authContext: {
-                        ...AUTH_CONTEXT,
-                        credentialPk: undefined,
-                    },
-                }),
-            );
-
-            expect(result.statusCode).toBe(403);
-            expect(parseBody(result).status_code).toBe(2000);
-        });
-    });
-
     describe('payload validation', () => {
         it('rejects with OCPI 2001 when body is missing', async () => {
             const result = await handler(
