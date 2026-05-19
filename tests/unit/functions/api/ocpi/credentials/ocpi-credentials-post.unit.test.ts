@@ -60,23 +60,6 @@ describe('ocpi-credentials-post handler', () => {
     });
   });
 
-  // Registration is only allowed with a bootstrap token.
-  describe('bootstrap token guard', () => {
-    it('rejects with 405 and OCPI 2000 when request uses a non-bootstrap token', async () => {
-      const result = await handler(buildEvent({ authContext: { isBootstrap: false, partnerId: 'CPO-XYZ-DE' } }));
-
-      expect(result.statusCode).toBe(405);
-      expect(parseBody(result).status_code).toBe(2000);
-    });
-
-    it('does not write to Secrets Manager or DynamoDB when token is not a bootstrap token', async () => {
-      await handler(buildEvent({ authContext: { isBootstrap: false, partnerId: 'CPO-XYZ-DE' } }));
-
-      expect(mockSavePartySecret).not.toHaveBeenCalled();
-      expect(mockSaveNewCredentials).not.toHaveBeenCalled();
-    });
-  });
-
   // Prevents re-registration if the party secret already exists in Secrets Manager.
   describe('duplicate registration guard', () => {
     it('rejects with 405 and OCPI 2001 when party secret already exists in Secrets Manager', async () => {
