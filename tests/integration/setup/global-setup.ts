@@ -20,6 +20,7 @@ export default async function globalSetup(): Promise<void> {
   process.env.AWS_ENDPOINT_URL_DYNAMODB = endpoint;
   process.env.AWS_ENDPOINT_URL_SECRETS_MANAGER = endpoint;
   process.env.AWS_ENDPOINT_URL_S3 = endpoint;
+  process.env.AWS_S3_FORCE_PATH_STYLE = 'true';
   process.env.AWS_ENDPOINT_URL_SQS = endpoint;
   process.env.AWS_ACCESS_KEY_ID = 'test';
   process.env.AWS_SECRET_ACCESS_KEY = 'test';
