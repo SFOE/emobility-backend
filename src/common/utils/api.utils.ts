@@ -1,8 +1,5 @@
 import { APIGatewayProxyResult } from 'aws-lambda';
-import {OCPIAuthorizerContext, OCPIResponse} from '/opt/nodejs/api/base.model';
-import {APIGatewayProxyEventV2WithLambdaAuthorizer} from "aws-lambda/trigger/api-gateway-proxy";
-import {SUPPORTED_VERSIONS} from "/opt/nodejs/config.constants";
-import {ErrorHandler} from "/opt/nodejs/api/error/api-error-handler";
+import { OCPIResponse } from '/opt/nodejs/api/base.model';
 
 const OCPI_HEADERS = {
   'Content-Type': 'application/json',
@@ -26,38 +23,6 @@ const ocpiSuccess = <T>(
   };
 };
 
-type OCPIHandler = (
-  event: APIGatewayProxyEventV2WithLambdaAuthorizer<OCPIAuthorizerContext>,
-  authContext: OCPIAuthorizerContext,
-  ocpiVersion: string,
-) => Promise<APIGatewayProxyResult>;
-
-export const withVersionCheck =
-  (handler: OCPIHandler) =>
-  async (
-    event: APIGatewayProxyEventV2WithLambdaAuthorizer<OCPIAuthorizerContext>,
-  ): Promise<APIGatewayProxyResult> => {
-    // get Authorizer Context
-    const authContext = event.requestContext?.authorizer?.lambda || {};
-    const version = event.pathParameters?.version ?? 'unknown';
-
-    if (!SUPPORTED_VERSIONS.includes(version)) {
-      return ErrorHandler.handleUnsupportedVersionError(version);
-    }
-
-    return handler(event, authContext, version);
-  };
-
-/**
- * Returns the configured public base URL or fails fast if it is missing.
- */
-export const getRequiredBaseUrl = (): string => {
-  if (!process.env.BASE_URL) {
-    throw new Error('BASE_URL environment variable is not set');
-  }
-
-  return process.env.BASE_URL;
-};
 
 /**
  * Returns a required Lambda environment variable or fails fast during startup
