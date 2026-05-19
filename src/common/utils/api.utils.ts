@@ -1,5 +1,8 @@
 import { APIGatewayProxyResult } from 'aws-lambda';
-import { OCPIResponse } from '/opt/nodejs/api/base.model';
+import {OCPIAuthorizerContext, OCPIResponse} from '/opt/nodejs/api/base.model';
+import {APIGatewayProxyEventV2WithLambdaAuthorizer} from "aws-lambda/trigger/api-gateway-proxy";
+import {SUPPORTED_VERSIONS} from "/opt/nodejs/config.constants";
+import {ErrorHandler} from "/opt/nodejs/api/error/api-error-handler";
 
 const OCPI_HEADERS = {
   'Content-Type': 'application/json',
