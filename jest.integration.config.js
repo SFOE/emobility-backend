@@ -4,6 +4,7 @@ module.exports = {
   roots: ['<rootDir>/tests/integration'],
   testMatch: ['**/*.integration.test.ts'],
   maxWorkers: 1,
+  setupFiles: ['<rootDir>/tests/shared/setup/lambda-env.setup.ts'],
   moduleNameMapper: {
     '^/opt/nodejs/(.*)$': '<rootDir>/src/common/$1',
   },

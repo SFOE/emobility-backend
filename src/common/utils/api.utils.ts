@@ -22,3 +22,20 @@ const ocpiSuccess = <T>(
     timestamp: new Date().toISOString(),
   };
 };
+
+
+/**
+ * Returns a required Lambda environment variable or fails fast during startup
+ * if the runtime configuration is incomplete.
+ */
+export const getRequiredLambdaEnv = (name: string): string => {
+  const value = process.env[name];
+
+  if (!value) {
+    throw new Error(
+        `Missing required Lambda environment variable: ${name}`,
+    );
+  }
+
+  return value;
+};

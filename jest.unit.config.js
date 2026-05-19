@@ -4,6 +4,7 @@ module.exports = {
   roots: ['<rootDir>/tests/unit'],
   testMatch: ['**/?(*.)+(spec|test).ts'],
   testPathIgnorePatterns: ['/node_modules/'],
+  setupFiles: ['<rootDir>/tests/shared/setup/lambda-env.setup.ts'],
   moduleNameMapper: {
     '^/opt/nodejs/(.*)$': '<rootDir>/src/common/$1',
   },
