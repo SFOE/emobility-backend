@@ -2,7 +2,9 @@ import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
 import { Aws } from '/opt/nodejs/aws/constants';
 import { IngestionAction, IngestionObjectType } from '/opt/nodejs/aws/sqs';
 
-const s3Client = new S3Client({ region: Aws.region });
+// forcePathStyle is required when a custom S3 endpoint is set (e.g. in integration tests against Ministack),
+// because virtual-hosted-style URLs (bucket.localhost) do not resolve via DNS.
+const s3Client = new S3Client(Aws.s3Config);
 
 // Builds an S3 key with Hive-style partitions (year/month/day/country/party + resource segments) for Athena/Glue auto-discovery.
 const buildS3Key = (
