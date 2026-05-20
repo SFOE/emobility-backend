@@ -1,4 +1,4 @@
-import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
+import { S3Client, PutObjectCommand, GetObjectCommand } from '@aws-sdk/client-s3';
 import { Aws } from '/opt/nodejs/aws/constants';
 import { IngestionAction, IngestionObjectType } from '/opt/nodejs/aws/sqs';
 
@@ -53,4 +53,16 @@ export const putRawToS3 = async (
   );
 
   return key;
+};
+
+// Fetches and JSON-parses a raw object from S3. Throws on SDK or parse errors.
+export const getRawFromS3 = async (
+  bucket: string,
+  key: string,
+): Promise<unknown> => {
+  const response = await s3Client.send(
+    new GetObjectCommand({ Bucket: bucket, Key: key }),
+  );
+  const body = await response.Body!.transformToString();
+  return JSON.parse(body);
 };
