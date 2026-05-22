@@ -53,7 +53,10 @@ const buildRawDataRecord = (
 
 export const handler: SQSHandler = async (event): Promise<SQSBatchResponse> => {
   const batchItemFailures: SQSBatchResponse['batchItemFailures'] = [];
-  const successfulRecords: RawDataRecord[] = [];
+  const successfulRecords: Array<{
+    messageId: string;
+    record: RawDataRecord;
+  }> = [];
 
   for (const record of event.Records) {
     try {
@@ -73,7 +76,10 @@ export const handler: SQSHandler = async (event): Promise<SQSBatchResponse> => {
         );
       }
 
-      successfulRecords.push(buildRawDataRecord(ingestionEvent, rawPayload));
+      successfulRecords.push({
+        messageId: record.messageId,
+        record: buildRawDataRecord(ingestionEvent, rawPayload),
+      });
     } catch (err) {
       console.error(
           `[raw-data-loader][process] Failed to process message ${record.messageId}:`,
@@ -88,16 +94,31 @@ export const handler: SQSHandler = async (event): Promise<SQSBatchResponse> => {
 
   if (successfulRecords.length > 0) {
     const batchKey = buildLandingZoneBatchKey(new Date());
+    const batchRecords = successfulRecords.map(({ record }) => record);
 
-    await putJsonLinesGzipToS3(
-        Aws.dataLakeHouseLandingZoneBucketName,
-        batchKey,
-        successfulRecords,
-    );
+    try {
+      await putJsonLinesGzipToS3(
+          Aws.dataLakeHouseLandingZoneBucketName,
+          batchKey,
+          batchRecords,
+      );
 
-    console.info(
-        `[raw-data-loader][batch] Wrote ${successfulRecords.length} records to s3://${Aws.dataLakeHouseLandingZoneBucketName}/${batchKey}`,
-    );
+      console.info(
+          `[raw-data-loader][batch] Wrote ${batchRecords.length} records to s3://${Aws.dataLakeHouseLandingZoneBucketName}/${batchKey}`,
+      );
+    } catch (err) {
+      console.error(
+          `[raw-data-loader][batch] Failed to write batch to s3://${Aws.dataLakeHouseLandingZoneBucketName}/${batchKey}:`,
+          err,
+      );
+
+      // If the final batch upload fails, every message that contributed to the batch
+      // must be retried. Otherwise, SQS would delete messages whose data never reached
+      // the Landing Zone.
+      batchItemFailures.push(
+          ...successfulRecords.map(({ messageId }) => ({ itemIdentifier: messageId })),
+      );
+    }
   }
 
   return { batchItemFailures };
