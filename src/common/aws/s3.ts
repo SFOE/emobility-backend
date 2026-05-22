@@ -1,6 +1,7 @@
 import { S3Client, PutObjectCommand, GetObjectCommand } from '@aws-sdk/client-s3';
 import { Aws } from '/opt/nodejs/aws/constants';
 import { IngestionAction, IngestionObjectType } from '/opt/nodejs/aws/sqs';
+import { gzipSync } from 'node:zlib';
 
 // forcePathStyle is required when a custom S3 endpoint is set (e.g. in integration tests against Ministack),
 // because virtual-hosted-style URLs (bucket.localhost) do not resolve via DNS.
@@ -66,3 +67,27 @@ export const getRawFromS3 = async (
   const body = await response.Body!.transformToString();
   return JSON.parse(body);
 };
+
+/**
+ * Serializes multiple records into JSON Lines format, compresses the result
+ * using gzip and uploads the batch file to S3 for downstream data lake ingestion.
+ */
+export async function putJsonLinesGzipToS3(
+    bucketName: string,
+    key: string,
+    records: unknown[],
+): Promise<void> {
+  const jsonLines = records.map((record) => JSON.stringify(record)).join('\n') + '\n';
+
+  const compressedBody = gzipSync(jsonLines);
+
+  await s3Client.send(
+      new PutObjectCommand({
+        Bucket: bucketName,
+        Key: key,
+        Body: compressedBody,
+        ContentType: 'application/jsonl',
+        ContentEncoding: 'gzip',
+      }),
+  );
+}
