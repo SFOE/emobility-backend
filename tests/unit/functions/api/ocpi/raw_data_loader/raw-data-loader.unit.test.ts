@@ -2,10 +2,11 @@ jest.mock('../../../../../../src/common/aws/s3');
 
 import { SQSEvent, SQSRecord } from 'aws-lambda';
 import { handler } from '../../../../../../src/functions/api/ocpi/raw-data-loader/ocpi-raw-data-loader';
-import { getRawFromS3 } from '../../../../../../src/common/aws/s3';
-import { IngestionEvent } from '../../../../../../src/common/aws/sqs';
+import { getRawFromS3, putJsonLinesGzipToS3 } from '/opt/nodejs/aws/s3';
+import { IngestionEvent } from '/opt/nodejs/aws/sqs';
 import { VALID_TARIFF, TARIFF_ID } from '../../../../../shared/test-data/ocpi-tariffs.data';
 
+const mockPutJsonLinesGzipToS3 = putJsonLinesGzipToS3 as jest.MockedFunction<typeof putJsonLinesGzipToS3>;
 const mockGetRawFromS3 = getRawFromS3 as jest.MockedFunction<typeof getRawFromS3>;
 
 const MOCK_BUCKET = 'emobility-test-ocpi-rawdata-bucket';
@@ -70,11 +71,10 @@ function buildSqsEvent(records: SQSRecord[]): SQSEvent {
   return { Records: records };
 }
 
-function getLoggedRecord(consoleSpy: jest.SpyInstance): Record<string, unknown> {
-  const line = consoleSpy.mock.calls
-    .map((c) => c[0] as string)
-    .find((m) => m.includes('[raw-data-loader][record]'));
-  return JSON.parse(line!.replace('[raw-data-loader][record] ', ''));
+function getUploadedRecords(): Record<string, unknown>[] {
+  const [, , records] = mockPutJsonLinesGzipToS3.mock.calls[0];
+
+  return records as Record<string, unknown>[];
 }
 
 describe('raw-data-loader handler', () => {
@@ -82,6 +82,7 @@ describe('raw-data-loader handler', () => {
 
   beforeEach(() => {
     jest.resetAllMocks();
+    mockPutJsonLinesGzipToS3.mockResolvedValue(undefined);
     mockGetRawFromS3.mockResolvedValue(VALID_TARIFF);
     consoleSpy = jest.spyOn(console, 'info').mockImplementation(() => {});
     jest.spyOn(console, 'error').mockImplementation(() => {});
@@ -100,13 +101,15 @@ describe('raw-data-loader handler', () => {
       expect(result?.batchItemFailures).toHaveLength(0);
     });
 
-    it('logs a record with the S3 payload and null delta', async () => {
+    it('uploads a batch record with the S3 payload and null delta', async () => {
       await handler(buildSqsEvent([buildSqsRecord(PUT_EVENT)]), {} as never, () => {});
 
-      const logged = getLoggedRecord(consoleSpy);
-      expect(logged.payload).toEqual(VALID_TARIFF);
-      expect(logged.delta).toBeNull();
-      expect(logged.action).toBe('PUT');
+      const uploadedRecords = getUploadedRecords();
+
+      expect(uploadedRecords).toHaveLength(1);
+      expect(uploadedRecords[0].payload).toEqual(VALID_TARIFF);
+      expect(uploadedRecords[0].delta).toBeNull();
+      expect(uploadedRecords[0].action).toBe('PUT');
     });
   });
 
@@ -123,13 +126,15 @@ describe('raw-data-loader handler', () => {
       expect(result?.batchItemFailures).toHaveLength(0);
     });
 
-    it('logs a record with null payload and the event delta', async () => {
+    it('uploads a batch record with null payload and the event delta', async () => {
       await handler(buildSqsEvent([buildSqsRecord(PATCH_EVENT)]), {} as never, () => {});
 
-      const logged = getLoggedRecord(consoleSpy);
-      expect(logged.payload).toBeNull();
-      expect(logged.delta).toEqual(PATCH_EVENT.delta);
-      expect(logged.action).toBe('PATCH');
+      const uploadedRecords = getUploadedRecords();
+
+      expect(uploadedRecords).toHaveLength(1);
+      expect(uploadedRecords[0].payload).toBeNull();
+      expect(uploadedRecords[0].delta).toEqual(PATCH_EVENT.delta);
+      expect(uploadedRecords[0].action).toBe('PATCH');
     });
   });
 
@@ -146,13 +151,15 @@ describe('raw-data-loader handler', () => {
       expect(result?.batchItemFailures).toHaveLength(0);
     });
 
-    it('logs a record with null payload and null delta', async () => {
+    it('uploads a batch record with null payload and null delta', async () => {
       await handler(buildSqsEvent([buildSqsRecord(DELETE_EVENT)]), {} as never, () => {});
 
-      const logged = getLoggedRecord(consoleSpy);
-      expect(logged.payload).toBeNull();
-      expect(logged.delta).toBeNull();
-      expect(logged.action).toBe('DELETE');
+      const uploadedRecords = getUploadedRecords();
+
+      expect(uploadedRecords).toHaveLength(1);
+      expect(uploadedRecords[0].payload).toBeNull();
+      expect(uploadedRecords[0].delta).toBeNull();
+      expect(uploadedRecords[0].action).toBe('DELETE');
     });
   });
 
@@ -214,6 +221,24 @@ describe('raw-data-loader handler', () => {
       );
 
       expect(result?.batchItemFailures).toEqual([{ itemIdentifier: 'msg-fail' }]);
+    });
+
+    it('uploads all successful records as one JSONL batch', async () => {
+      await handler(
+          buildSqsEvent([
+            buildSqsRecord(PUT_EVENT, 'msg-1'),
+            buildSqsRecord(PATCH_EVENT, 'msg-2'),
+          ]),
+          {} as never,
+          () => {},
+      );
+
+      const uploadedRecords = getUploadedRecords();
+
+      expect(mockPutJsonLinesGzipToS3).toHaveBeenCalledTimes(1);
+      expect(uploadedRecords).toHaveLength(2);
+      expect(uploadedRecords[0].action).toBe('PUT');
+      expect(uploadedRecords[1].action).toBe('PATCH');
     });
   });
 });
