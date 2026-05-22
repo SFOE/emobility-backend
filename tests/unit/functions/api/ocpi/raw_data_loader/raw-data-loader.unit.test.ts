@@ -240,5 +240,25 @@ describe('raw-data-loader handler', () => {
       expect(uploadedRecords[0].action).toBe('PUT');
       expect(uploadedRecords[1].action).toBe('PATCH');
     });
+
+    it('marks all successfully processed records as failed when the batch upload fails', async () => {
+      mockPutJsonLinesGzipToS3.mockRejectedValueOnce(new Error('Landing Zone upload failed'));
+
+      const result = await handler(
+          buildSqsEvent([
+            buildSqsRecord(PUT_EVENT, 'msg-1'),
+            buildSqsRecord(PATCH_EVENT, 'msg-2'),
+          ]),
+          {} as never,
+          () => {},
+      );
+
+      expect(result).toEqual({
+        batchItemFailures: [
+          { itemIdentifier: 'msg-1' },
+          { itemIdentifier: 'msg-2' },
+        ],
+      });
+    });
   });
 });
