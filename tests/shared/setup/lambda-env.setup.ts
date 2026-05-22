@@ -13,3 +13,10 @@ process.env.RAW_DATA_BUCKET_NAME =
 process.env.INGESTION_QUEUE_URL =
     process.env.INGESTION_QUEUE_URL ??
     'https://sqs.eu-central-1.amazonaws.com/312605937711/emobility-test-ocpi-ingestion-queue';
+
+process.env.DATA_LAKE_HOUSE_DEV_LANDINGZONE_BUCKET_NAME =
+    process.env.DATA_LAKE_HOUSE_DEV_LANDINGZONE_BUCKET_NAME ?? 'emobility-test-landing-zone-bucket';
+
+process.env.CROSS_ACCOUNT_ROLE_LANDING_ZONE_ARN =
+    process.env.CROSS_ACCOUNT_ROLE_LANDING_ZONE_ARN ??
+    'arn:aws:iam::000000000000:role/test-landing-zone-role';
