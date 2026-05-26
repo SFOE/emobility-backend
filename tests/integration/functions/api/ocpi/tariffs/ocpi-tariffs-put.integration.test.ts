@@ -12,7 +12,7 @@ import {
     SQSClient,
 } from '@aws-sdk/client-sqs';
 import { handler } from '../../../../../../src/functions/api/ocpi/tariffs/ocpi-tariffs-put';
-import { Aws } from '../../../../../../src/common/aws/constants';
+import { Aws } from '/opt/nodejs/aws/constants';
 import { buildEvent } from '../../../../../shared/fixtures/ocpi-tariffs.fixture';
 import { TARIFF_ID, VALID_TARIFF } from '../../../../../shared/test-data/ocpi-tariffs.data';
 

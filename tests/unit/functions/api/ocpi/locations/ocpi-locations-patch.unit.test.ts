@@ -2,7 +2,7 @@ jest.mock('../../../../../../src/common/aws/sqs');
 
 import { APIGatewayProxyResult } from 'aws-lambda';
 import { handler } from '../../../../../../src/functions/api/ocpi/locations/ocpi-locations-patch';
-import { publishIngestionEvent } from '../../../../../../src/common/aws/sqs';
+import { publishIngestionEvent } from '/opt/nodejs/aws/sqs';
 import { buildLocationPatchEvent } from '../../../../../shared/fixtures/ocpi-locations.fixture';
 import { LOCATION_ID, VALID_LOCATION, VALID_PATCH } from '../../../../../shared/test-data/ocpi-locations.data';
 

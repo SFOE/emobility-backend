@@ -3,9 +3,9 @@ jest.mock('../../../../../../src/common/aws/sqs');
 
 import { APIGatewayProxyResult } from 'aws-lambda';
 import { handler } from '../../../../../../src/functions/api/ocpi/locations/ocpi-locations-put-evse';
-import { putRawToS3 } from '../../../../../../src/common/aws/s3';
-import { publishIngestionEvent } from '../../../../../../src/common/aws/sqs';
-import { Aws } from '../../../../../../src/common/aws/constants';
+import { putRawToS3 } from '/opt/nodejs/aws/s3';
+import { publishIngestionEvent } from '/opt/nodejs/aws/sqs';
+import { Aws } from '/opt/nodejs/aws/constants';
 import { buildEvsePutEvent } from '../../../../../shared/fixtures/ocpi-locations.fixture';
 import { EVSE_UID, LOCATION_ID, VALID_EVSE, VALID_LOCATION } from '../../../../../shared/test-data/ocpi-locations.data';
 

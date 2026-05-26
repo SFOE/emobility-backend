@@ -14,8 +14,8 @@ import {
     UpdateSecretCommand,
 } from '@aws-sdk/client-secrets-manager';
 import { handler } from '../../../../../../src/functions/api/ocpi/credentials/ocpi-credentials-delete';
-import { hashToken } from '../../../../../../src/common/utils/crypto.utils';
-import { Aws } from '../../../../../../src/common/aws/constants';
+import { hashToken } from '/opt/nodejs/utils/crypto.utils';
+import { Aws } from '/opt/nodejs/aws/constants';
 
 const TABLE_NAME = Aws.dynamoDBTables.credentials;
 import { buildEvent } from '../../../../../shared/fixtures/ocpi-credentials.fixture';

@@ -1,4 +1,4 @@
-import { Connector, EVSE, Location } from '../../../src/common/db/ocpi-locations/ocpi-locations.model';
+import { Connector, EVSE, Location } from '/opt/nodejs/modules/ocpi-locations/ocpi-locations.model';
 
 export const LOCATION_ID = 'LOC001';
 export const EVSE_UID = 'EVSE001';

@@ -11,7 +11,7 @@ import {
     SQSClient,
 } from '@aws-sdk/client-sqs';
 import { handler } from '../../../../../../src/functions/api/ocpi/locations/ocpi-locations-put';
-import { Aws } from '../../../../../../src/common/aws/constants';
+import { Aws } from '/opt/nodejs/aws/constants';
 import { buildLocationPutEvent } from '../../../../../shared/fixtures/ocpi-locations.fixture';
 import { LOCATION_ID, VALID_LOCATION } from '../../../../../shared/test-data/ocpi-locations.data';
 
