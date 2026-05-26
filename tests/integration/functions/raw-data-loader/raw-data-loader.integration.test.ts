@@ -9,10 +9,10 @@ import {
 import { gunzipSync } from 'node:zlib';
 import { CreateQueueCommand, SQSClient } from '@aws-sdk/client-sqs';
 import { SQSEvent, SQSRecord } from 'aws-lambda';
-import { handler } from '../../../../../../src/functions/api/ocpi/raw-data-loader/ocpi-raw-data-loader';
-import { Aws } from '/opt/nodejs/aws/constants';
-import { IngestionEvent } from '/opt/nodejs/aws/sqs';
-import { VALID_TARIFF, TARIFF_ID } from '../../../../../shared/test-data/ocpi-tariffs.data';
+import { handler } from '../../../../src/functions/raw-data-loader/ocpi-raw-data-loader';
+import { Aws } from '/src/common/aws/constants';
+import { IngestionEvent } from '/src/common/aws/sqs';
+import { VALID_TARIFF, TARIFF_ID } from '../../../shared/test-data/ocpi-tariffs.data';
 
 const BUCKET_NAME = Aws.rawDataBucketName;
 const LANDING_ZONE_BUCKET_NAME = Aws.dataLakeHouseLandingZoneBucketName;
