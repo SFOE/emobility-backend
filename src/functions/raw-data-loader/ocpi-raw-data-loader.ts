@@ -1,14 +1,14 @@
 import { SQSHandler, SQSBatchResponse } from 'aws-lambda';
-import { Aws } from '/src/common/aws/constants';
+import { Aws } from '/opt/nodejs/aws/constants';
 import {
   IngestionEvent,
   IngestionAction,
   IngestionObjectType,
-} from '/src/common/aws/sqs';
+} from '/opt/nodejs/aws/sqs';
 import {
   getRawFromS3,
   putJsonLinesGzipToS3,
-} from '/src/common/aws/s3';
+} from '/opt/nodejs/aws/s3';
 
 // Enriched record: SQS metadata + S3 payload + PATCH delta, ready for downstream data lake ingestion.
 interface RawDataRecord {
