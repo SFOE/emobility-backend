@@ -97,6 +97,10 @@ export const handler: SQSHandler = async (event): Promise<SQSBatchResponse> => {
     const batchRecords = successfulRecords.map(({ record }) => record);
 
     try {
+      console.info(
+          `[raw-data-loader][batch] JSONL content:\n${batchRecords.map((r) => JSON.stringify(r)).join('\n')}`,
+      );
+
       await putJsonLinesGzipToS3(
           Aws.dataLakeHouseLandingZoneBucketName,
           batchKey,
