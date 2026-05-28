@@ -9,8 +9,8 @@ import {
     parseRequestBody,
     validateCredentialsPayload,
     withVersionCheck,
-} from '../../../../src/common/utils/ocpi-guards';
-import { OCPIAuthorizerContext } from '../../../../src/common/api/base.model';
+} from '/opt/nodejs/utils/ocpi-guards';
+import { OCPIAuthorizerContext } from '/opt/nodejs/api/base.model';
 
 function parseBody(result: { body: string }) {
     return JSON.parse(result.body);

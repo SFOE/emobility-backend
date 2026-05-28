@@ -6,7 +6,7 @@ import {
     SQSClient,
 } from '@aws-sdk/client-sqs';
 import { handler } from '../../../../../../src/functions/api/ocpi/locations/ocpi-locations-patch';
-import { Aws } from '../../../../../../src/common/aws/constants';
+import { Aws } from '/opt/nodejs/aws/constants';
 import { buildLocationPatchEvent } from '../../../../../shared/fixtures/ocpi-locations.fixture';
 import { LOCATION_ID, VALID_LOCATION, VALID_PATCH } from '../../../../../shared/test-data/ocpi-locations.data';
 

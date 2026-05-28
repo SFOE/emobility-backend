@@ -3,9 +3,9 @@ jest.mock('../../../../../../src/common/aws/sqs');
 
 import { APIGatewayProxyResult } from 'aws-lambda';
 import { handler } from '../../../../../../src/functions/api/ocpi/tariffs/ocpi-tariffs-put';
-import { putRawToS3 } from '../../../../../../src/common/aws/s3';
-import { publishIngestionEvent } from '../../../../../../src/common/aws/sqs';
-import { Aws } from '../../../../../../src/common/aws/constants';
+import { putRawToS3 } from '/opt/nodejs/aws/s3';
+import { publishIngestionEvent } from '/opt/nodejs/aws/sqs';
+import { Aws } from '/opt/nodejs/aws/constants';
 import { buildEvent } from '../../../../../shared/fixtures/ocpi-tariffs.fixture';
 import { VALID_TARIFF, TARIFF_ID } from '../../../../../shared/test-data/ocpi-tariffs.data';
 

@@ -3,8 +3,8 @@ jest.mock('../../../../../../src/common/modules/ocpi-credentials/ocpi-credential
 
 import { APIGatewayProxyResult } from 'aws-lambda';
 import { handler } from '../../../../../../src/functions/api/ocpi/credentials/ocpi-credentials-delete';
-import { deletePartySecret } from '../../../../../../src/common/aws/secrets-manager';
-import { deleteCredentials } from '../../../../../../src/common/modules/ocpi-credentials/ocpi-credentials.db';
+import { deletePartySecret } from '/opt/nodejs/aws/secrets-manager';
+import { deleteCredentials } from '/opt/nodejs/modules/ocpi-credentials/ocpi-credentials.db';
 import { buildEvent } from '../../../../../shared/fixtures/ocpi-credentials.fixture';
 import { SECRET_ID } from '../../../../../shared/test-data/ocpi-credentials.data';
 

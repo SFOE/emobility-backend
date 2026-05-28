@@ -1,4 +1,4 @@
-import { Tariff } from '../../../src/common/modules/ocpi-tariffs/ocpi-tariffs.model';
+import { Tariff } from '/opt/nodejs/modules/ocpi-tariffs/ocpi-tariffs.model';
 
 // A minimal but realistic tariff: 0.35 CHF/kWh, 7.7% VAT, taxes included.
 export const VALID_TARIFF: Tariff = {

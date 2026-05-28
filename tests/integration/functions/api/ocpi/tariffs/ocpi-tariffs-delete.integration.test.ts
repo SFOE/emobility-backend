@@ -11,7 +11,7 @@ import {
     SQSClient,
 } from '@aws-sdk/client-sqs';
 import { handler } from '../../../../../../src/functions/api/ocpi/tariffs/ocpi-tariffs-delete';
-import { Aws } from '../../../../../../src/common/aws/constants';
+import { Aws } from '/opt/nodejs/aws/constants';
 import { buildDeleteEvent } from '../../../../../shared/fixtures/ocpi-tariffs.fixture';
 import { TARIFF_ID, VALID_TARIFF } from '../../../../../shared/test-data/ocpi-tariffs.data';
 

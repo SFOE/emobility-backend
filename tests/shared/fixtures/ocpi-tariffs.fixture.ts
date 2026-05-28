@@ -1,5 +1,5 @@
 import { APIGatewayProxyEventV2WithLambdaAuthorizer } from 'aws-lambda/trigger/api-gateway-proxy';
-import { OCPIAuthorizerContext } from '../../../src/common/api/base.model';
+import { OCPIAuthorizerContext } from '/opt/nodejs/api/base.model';
 import { VALID_TARIFF, TARIFF_ID } from '../test-data/ocpi-tariffs.data';
 
 // Auth context set by the Lambda authorizer for a registered (non-bootstrap) CPO.

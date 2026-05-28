@@ -6,11 +6,11 @@ jest.mock('../../../../../../src/common/utils/ocpi-utils');
 
 import { APIGatewayProxyResult } from 'aws-lambda';
 import { handler } from '../../../../../../src/functions/api/ocpi/credentials/ocpi-credentials-post';
-import { partySecretExists, savePartySecret } from '../../../../../../src/common/aws/secrets-manager';
-import { saveNewCredentials, invalidateBootstrapToken } from '../../../../../../src/common/modules/ocpi-credentials/ocpi-credentials.db';
-import { generateToken } from '../../../../../../src/common/utils/crypto.utils';
-import { extractToken, getPrimaryRole, validateCredentialsPayload } from '../../../../../../src/common/utils/ocpi-utils';
-import { BFE_ROLE } from '../../../../../../src/common/config.constants';
+import { partySecretExists, savePartySecret } from '/opt/nodejs/aws/secrets-manager';
+import { saveNewCredentials, invalidateBootstrapToken } from '/opt/nodejs/modules/ocpi-credentials/ocpi-credentials.db';
+import { generateToken } from '/opt/nodejs/utils/crypto.utils';
+import { extractToken, getPrimaryRole, validateCredentialsPayload } from '/opt/nodejs/utils/ocpi-utils';
+import { BFE_ROLE } from '/opt/nodejs/config.constants';
 import { buildEvent } from '../../../../../shared/fixtures/ocpi-credentials.fixture';
 import { BOOTSTRAP_TOKEN, SECRET_ID, VALID_CREDENTIAL } from '../../../../../shared/test-data/ocpi-credentials.data';
 

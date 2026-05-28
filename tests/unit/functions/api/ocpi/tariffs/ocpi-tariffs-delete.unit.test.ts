@@ -2,7 +2,7 @@ jest.mock('../../../../../../src/common/aws/sqs');
 
 import { APIGatewayProxyResult } from 'aws-lambda';
 import { handler } from '../../../../../../src/functions/api/ocpi/tariffs/ocpi-tariffs-delete';
-import { publishIngestionEvent } from '../../../../../../src/common/aws/sqs';
+import { publishIngestionEvent } from '/opt/nodejs/aws/sqs';
 import { buildDeleteEvent } from '../../../../../shared/fixtures/ocpi-tariffs.fixture';
 import { VALID_TARIFF, TARIFF_ID } from '../../../../../shared/test-data/ocpi-tariffs.data';
 

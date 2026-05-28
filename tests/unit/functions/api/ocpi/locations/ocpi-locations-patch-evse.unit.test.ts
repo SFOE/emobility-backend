@@ -2,7 +2,7 @@ jest.mock('../../../../../../src/common/aws/sqs');
 
 import { APIGatewayProxyResult } from 'aws-lambda';
 import { handler } from '../../../../../../src/functions/api/ocpi/locations/ocpi-locations-patch-evse';
-import { publishIngestionEvent } from '../../../../../../src/common/aws/sqs';
+import { publishIngestionEvent } from '/opt/nodejs/aws/sqs';
 import { buildEvsePatchEvent } from '../../../../../shared/fixtures/ocpi-locations.fixture';
 import { EVSE_UID, LOCATION_ID, VALID_LOCATION, VALID_PATCH } from '../../../../../shared/test-data/ocpi-locations.data';
 
