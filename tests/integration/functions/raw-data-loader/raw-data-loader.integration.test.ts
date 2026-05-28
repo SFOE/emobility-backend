@@ -1,3 +1,14 @@
+// Integration tests run against the local S3 test client and must not call real AWS STS.
+// The production implementation still assumes the cross-account role at runtime.
+jest.mock('/opt/nodejs/aws/s3', () => {
+  const actual = jest.requireActual('/opt/nodejs/aws/s3');
+
+  return {
+    ...actual,
+    createCrossAccountS3Client: jest.fn(async () => actual.s3Client),
+  };
+});
+
 // globalSetup sets AWS_ENDPOINT_URL_* before workers spawn, so static SDK clients already point to Ministack.
 import {
   CreateBucketCommand,

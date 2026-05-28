@@ -6,7 +6,7 @@ import { gzipSync } from 'node:zlib';
 
 // forcePathStyle is required when a custom S3 endpoint is set (e.g. in integration tests against Ministack),
 // because virtual-hosted-style URLs (bucket.localhost) do not resolve via DNS.
-const s3Client = new S3Client(Aws.s3Config);
+export const s3Client = new S3Client(Aws.s3Config);
 
 // Extracts UTC date parts and a safe ISO timestamp string from a Date object.
 const buildDatePartitions = (timestamp: Date) => ({
