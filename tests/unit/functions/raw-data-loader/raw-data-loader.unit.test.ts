@@ -223,11 +223,14 @@ describe('raw-data-loader handler', () => {
       expect(result?.batchItemFailures).toEqual([{ itemIdentifier: 'msg-fail' }]);
     });
 
-    it('batches records with the same (type, action) into one file', async () => {
+    it('writes all records of a batch into one file regardless of module type', async () => {
+      const locationsPutEvent: IngestionEvent = { ...PUT_EVENT, type: 'locations' };
+
       await handler(
           buildSqsEvent([
-            buildSqsRecord(PUT_EVENT, 'msg-1'),
-            buildSqsRecord(PUT_EVENT, 'msg-2'),
+            buildSqsRecord(PUT_EVENT, 'msg-1'),         // type=tariffs
+            buildSqsRecord(locationsPutEvent, 'msg-2'), // type=locations
+            buildSqsRecord(PATCH_EVENT, 'msg-3'),       // type=tariffs, action=PATCH
           ]),
           {} as never,
           () => {},
@@ -236,33 +239,16 @@ describe('raw-data-loader handler', () => {
       const uploadedRecords = getUploadedRecords();
 
       expect(mockPutJsonLinesGzipToS3).toHaveBeenCalledTimes(1);
-      expect(uploadedRecords).toHaveLength(2);
-      expect(uploadedRecords[0].action).toBe('PUT');
-      expect(uploadedRecords[1].action).toBe('PUT');
+      expect(uploadedRecords).toHaveLength(3);
     });
 
-    it('writes separate files for different module types', async () => {
-      const locationsPutEvent: IngestionEvent = { ...PUT_EVENT, type: 'locations' };
-
-      await handler(
-          buildSqsEvent([
-            buildSqsRecord(PUT_EVENT, 'msg-1'),        // type=tariffs
-            buildSqsRecord(locationsPutEvent, 'msg-2'), // type=locations
-          ]),
-          {} as never,
-          () => {},
-      );
-
-      expect(mockPutJsonLinesGzipToS3).toHaveBeenCalledTimes(2);
-    });
-
-    it('marks all records of a failed group as failed when the batch upload fails', async () => {
+    it('marks all successfully processed records as failed when the batch upload fails', async () => {
       mockPutJsonLinesGzipToS3.mockRejectedValueOnce(new Error('Landing Zone upload failed'));
 
       const result = await handler(
           buildSqsEvent([
             buildSqsRecord(PUT_EVENT, 'msg-1'),
-            buildSqsRecord(PUT_EVENT, 'msg-2'),
+            buildSqsRecord(PATCH_EVENT, 'msg-2'),
           ]),
           {} as never,
           () => {},
