@@ -8,37 +8,40 @@ import {
 import {
   getRawFromS3,
   putJsonLinesGzipToS3,
+  createCrossAccountS3Client,
 } from '/opt/nodejs/aws/s3';
 
-// Enriched record: SQS metadata + S3 payload + PATCH delta, ready for downstream data lake ingestion.
+// ─── Types ────────────────────────────────────────────────────────────────────
+
 interface RawDataRecord {
-  action: IngestionAction;
-  type: IngestionObjectType;
-  object_id: string;
+  action: IngestionAction;                       // PUT | PATCH | DELETE
+  type: IngestionObjectType;                     // locations | evse | connector | tariffs
+  object_id: string;                            // location: "LOC001"; evse: "LOC001*EVSE001"; connector: "LOC001*EVSE001*1"; tariff: "TARIFF001"
   country_code: string;
   party_id: string;
   ocpi_version: string;
   received_at: string;
-  payload: unknown | null;               // PUT: full OCPI object from S3; PATCH/DELETE: null
-  delta: Record<string, unknown> | null; // PATCH: embedded diff; PUT/DELETE: null
-  raw: { bucket: string; key: string } | null;
+  payload: unknown | null;                       // PUT: full OCPI object from S3; PATCH/DELETE: null
+  delta: Record<string, unknown> | null;         // PATCH: changed fields as diff; PUT/DELETE: null
+  raw: { bucket: string; key: string } | null;  // S3 reference to original object; null for PATCH/DELETE
 }
 
-// Builds a partitioned Landing Zone object key for one Lambda/SQS batch output file.
-const buildLandingZoneBatchKey = (timestamp: Date): string => {
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+// Builds a Hive-partitioned S3 key per module group.
+// Example: ocpi-raw/module=locations/year=2026/month=05/day=28/20260528T112631000Z.jsonl.gz
+// action, country_code and party_id are intentionally excluded from the path — stored in the record and filterable via Athena content-filter.
+const buildLandingZoneKey = (type: IngestionObjectType, timestamp: Date): string => {
   const year = timestamp.getUTCFullYear();
   const month = String(timestamp.getUTCMonth() + 1).padStart(2, '0');
   const day = String(timestamp.getUTCDate()).padStart(2, '0');
-  const ts = timestamp.toISOString().replace(/[:.]/g, '');
+  const ts = timestamp.toISOString().replace(/[:.]/g, ''); // colons/dots removed for safe S3 filenames
 
-  return `ocpi-raw/year=${year}/month=${month}/day=${day}/batch_${ts}.jsonl.gz`;
+  return `ocpi-raw/module=${type}/year=${year}/month=${month}/day=${day}/${ts}.jsonl.gz`;
 };
 
 // Merges SQS event metadata with the resolved S3 payload into a flat RawDataRecord.
-const buildRawDataRecord = (
-    event: IngestionEvent,
-    rawPayload: unknown | null,
-): RawDataRecord => ({
+const buildRawDataRecord = (event: IngestionEvent, rawPayload: unknown | null): RawDataRecord => ({
   action: event.action,
   type: event.type,
   object_id: event.object_id,
@@ -46,82 +49,61 @@ const buildRawDataRecord = (
   party_id: event.party_id,
   ocpi_version: event.ocpi_version,
   received_at: event.received_at,
-  payload: rawPayload,
-  delta: event.delta,
+  payload: rawPayload,  // populated only for PUT events
+  delta: event.delta,   // populated only for PATCH events
   raw: event.raw,
 });
 
+// ─── Handler ──────────────────────────────────────────────────────────────────
+
 export const handler: SQSHandler = async (event): Promise<SQSBatchResponse> => {
   const batchItemFailures: SQSBatchResponse['batchItemFailures'] = [];
-  const successfulRecords: Array<{
-    messageId: string;
-    record: RawDataRecord;
-  }> = [];
+  const successfulRecords: Array<{ messageId: string; record: RawDataRecord }> = [];
 
+  // Phase 1: process each SQS message individually so one failure doesn't block the rest.
   for (const record of event.Records) {
     try {
       const ingestionEvent: IngestionEvent = JSON.parse(record.body);
 
-      // Fetch the full OCPI object from S3 only when a raw reference is present.
-      // PUT events store the complete payload in S3, while PATCH/DELETE events carry their data in SQS.
       let rawPayload: unknown | null = null;
+      // PUT events store the full object in S3; PATCH/DELETE carry data inline.
       if (ingestionEvent.raw !== null) {
-        rawPayload = await getRawFromS3(
-            ingestionEvent.raw.bucket,
-            ingestionEvent.raw.key,
-        );
-
-        console.info(
-            `[raw-data-loader][process] Fetched s3://${ingestionEvent.raw.bucket}/${ingestionEvent.raw.key}`,
-        );
+        rawPayload = await getRawFromS3(ingestionEvent.raw.bucket, ingestionEvent.raw.key);
+        console.info(`[raw-data-loader][process] Fetched s3://${ingestionEvent.raw.bucket}/${ingestionEvent.raw.key}`);
       }
 
-      successfulRecords.push({
-        messageId: record.messageId,
-        record: buildRawDataRecord(ingestionEvent, rawPayload),
-      });
+      successfulRecords.push({ messageId: record.messageId, record: buildRawDataRecord(ingestionEvent, rawPayload) });
     } catch (err) {
-      console.error(
-          `[raw-data-loader][process] Failed to process message ${record.messageId}:`,
-          err,
-      );
-
-      // Partial batch failure: only failed SQS messages are retried by Lambda/SQS.
-      // Successfully processed messages stay acknowledged and are not processed again.
-      batchItemFailures.push({ itemIdentifier: record.messageId });
+      console.error(`[raw-data-loader][process] Failed to process message ${record.messageId}:`, err);
+      batchItemFailures.push({ itemIdentifier: record.messageId }); // partial batch failure: only this message is retried
     }
   }
 
+  // Phase 2: group by module and write one JSONL.gz per group to the Landing Zone.
   if (successfulRecords.length > 0) {
-    const batchKey = buildLandingZoneBatchKey(new Date());
-    const batchRecords = successfulRecords.map(({ record }) => record);
+    const batchTimestamp = new Date(); // one timestamp per invocation, shared across all groups
+    const crossAccountClient = await createCrossAccountS3Client(Aws.crossAccountRoleLandingZoneArn); // assume cross-account role once per invocation
+    const groups = new Map<IngestionObjectType, Array<{ messageId: string; record: RawDataRecord }>>();
 
-    try {
-      console.info(
-          `[raw-data-loader][batch] JSONL content:\n${batchRecords.map((r) => JSON.stringify(r)).join('\n')}`,
-      );
+    for (const item of successfulRecords) {
+      const key = item.record.type;
+      if (!groups.has(key)) groups.set(key, []);
+      groups.get(key)!.push(item);
+    }
 
-      await putJsonLinesGzipToS3(
-          Aws.dataLakeHouseLandingZoneBucketName,
-          batchKey,
-          batchRecords,
-      );
+    for (const groupItems of groups.values()) {
+      const { type } = groupItems[0].record; // all items in a group share this attribute
+      const batchKey = buildLandingZoneKey(type, batchTimestamp);
+      const batchRecords = groupItems.map(({ record }) => record);
 
-      console.info(
-          `[raw-data-loader][batch] Wrote ${batchRecords.length} records to s3://${Aws.dataLakeHouseLandingZoneBucketName}/${batchKey}`,
-      );
-    } catch (err) {
-      console.error(
-          `[raw-data-loader][batch] Failed to write batch to s3://${Aws.dataLakeHouseLandingZoneBucketName}/${batchKey}:`,
-          err,
-      );
-
-      // If the final batch upload fails, every message that contributed to the batch
-      // must be retried. Otherwise, SQS would delete messages whose data never reached
-      // the Landing Zone.
-      batchItemFailures.push(
-          ...successfulRecords.map(({ messageId }) => ({ itemIdentifier: messageId })),
-      );
+      try {
+        console.info(`[raw-data-loader][batch] JSONL content:\n${batchRecords.map((r) => JSON.stringify(r)).join('\n')}`);
+        await putJsonLinesGzipToS3(Aws.dataLakeHouseLandingZoneBucketName, batchKey, batchRecords, crossAccountClient);
+        console.info(`[raw-data-loader][batch] Wrote ${batchRecords.length} records to s3://${Aws.dataLakeHouseLandingZoneBucketName}/${batchKey}`);
+      } catch (err) {
+        console.error(`[raw-data-loader][batch] Failed to write batch to s3://${Aws.dataLakeHouseLandingZoneBucketName}/${batchKey}:`, err);
+        batchItemFailures.push(...groupItems.map(({ messageId }) => ({ itemIdentifier: messageId }))); // retry all messages in this group
+      }
     }
   }
 

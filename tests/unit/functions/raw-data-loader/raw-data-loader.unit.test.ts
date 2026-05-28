@@ -223,11 +223,11 @@ describe('raw-data-loader handler', () => {
       expect(result?.batchItemFailures).toEqual([{ itemIdentifier: 'msg-fail' }]);
     });
 
-    it('uploads all successful records as one JSONL batch', async () => {
+    it('batches records with the same (type, action) into one file', async () => {
       await handler(
           buildSqsEvent([
             buildSqsRecord(PUT_EVENT, 'msg-1'),
-            buildSqsRecord(PATCH_EVENT, 'msg-2'),
+            buildSqsRecord(PUT_EVENT, 'msg-2'),
           ]),
           {} as never,
           () => {},
@@ -238,16 +238,31 @@ describe('raw-data-loader handler', () => {
       expect(mockPutJsonLinesGzipToS3).toHaveBeenCalledTimes(1);
       expect(uploadedRecords).toHaveLength(2);
       expect(uploadedRecords[0].action).toBe('PUT');
-      expect(uploadedRecords[1].action).toBe('PATCH');
+      expect(uploadedRecords[1].action).toBe('PUT');
     });
 
-    it('marks all successfully processed records as failed when the batch upload fails', async () => {
+    it('writes separate files for different module types', async () => {
+      const locationsPutEvent: IngestionEvent = { ...PUT_EVENT, type: 'locations' };
+
+      await handler(
+          buildSqsEvent([
+            buildSqsRecord(PUT_EVENT, 'msg-1'),        // type=tariffs
+            buildSqsRecord(locationsPutEvent, 'msg-2'), // type=locations
+          ]),
+          {} as never,
+          () => {},
+      );
+
+      expect(mockPutJsonLinesGzipToS3).toHaveBeenCalledTimes(2);
+    });
+
+    it('marks all records of a failed group as failed when the batch upload fails', async () => {
       mockPutJsonLinesGzipToS3.mockRejectedValueOnce(new Error('Landing Zone upload failed'));
 
       const result = await handler(
           buildSqsEvent([
             buildSqsRecord(PUT_EVENT, 'msg-1'),
-            buildSqsRecord(PATCH_EVENT, 'msg-2'),
+            buildSqsRecord(PUT_EVENT, 'msg-2'),
           ]),
           {} as never,
           () => {},

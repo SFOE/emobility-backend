@@ -1,4 +1,5 @@
 import { S3Client, PutObjectCommand, GetObjectCommand } from '@aws-sdk/client-s3';
+import { STSClient, AssumeRoleCommand } from '@aws-sdk/client-sts';
 import { Aws } from '/opt/nodejs/aws/constants';
 import { IngestionAction, IngestionObjectType } from '/opt/nodejs/aws/sqs';
 import { gzipSync } from 'node:zlib';
@@ -68,20 +69,35 @@ export const getRawFromS3 = async (
   return JSON.parse(body);
 };
 
-/**
- * Serializes multiple records into JSON Lines format, compresses the result
- * using gzip and uploads the batch file to S3 for downstream data lake ingestion.
- */
+// Assumes a cross-account IAM role via STS and returns a new S3Client with the temporary credentials.
+export const createCrossAccountS3Client = async (roleArn: string): Promise<S3Client> => {
+  const stsClient = new STSClient({ region: Aws.region });
+  const { Credentials } = await stsClient.send(new AssumeRoleCommand({
+    RoleArn: roleArn,
+    RoleSessionName: 'ocpi-raw-data-loader',
+  }));
+
+  return new S3Client({
+    ...Aws.s3Config,
+    credentials: {
+      accessKeyId: Credentials!.AccessKeyId!,
+      secretAccessKey: Credentials!.SecretAccessKey!,
+      sessionToken: Credentials!.SessionToken,
+    },
+  });
+};
+
+// Serializes records as JSONL, gzip-compresses and uploads to S3. Accepts an optional client for cross-account writes.
 export async function putJsonLinesGzipToS3(
     bucketName: string,
     key: string,
     records: unknown[],
+    client: S3Client = s3Client,
 ): Promise<void> {
   const jsonLines = records.map((record) => JSON.stringify(record)).join('\n') + '\n';
-
   const compressedBody = gzipSync(jsonLines);
 
-  await s3Client.send(
+  await client.send(
       new PutObjectCommand({
         Bucket: bucketName,
         Key: key,
