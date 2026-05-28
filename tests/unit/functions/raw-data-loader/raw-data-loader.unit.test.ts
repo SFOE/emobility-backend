@@ -2,7 +2,7 @@ jest.mock('/opt/nodejs/aws/s3');
 
 import { SQSEvent, SQSRecord } from 'aws-lambda';
 import { handler } from '../../../../src/functions/raw-data-loader/ocpi-raw-data-loader';
-import { getRawFromS3, putJsonLinesGzipToS3 } from '/opt/nodejs//aws/s3';
+import { getRawFromS3, putJsonLinesGzipToS3 } from '/opt/nodejs/aws/s3';
 import { IngestionEvent } from "/opt/nodejs/aws/sqs";
 import { VALID_TARIFF, TARIFF_ID } from '../../../shared/test-data/ocpi-tariffs.data';
 

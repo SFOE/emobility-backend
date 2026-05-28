@@ -90,12 +90,20 @@ export const createCrossAccountS3Client = async (roleArn: string): Promise<S3Cli
     RoleSessionName: 'ocpi-raw-data-loader',
   }));
 
+    if (
+        !Credentials?.AccessKeyId ||
+        !Credentials.SecretAccessKey ||
+        !Credentials.SessionToken
+    ) {
+        throw new Error('Failed to assume cross-account role for Landing Zone S3 upload.');
+    }
+
   return new S3Client({
     ...Aws.s3Config,
     credentials: {
-      accessKeyId: Credentials!.AccessKeyId!,
-      secretAccessKey: Credentials!.SecretAccessKey!,
-      sessionToken: Credentials!.SessionToken,
+      accessKeyId: Credentials.AccessKeyId,
+      secretAccessKey: Credentials.SecretAccessKey,
+      sessionToken: Credentials.SessionToken,
     },
   });
 };
