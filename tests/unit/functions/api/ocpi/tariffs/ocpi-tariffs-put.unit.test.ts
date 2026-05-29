@@ -68,7 +68,6 @@ describe('ocpi-tariffs-put handler', () => {
                         bucket: Aws.rawDataBucketName,
                         key: MOCK_S3_KEY,
                     },
-                    delta: null,
                 }),
             );
         });

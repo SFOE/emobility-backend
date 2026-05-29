@@ -99,7 +99,6 @@ describe('ocpi-tariffs-put integration', () => {
                 bucket: BUCKET_NAME,
                 key: expect.stringContaining('tariffs/'),
             },
-            delta: null,
         });
     });
 });

@@ -44,7 +44,6 @@ describe('ocpi-tariffs-delete handler', () => {
                     country_code: VALID_TARIFF.country_code,
                     party_id: VALID_TARIFF.party_id,
                     raw: null,
-                    delta: null,
                 }),
             );
         });

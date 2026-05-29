@@ -10,7 +10,9 @@ import {
   parseRequestBody,
   withVersionCheck,
 } from '/opt/nodejs/utils/ocpi-guards';
+import { putRawToS3 } from '/opt/nodejs/aws/s3';
 import { publishIngestionEvent } from '/opt/nodejs/aws/sqs';
+import { Aws } from '/opt/nodejs/aws/constants';
 
 export const handler = withVersionCheck(
   (event, auth) =>
@@ -52,7 +54,30 @@ export const handler = withVersionCheck(
 
       const receivedAt = new Date().toISOString();
 
-      // Publish ingestion event to SQS — delta embedded directly, no S3 write for PATCH
+      // Persist the raw patch payload to S3 as the canonical ingestion record
+      let s3Key: string;
+      try {
+        s3Key = await putRawToS3(
+          patch,
+          'locations',
+          'PATCH',
+          pathCountryCode!,
+          pathPartyId!,
+          [`location_id=${pathLocationId}`],
+          receivedAt,
+        );
+        console.info(
+          `[OCPI][locations/patch] Raw location patch stored to s3://${Aws.rawDataBucketName}/${s3Key} from ${authContext.partnerId}`,
+        );
+      } catch (err) {
+        console.error(
+          `[OCPI][locations/patch] S3 write failed for ${pathCountryCode}/${pathPartyId}/${pathLocationId} from ${authContext.partnerId}:`,
+          err,
+        );
+        return ErrorHandler.handleError(err);
+      }
+
+      // Publish an ingestion event to SQS so downstream processors can pick up the S3 object
       try {
         await publishIngestionEvent({
           action: 'PATCH',
@@ -62,15 +87,17 @@ export const handler = withVersionCheck(
           party_id: pathPartyId!,
           ocpi_version: ocpiVersion,
           received_at: receivedAt,
-          raw: null,
-          delta: patch,
+          raw: {
+            bucket: Aws.rawDataBucketName,
+            key: s3Key,
+          },
         });
         console.info(
-          `[OCPI][locations/patch] Ingested location patch ${pathCountryCode}/${pathPartyId}/${pathLocationId} from ${authContext.partnerId}`,
+          `[OCPI][locations/patch] Ingested location patch ${pathCountryCode}/${pathPartyId}/${pathLocationId} from ${authContext.partnerId} → s3:${s3Key}`,
         );
       } catch (err) {
         console.error(
-          `[OCPI][locations/patch] SQS publish failed for ${pathCountryCode}/${pathPartyId}/${pathLocationId} from ${authContext.partnerId}:`,
+          `[OCPI][locations/patch] SQS publish failed — orphaned S3 object at s3://${Aws.rawDataBucketName}/${s3Key} from ${authContext.partnerId}:`,
           err,
         );
         return ErrorHandler.handleError(err);

@@ -11,6 +11,7 @@ const mockGetRawFromS3 = getRawFromS3 as jest.MockedFunction<typeof getRawFromS3
 
 const MOCK_BUCKET = 'emobility-test-ocpi-rawdata-bucket';
 const MOCK_S3_KEY = 'tariffs/year=2025/month=01/day=01/country=DE/party=EMS/tariff_id=KKK/PUT_20250101T000000000Z.json';
+const MOCK_PATCH_S3_KEY = 'tariffs/year=2025/month=01/day=01/country=DE/party=EMS/tariff_id=KKK/PATCH_20250101T000000000Z.json';
 
 const PUT_EVENT: IngestionEvent = {
   action: 'PUT',
@@ -21,8 +22,9 @@ const PUT_EVENT: IngestionEvent = {
   ocpi_version: '2.2.1',
   received_at: '2025-01-01T00:00:00.000Z',
   raw: { bucket: MOCK_BUCKET, key: MOCK_S3_KEY },
-  delta: null,
 };
+
+const MOCK_PATCH_PAYLOAD = { last_updated: '2025-06-01T00:00:00Z', currency: 'EUR' };
 
 const PATCH_EVENT: IngestionEvent = {
   action: 'PATCH',
@@ -32,8 +34,7 @@ const PATCH_EVENT: IngestionEvent = {
   party_id: 'EMS',
   ocpi_version: '2.2.1',
   received_at: '2025-01-01T00:00:00.000Z',
-  raw: null,
-  delta: { last_updated: '2025-06-01T00:00:00Z', currency: 'EUR' },
+  raw: { bucket: MOCK_BUCKET, key: MOCK_PATCH_S3_KEY },
 };
 
 const DELETE_EVENT: IngestionEvent = {
@@ -45,7 +46,6 @@ const DELETE_EVENT: IngestionEvent = {
   ocpi_version: '2.2.1',
   received_at: '2025-01-01T00:00:00.000Z',
   raw: null,
-  delta: null,
 };
 
 function buildSqsRecord(ingestionEvent: IngestionEvent, messageId = 'msg-001'): SQSRecord {
@@ -101,23 +101,24 @@ describe('raw-data-loader handler', () => {
       expect(result?.batchItemFailures).toHaveLength(0);
     });
 
-    it('uploads a batch record with the S3 payload and null delta', async () => {
+    it('uploads a batch record with the S3 payload', async () => {
       await handler(buildSqsEvent([buildSqsRecord(PUT_EVENT)]), {} as never, () => {});
 
       const uploadedRecords = getUploadedRecords();
 
       expect(uploadedRecords).toHaveLength(1);
       expect(uploadedRecords[0].payload).toEqual(VALID_TARIFF);
-      expect(uploadedRecords[0].delta).toBeNull();
       expect(uploadedRecords[0].action).toBe('PUT');
     });
   });
 
   describe('PATCH record', () => {
-    it('does NOT call getRawFromS3', async () => {
+    it('fetches raw payload from S3 using bucket and key from the event', async () => {
+      mockGetRawFromS3.mockResolvedValue(MOCK_PATCH_PAYLOAD);
+
       await handler(buildSqsEvent([buildSqsRecord(PATCH_EVENT)]), {} as never, () => {});
 
-      expect(mockGetRawFromS3).not.toHaveBeenCalled();
+      expect(mockGetRawFromS3).toHaveBeenCalledWith(MOCK_BUCKET, MOCK_PATCH_S3_KEY);
     });
 
     it('returns empty batchItemFailures', async () => {
@@ -126,14 +127,15 @@ describe('raw-data-loader handler', () => {
       expect(result?.batchItemFailures).toHaveLength(0);
     });
 
-    it('uploads a batch record with null payload and the event delta', async () => {
+    it('uploads a batch record with the S3 payload', async () => {
+      mockGetRawFromS3.mockResolvedValue(MOCK_PATCH_PAYLOAD);
+
       await handler(buildSqsEvent([buildSqsRecord(PATCH_EVENT)]), {} as never, () => {});
 
       const uploadedRecords = getUploadedRecords();
 
       expect(uploadedRecords).toHaveLength(1);
-      expect(uploadedRecords[0].payload).toBeNull();
-      expect(uploadedRecords[0].delta).toEqual(PATCH_EVENT.delta);
+      expect(uploadedRecords[0].payload).toEqual(MOCK_PATCH_PAYLOAD);
       expect(uploadedRecords[0].action).toBe('PATCH');
     });
   });
@@ -151,14 +153,13 @@ describe('raw-data-loader handler', () => {
       expect(result?.batchItemFailures).toHaveLength(0);
     });
 
-    it('uploads a batch record with null payload and null delta', async () => {
+    it('uploads a batch record with null payload', async () => {
       await handler(buildSqsEvent([buildSqsRecord(DELETE_EVENT)]), {} as never, () => {});
 
       const uploadedRecords = getUploadedRecords();
 
       expect(uploadedRecords).toHaveLength(1);
       expect(uploadedRecords[0].payload).toBeNull();
-      expect(uploadedRecords[0].delta).toBeNull();
       expect(uploadedRecords[0].action).toBe('DELETE');
     });
   });

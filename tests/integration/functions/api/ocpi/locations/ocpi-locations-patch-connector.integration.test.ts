@@ -13,7 +13,6 @@ import {
     EVSE_UID,
     LOCATION_ID,
     VALID_LOCATION,
-    VALID_PATCH,
 } from '../../../../../shared/test-data/ocpi-locations.data';
 
 const BUCKET_NAME = Aws.rawDataBucketName;
@@ -53,7 +52,7 @@ describe('ocpi-locations-patch-connector integration', () => {
         expect(parseBody(result).status_code).toBe(1000);
     });
 
-    it('publishes a PATCH ingestion event to SQS with composite object_id, delta and no S3 reference', async () => {
+    it('publishes a PATCH ingestion event to SQS with composite object_id and S3 reference', async () => {
         await handler(buildConnectorPatchEvent());
 
         const received = await sqsClient.send(
@@ -70,18 +69,17 @@ describe('ocpi-locations-patch-connector integration', () => {
             object_id: `${LOCATION_ID}*${EVSE_UID}*${CONNECTOR_ID}`,
             country_code: VALID_LOCATION.country_code,
             party_id: VALID_LOCATION.party_id,
-            raw: null,
-            delta: VALID_PATCH,
+            raw: { bucket: BUCKET_NAME, key: expect.any(String) },
         });
     });
 
-    it('does not write anything to S3', async () => {
+    it('writes the patch body to S3', async () => {
         await handler(buildConnectorPatchEvent());
 
         const listed = await s3Client.send(
             new ListObjectsV2Command({ Bucket: BUCKET_NAME }),
         );
 
-        expect(listed.Contents).toBeUndefined();
+        expect(listed.Contents).toHaveLength(1);
     });
 });

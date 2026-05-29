@@ -92,7 +92,6 @@ describe('ocpi-locations-put-connector handler', () => {
                         bucket: Aws.rawDataBucketName,
                         key: MOCK_S3_KEY,
                     },
-                    delta: null,
                 }),
             );
         });

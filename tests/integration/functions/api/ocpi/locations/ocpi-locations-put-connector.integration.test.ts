@@ -99,7 +99,6 @@ describe('ocpi-locations-put-connector integration', () => {
                 bucket: BUCKET_NAME,
                 key: expect.stringContaining('connector/'),
             },
-            delta: null,
         });
     });
 });
