@@ -92,7 +92,6 @@ export const handler = withVersionCheck(
             bucket: Aws.rawDataBucketName,
             key: s3Key,
           },
-          delta: null,
         });
         console.info(
           `[OCPI][locations/put] Ingested EVSE ${pathCountryCode}/${pathPartyId}/${pathLocationId}/${evse.uid} from ${authContext.partnerId} → s3:${s3Key}`,

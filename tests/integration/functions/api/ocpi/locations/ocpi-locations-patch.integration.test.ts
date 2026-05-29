@@ -8,7 +8,7 @@ import {
 import { handler } from '../../../../../../src/functions/api/ocpi/locations/ocpi-locations-patch';
 import { Aws } from '/opt/nodejs/aws/constants';
 import { buildLocationPatchEvent } from '../../../../../shared/fixtures/ocpi-locations.fixture';
-import { LOCATION_ID, VALID_LOCATION, VALID_PATCH } from '../../../../../shared/test-data/ocpi-locations.data';
+import { LOCATION_ID, VALID_LOCATION } from '../../../../../shared/test-data/ocpi-locations.data';
 
 const BUCKET_NAME = Aws.rawDataBucketName;
 const QUEUE_NAME = Aws.ingestionQueueUrl.split('/').pop()!;
@@ -47,7 +47,7 @@ describe('ocpi-locations-patch integration', () => {
         expect(parseBody(result).status_code).toBe(1000);
     });
 
-    it('publishes a PATCH ingestion event to SQS with delta and no S3 reference', async () => {
+    it('publishes a PATCH ingestion event to SQS with S3 reference', async () => {
         await handler(buildLocationPatchEvent());
 
         const received = await sqsClient.send(
@@ -64,18 +64,17 @@ describe('ocpi-locations-patch integration', () => {
             object_id: LOCATION_ID,
             country_code: VALID_LOCATION.country_code,
             party_id: VALID_LOCATION.party_id,
-            raw: null,
-            delta: VALID_PATCH,
+            raw: { bucket: BUCKET_NAME, key: expect.any(String) },
         });
     });
 
-    it('does not write anything to S3', async () => {
+    it('writes the patch body to S3', async () => {
         await handler(buildLocationPatchEvent());
 
         const listed = await s3Client.send(
             new ListObjectsV2Command({ Bucket: BUCKET_NAME }),
         );
 
-        expect(listed.Contents).toBeUndefined();
+        expect(listed.Contents).toHaveLength(1);
     });
 });

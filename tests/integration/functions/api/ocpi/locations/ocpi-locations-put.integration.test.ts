@@ -94,7 +94,6 @@ describe('ocpi-locations-put integration', () => {
                 bucket: BUCKET_NAME,
                 key: expect.stringContaining('locations/'),
             },
-            delta: null,
         });
     });
 });

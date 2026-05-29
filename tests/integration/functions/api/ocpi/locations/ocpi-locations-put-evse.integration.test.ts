@@ -98,7 +98,6 @@ describe('ocpi-locations-put-evse integration', () => {
                 bucket: BUCKET_NAME,
                 key: expect.stringContaining('evse/'),
             },
-            delta: null,
         });
     });
 });

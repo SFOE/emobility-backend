@@ -1,12 +1,18 @@
+jest.mock('../../../../../../src/common/aws/s3');
 jest.mock('../../../../../../src/common/aws/sqs');
 
 import { APIGatewayProxyResult } from 'aws-lambda';
 import { handler } from '../../../../../../src/functions/api/ocpi/locations/ocpi-locations-patch';
+import { putRawToS3 } from '/opt/nodejs/aws/s3';
 import { publishIngestionEvent } from '/opt/nodejs/aws/sqs';
+import { Aws } from '/opt/nodejs/aws/constants';
 import { buildLocationPatchEvent } from '../../../../../shared/fixtures/ocpi-locations.fixture';
-import { LOCATION_ID, VALID_LOCATION, VALID_PATCH } from '../../../../../shared/test-data/ocpi-locations.data';
+import { LOCATION_ID, VALID_LOCATION } from '../../../../../shared/test-data/ocpi-locations.data';
 
+const mockPutRawToS3 = putRawToS3 as jest.MockedFunction<typeof putRawToS3>;
 const mockPublishIngestionEvent = publishIngestionEvent as jest.MockedFunction<typeof publishIngestionEvent>;
+
+const MOCK_S3_KEY = 'locations/year=2025/month=01/day=01/country=CH/party=EMS/location_id=LOC001/PATCH_20250101T000000000Z.json';
 
 function parseBody(result: APIGatewayProxyResult) {
     return JSON.parse(result.body);
@@ -16,6 +22,7 @@ describe('ocpi-locations-patch handler', () => {
     beforeEach(() => {
         jest.resetAllMocks();
 
+        mockPutRawToS3.mockResolvedValue(MOCK_S3_KEY);
         mockPublishIngestionEvent.mockResolvedValue(undefined);
     });
 
@@ -59,7 +66,21 @@ describe('ocpi-locations-patch handler', () => {
             expect(parseBody(result).data).toBeNull();
         });
 
-        it('publishes a PATCH ingestion event to SQS with delta and no S3 reference', async () => {
+        it('writes the patch body to S3 with correct type, action, and identifiers', async () => {
+            await handler(buildLocationPatchEvent());
+
+            expect(mockPutRawToS3).toHaveBeenCalledWith(
+                expect.any(Object),
+                'locations',
+                'PATCH',
+                VALID_LOCATION.country_code,
+                VALID_LOCATION.party_id,
+                [`location_id=${LOCATION_ID}`],
+                expect.any(String),
+            );
+        });
+
+        it('publishes a PATCH ingestion event to SQS with S3 reference', async () => {
             await handler(buildLocationPatchEvent());
 
             expect(mockPublishIngestionEvent).toHaveBeenCalledWith(
@@ -69,10 +90,19 @@ describe('ocpi-locations-patch handler', () => {
                     object_id: LOCATION_ID,
                     country_code: VALID_LOCATION.country_code,
                     party_id: VALID_LOCATION.party_id,
-                    raw: null,
-                    delta: VALID_PATCH,
+                    raw: { bucket: Aws.rawDataBucketName, key: MOCK_S3_KEY },
                 }),
             );
+        });
+    });
+
+    describe('S3 failure', () => {
+        it('returns 500 when S3 write fails', async () => {
+            mockPutRawToS3.mockRejectedValue(new Error('S3 unavailable'));
+
+            const result = await handler(buildLocationPatchEvent());
+
+            expect(result.statusCode).toBe(500);
         });
     });
 

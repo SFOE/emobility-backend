@@ -29,6 +29,7 @@ const BUCKET_NAME = Aws.rawDataBucketName;
 const LANDING_ZONE_BUCKET_NAME = Aws.dataLakeHouseLandingZoneBucketName;
 const QUEUE_NAME = Aws.ingestionQueueUrl.split('/').pop()!;
 const MOCK_S3_KEY = 'tariffs/year=2025/month=01/day=01/country=DE/party=EMS/tariff_id=KKK/PUT_20250101T000000000Z.json';
+const MOCK_PATCH_S3_KEY = 'tariffs/year=2025/month=01/day=01/country=DE/party=EMS/tariff_id=KKK/PATCH_20250101T000000000Z.json';
 
 const endpoint = process.env.MINISTACK_ENDPOINT!;
 const clientConfig = { region: Aws.region, endpoint };
@@ -121,7 +122,6 @@ describe('raw-data-loader integration', () => {
       ocpi_version: '2.2.1',
       received_at: '2025-01-01T00:00:00.000Z',
       raw: { bucket: BUCKET_NAME, key: MOCK_S3_KEY },
-      delta: null,
     };
 
     const result = await handler(
@@ -137,12 +137,20 @@ describe('raw-data-loader integration', () => {
     expect(uploadedRecords).toHaveLength(1);
     expect(uploadedRecords[0].action).toBe('PUT');
     expect(uploadedRecords[0].payload).toEqual(VALID_TARIFF);
-    expect(uploadedRecords[0].delta).toBeNull();
     expect(uploadedRecords[0].object_id).toBe(TARIFF_ID);
   });
 
-  it('PATCH record: writes enriched RawDataRecord with delta and null payload to JSONL.GZ batch', async () => {
-    const delta = { last_updated: '2025-06-01T00:00:00Z', currency: 'EUR' };
+  it('PATCH record: fetches S3 object and writes enriched RawDataRecord with payload to JSONL.GZ batch', async () => {
+    const patchPayload = { last_updated: '2025-06-01T00:00:00Z', currency: 'EUR' };
+
+    await s3Client.send(
+        new PutObjectCommand({
+          Bucket: BUCKET_NAME,
+          Key: MOCK_PATCH_S3_KEY,
+          Body: JSON.stringify(patchPayload),
+          ContentType: 'application/json',
+        }),
+    );
 
     const ingestionEvent: IngestionEvent = {
       action: 'PATCH',
@@ -152,8 +160,7 @@ describe('raw-data-loader integration', () => {
       party_id: 'EMS',
       ocpi_version: '2.2.1',
       received_at: '2025-01-01T00:00:00.000Z',
-      raw: null,
-      delta,
+      raw: { bucket: BUCKET_NAME, key: MOCK_PATCH_S3_KEY },
     };
 
     const result = await handler(
@@ -168,11 +175,11 @@ describe('raw-data-loader integration', () => {
 
     expect(uploadedRecords).toHaveLength(1);
     expect(uploadedRecords[0].action).toBe('PATCH');
-    expect(uploadedRecords[0].payload).toBeNull();
-    expect(uploadedRecords[0].delta).toEqual(delta);
+    expect(uploadedRecords[0].payload).toEqual(patchPayload);
+    expect(uploadedRecords[0].object_id).toBe(TARIFF_ID);
   });
 
-  it('DELETE record: writes enriched RawDataRecord with null payload and null delta to JSONL.GZ batch', async () => {
+  it('DELETE record: writes enriched RawDataRecord with null payload to JSONL.GZ batch', async () => {
     const ingestionEvent: IngestionEvent = {
       action: 'DELETE',
       type: 'tariffs',
@@ -182,7 +189,6 @@ describe('raw-data-loader integration', () => {
       ocpi_version: '2.2.1',
       received_at: '2025-01-01T00:00:00.000Z',
       raw: null,
-      delta: null,
     };
 
     const result = await handler(
@@ -198,7 +204,6 @@ describe('raw-data-loader integration', () => {
     expect(uploadedRecords).toHaveLength(1);
     expect(uploadedRecords[0].action).toBe('DELETE');
     expect(uploadedRecords[0].payload).toBeNull();
-    expect(uploadedRecords[0].delta).toBeNull();
   });
 
   it('writes multiple successful SQS records into one JSONL.GZ batch file', async () => {
@@ -220,8 +225,16 @@ describe('raw-data-loader integration', () => {
       ocpi_version: '2.2.1',
       received_at: '2025-01-01T00:00:00.000Z',
       raw: { bucket: BUCKET_NAME, key: MOCK_S3_KEY },
-      delta: null,
     };
+
+    await s3Client.send(
+        new PutObjectCommand({
+          Bucket: BUCKET_NAME,
+          Key: MOCK_PATCH_S3_KEY,
+          Body: JSON.stringify({ currency: 'EUR' }),
+          ContentType: 'application/json',
+        }),
+    );
 
     const patchEvent: IngestionEvent = {
       action: 'PATCH',
@@ -231,8 +244,7 @@ describe('raw-data-loader integration', () => {
       party_id: 'EMS',
       ocpi_version: '2.2.1',
       received_at: '2025-01-01T00:00:00.000Z',
-      raw: null,
-      delta: { currency: 'EUR' },
+      raw: { bucket: BUCKET_NAME, key: MOCK_PATCH_S3_KEY },
     };
 
     const result = await handler(
@@ -263,7 +275,6 @@ describe('raw-data-loader integration', () => {
       ocpi_version: '2.2.1',
       received_at: '2025-01-01T00:00:00.000Z',
       raw: { bucket: BUCKET_NAME, key: 'tariffs/does-not-exist.json' },
-      delta: null,
     };
 
     const result = await handler(
