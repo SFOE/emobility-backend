@@ -26,4 +26,13 @@ export interface OCPICredentialRole {
   country_code: string;
 }
 
-export type OCPIRole = 'CPO' | 'EMSP' | 'NAP' | 'NSP' | 'OTHER' | 'SCSP';
+export const OCPI_ROLES = [
+  'CPO',
+  'EMSP',
+  'NAP',
+  'NSP',
+  'OTHER',
+  'SCSP',
+] as const;
+
+export type OCPIRole = (typeof OCPI_ROLES)[number];

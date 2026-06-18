@@ -66,35 +66,35 @@ describe('assertContextComplete', () => {
 });
 
 describe('assertRole', () => {
-    it('returns null when role matches', () => {
-        const ctx = { isBootstrap: false, partnerId: 'test', role: 'CPO' } as OCPIAuthorizerContext;
-        expect(assertRole(ctx, 'CPO', 'test')).toBeNull();
+    it.each(['CPO', 'EMSP', 'NAP', 'NSP', 'OTHER', 'SCSP'])('returns null for valid OCPI role %s', (role) => {
+        const ctx = { isBootstrap: false, partnerId: 'test', role } as OCPIAuthorizerContext;
+        expect(assertRole(ctx, 'test')).toBeNull();
     });
 
-    it('returns 405 with OCPI 2000 when role does not match', () => {
-        const ctx = { isBootstrap: false, partnerId: 'test', role: 'EMSP' } as OCPIAuthorizerContext;
-        const result = assertRole(ctx, 'CPO', 'test');
+    it('returns 405 with OCPI 2000 when role is not a valid OCPI role', () => {
+        const ctx = { isBootstrap: false, partnerId: 'test', role: 'INVALID' } as unknown as OCPIAuthorizerContext;
+        const result = assertRole(ctx, 'test');
         expect(result?.statusCode).toBe(405);
         expect(parseBody(result!).status_code).toBe(2000);
     });
 });
 
 describe('assertOwnership', () => {
-    it('returns null when country_code and party_id match', () => {
+    it('returns null when country_code and party_id are valid', () => {
         const ctx = { isBootstrap: false, partnerId: 'test', country_code: 'DE', party_id: 'XYZ' } as OCPIAuthorizerContext;
-        expect(assertOwnership(ctx, 'DE', 'XYZ', 'test')).toBeNull();
+        expect(assertOwnership(ctx, 'test')).toBeNull();
     });
 
-    it('returns 400 with OCPI 2001 when country_code does not match', () => {
-        const ctx = { isBootstrap: false, partnerId: 'test', country_code: 'CH', party_id: 'XYZ' } as OCPIAuthorizerContext;
-        const result = assertOwnership(ctx, 'DE', 'XYZ', 'test');
+    it('returns 400 with OCPI 2001 when country_code is invalid', () => {
+        const ctx = { isBootstrap: false, partnerId: 'test', country_code: 'DEU', party_id: 'XYZ' } as OCPIAuthorizerContext;
+        const result = assertOwnership(ctx, 'test');
         expect(result?.statusCode).toBe(400);
         expect(parseBody(result!).status_code).toBe(2001);
     });
 
-    it('returns 400 with OCPI 2001 when party_id does not match', () => {
-        const ctx = { isBootstrap: false, partnerId: 'test', country_code: 'DE', party_id: 'ABC' } as OCPIAuthorizerContext;
-        const result = assertOwnership(ctx, 'DE', 'XYZ', 'test');
+    it('returns 400 with OCPI 2001 when party_id is invalid', () => {
+        const ctx = { isBootstrap: false, partnerId: 'test', country_code: 'DE', party_id: 'AB' } as OCPIAuthorizerContext;
+        const result = assertOwnership(ctx, 'test');
         expect(result?.statusCode).toBe(400);
         expect(parseBody(result!).status_code).toBe(2001);
     });

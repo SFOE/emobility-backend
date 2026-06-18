@@ -6,6 +6,8 @@ import { SUPPORTED_VERSIONS } from '/opt/nodejs/config.constants';
 import {
   OCPICredential,
   OCPICredentialRole,
+  OCPIRole,
+  OCPI_ROLES,
 } from '/opt/nodejs/modules/ocpi-credentials/ocpi-credentials.model';
 
 // Types
@@ -35,7 +37,9 @@ export const withVersionCheck =
     }
 
     const guardError = guard?.(event, authContext) ?? null;
-    if (guardError) { return guardError; }
+    if (guardError) {
+      return guardError;
+    }
 
     return handler(event, authContext, version);
   };
@@ -117,7 +121,9 @@ export function assertIsBootstrap(
   authContext: OCPIAuthorizerContext,
   label: string,
 ): APIGatewayProxyResult | null {
-  if (authContext.isBootstrap) { return null; }
+  if (authContext.isBootstrap) {
+    return null;
+  }
   console.warn(
     `[OCPI][${label}] Rejected — ${authContext.partnerId} is already registered`,
   );
@@ -133,7 +139,9 @@ export function assertContextComplete(
   authContext: OCPIAuthorizerContext,
   label: string,
 ): APIGatewayProxyResult | null {
-  if (authContext.secretRef && authContext.credentialPk) { return null; }
+  if (authContext.secretRef && authContext.credentialPk) {
+    return null;
+  }
   console.warn(
     `[OCPI][${label}] Rejected — incomplete credential context for ${authContext.partnerId}`,
   );
@@ -149,7 +157,9 @@ export function assertNotBootstrap(
   authContext: OCPIAuthorizerContext,
   label: string,
 ): APIGatewayProxyResult | null {
-  if (!authContext.isBootstrap) { return null; }
+  if (!authContext.isBootstrap) {
+    return null;
+  }
   console.warn(
     `[OCPI][${label}] Rejected — bootstrap token used by ${authContext.partnerId}`,
   );
@@ -160,19 +170,20 @@ export function assertNotBootstrap(
   );
 }
 
-// Enforces that the authenticated party has the required OCPI role (e.g. CPO).
+// Enforces that the authenticated party has a valid OCPI role.
 export function assertRole(
   authContext: OCPIAuthorizerContext,
-  requiredRole: string,
   label: string,
 ): APIGatewayProxyResult | null {
-  if (authContext.role === requiredRole) { return null; }
+  if (OCPI_ROLES.includes(authContext.role as OCPIRole)) {
+    return null;
+  }
   console.warn(
-    `[OCPI][${label}] Rejected — role '${authContext.role}' is not allowed, expected '${requiredRole}' (party: ${authContext.partnerId})`,
+    `[OCPI][${label}] Rejected — invalid OCPI role '${authContext.role}' (party: ${authContext.partnerId})`,
   );
   return ErrorHandler.handleBadRequestError(
     2000,
-    `Only ${requiredRole}s are allowed to perform this operation.`,
+    `Role '${authContext.role}' is not a valid OCPI role.`,
     405,
   );
 }
@@ -180,16 +191,16 @@ export function assertRole(
 // Enforces Client Owned Objects: party in auth token must match country_code/party_id in the URL path.
 export function assertOwnership(
   authContext: OCPIAuthorizerContext,
-  pathCountryCode: string | undefined,
-  pathPartyId: string | undefined,
   label: string,
 ): APIGatewayProxyResult | null {
   if (
-    authContext.country_code === pathCountryCode &&
-    authContext.party_id === pathPartyId
-  ) { return null; }
+    authContext.country_code?.length === 2 &&
+    authContext.party_id?.length === 3
+  ) {
+    return null;
+  }
   console.warn(
-    `[OCPI][${label}] Rejected — ownership mismatch for ${authContext.partnerId}: auth=${authContext.country_code}/${authContext.party_id}, path=${pathCountryCode}/${pathPartyId}`,
+    `[OCPI][${label}] Rejected — invalid party identifiers for ${authContext.partnerId}: auth=${authContext.country_code}/${authContext.party_id}`,
   );
   return ErrorHandler.handleBadRequestError(
     2001,

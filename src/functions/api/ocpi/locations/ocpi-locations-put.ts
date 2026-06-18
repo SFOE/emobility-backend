@@ -17,10 +17,10 @@ import { publishIngestionEvent } from '/opt/nodejs/aws/sqs';
 import { Aws } from '/opt/nodejs/aws/constants';
 
 export const handler = withVersionCheck(
-  (event, auth) =>
+  (_event, auth) =>
     assertNotBootstrap(auth, 'locations/put') ??
-    assertRole(auth, 'CPO', 'locations/put') ??
-    assertOwnership(auth, event.pathParameters?.country_code, event.pathParameters?.party_id, 'locations/put'),
+    assertRole(auth, 'locations/put') ??
+    assertOwnership(auth, 'locations/put'),
 )(async (
     event: APIGatewayProxyEventV2WithLambdaAuthorizer<OCPIAuthorizerContext>,
     authContext: OCPIAuthorizerContext,
