@@ -12,10 +12,10 @@ import {
 import { publishIngestionEvent } from '/opt/nodejs/aws/sqs';
 
 export const handler = withVersionCheck(
-  (event, auth) =>
+  (_event, auth) =>
     assertNotBootstrap(auth, 'tariffs/delete') ??
-    assertRole(auth, 'CPO', 'tariffs/delete') ??
-    assertOwnership(auth, event.pathParameters?.country_code, event.pathParameters?.party_id, 'tariffs/delete'),
+    assertRole(auth, 'tariffs/delete') ??
+    assertOwnership(auth, 'tariffs/delete'),
 )(async (
     event: APIGatewayProxyEventV2WithLambdaAuthorizer<OCPIAuthorizerContext>,
     authContext: OCPIAuthorizerContext,
