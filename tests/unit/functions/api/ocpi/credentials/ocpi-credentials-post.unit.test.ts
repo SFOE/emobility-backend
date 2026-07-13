@@ -7,20 +7,18 @@ jest.mock('../../../../../../src/common/utils/ocpi-utils');
 import { APIGatewayProxyResult } from 'aws-lambda';
 import { handler } from '../../../../../../src/functions/api/ocpi/credentials/ocpi-credentials-post';
 import { partySecretExists, savePartySecret } from '/opt/nodejs/aws/secrets-manager';
-import { saveNewCredentials, invalidateBootstrapToken } from '/opt/nodejs/modules/ocpi-credentials/ocpi-credentials.db';
+import { saveNewCredentials } from '/opt/nodejs/modules/ocpi-credentials/ocpi-credentials.db';
 import { generateToken } from '/opt/nodejs/utils/crypto.utils';
-import { extractToken, getPrimaryRole, validateCredentialsPayload } from '/opt/nodejs/utils/ocpi-utils';
+import { getPrimaryRole, validateCredentialsPayload } from '/opt/nodejs/utils/ocpi-utils';
 import { BFE_ROLE } from '/opt/nodejs/config.constants';
 import { buildEvent } from '../../../../../shared/fixtures/ocpi-credentials.fixture';
-import { BOOTSTRAP_TOKEN, SECRET_ID, VALID_CREDENTIAL } from '../../../../../shared/test-data/ocpi-credentials.data';
+import { SECRET_ID, VALID_CREDENTIAL } from '../../../../../shared/test-data/ocpi-credentials.data';
 
 // Cast to typed mocks so TypeScript allows mock configuration.
 const mockPartySecretExists = partySecretExists as jest.MockedFunction<typeof partySecretExists>;
 const mockSavePartySecret = savePartySecret as jest.MockedFunction<typeof savePartySecret>;
 const mockSaveNewCredentials = saveNewCredentials as jest.MockedFunction<typeof saveNewCredentials>;
-const mockInvalidateBootstrapToken = invalidateBootstrapToken as jest.MockedFunction<typeof invalidateBootstrapToken>;
 const mockGenerateToken = generateToken as jest.MockedFunction<typeof generateToken>;
-const mockExtractToken = extractToken as jest.MockedFunction<typeof extractToken>;
 const mockGetPrimaryRole = getPrimaryRole as jest.MockedFunction<typeof getPrimaryRole>;
 const mockValidateCredentialsPayload =
     validateCredentialsPayload as jest.MockedFunction<typeof validateCredentialsPayload>;
@@ -43,8 +41,6 @@ describe('ocpi-credentials-post handler', () => {
     mockGenerateToken.mockReturnValue('generated-token-c-hex');
     mockSavePartySecret.mockResolvedValue(SECRET_ID);
     mockSaveNewCredentials.mockResolvedValue(undefined);
-    mockExtractToken.mockReturnValue(BOOTSTRAP_TOKEN);
-    mockInvalidateBootstrapToken.mockResolvedValue(undefined);
 
     mockGetPrimaryRole.mockReturnValue(VALID_CREDENTIAL.roles[0]);
     mockValidateCredentialsPayload.mockReturnValue(null);
@@ -78,25 +74,6 @@ describe('ocpi-credentials-post handler', () => {
 
       expect(mockSavePartySecret).not.toHaveBeenCalled();
       expect(mockSaveNewCredentials).not.toHaveBeenCalled();
-    });
-  });
-
-  // Bootstrap token must be extracted from the Authorization header to invalidate it later.
-  describe('bootstrap token extraction', () => {
-    it('returns 500 when bootstrap token cannot be extracted from the Authorization header', async () => {
-      mockExtractToken.mockReturnValue(null);
-
-      const result = await handler(buildEvent());
-
-      expect(result.statusCode).toBe(500);
-    });
-
-    it('does not invalidate bootstrap token when Authorization header extraction fails', async () => {
-      mockExtractToken.mockReturnValue(null);
-
-      await handler(buildEvent());
-
-      expect(mockInvalidateBootstrapToken).not.toHaveBeenCalled();
     });
   });
 
@@ -136,12 +113,6 @@ describe('ocpi-credentials-post handler', () => {
         'generated-token-c-hex',
         SECRET_ID,
       );
-    });
-
-    it('invalidates the bootstrap token after successful registration', async () => {
-      await handler(buildEvent());
-
-      expect(mockInvalidateBootstrapToken).toHaveBeenCalledWith(BOOTSTRAP_TOKEN);
     });
   });
 });
