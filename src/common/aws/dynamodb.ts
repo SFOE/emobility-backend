@@ -1,10 +1,4 @@
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
-
-// Base DynamoDB item key shape
-export interface DbKeys {
-  pk: string;
-  sk?: string;
-}
 import {
   DeleteCommand,
   DynamoDBDocument,
@@ -17,6 +11,12 @@ import {
   UpdateCommand,
 } from '@aws-sdk/lib-dynamodb';
 import { Aws } from '/opt/nodejs/aws/constants';
+
+// Base DynamoDB item key shape
+export interface DbKeys {
+  pk: string;
+  sk?: string;
+}
 
 const dynamoDBClient = new DynamoDBClient({ region: Aws.region });
 const dynamoDocClient = DynamoDBDocument.from(dynamoDBClient);
