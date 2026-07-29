@@ -32,13 +32,43 @@ export const saveNewCredentials = async (
 export const getCredentials = async (
     token: string,
 ): Promise<OCPICredentialItem | null> => {
-  const tokenHash = hashToken(token);
+  const credentials = await queryBySk<OCPICredentialItem>(
+      TABLE,
+      `TOKEN#${hashToken(token)}`,
+      'CREDENTIALS',
+  );
+  if (credentials) {
+    return credentials;
+  }
+
+  // Some CPOs Base64-encode the token before sending it (per OCPI 2.2+).
+  // Retry with the decoded value in case the raw token yielded no match.
+  const decodedToken = decodeBase64Token(token);
+  if (!decodedToken || decodedToken === token) {
+    return null;
+  }
 
   return await queryBySk<OCPICredentialItem>(
       TABLE,
-      `TOKEN#${tokenHash}`,
+      `TOKEN#${hashToken(decodedToken)}`,
       'CREDENTIALS',
   );
+};
+
+/**
+ * Attempts to Base64-decode a token. Returns null when the input is not valid
+ * Base64 (i.e. re-encoding the decoded value does not reproduce the input).
+ */
+const decodeBase64Token = (token: string): string | null => {
+  try {
+    const decoded = Buffer.from(token, 'base64').toString('utf8');
+    if (Buffer.from(decoded, 'utf8').toString('base64') !== token) {
+      return null;
+    }
+    return decoded;
+  } catch {
+    return null;
+  }
 };
 
 export const invalidateBootstrapToken = async (token: string): Promise<void> => {
