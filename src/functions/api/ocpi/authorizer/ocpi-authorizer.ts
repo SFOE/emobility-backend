@@ -1,7 +1,11 @@
 import { APIGatewayRequestAuthorizerEventV2 } from 'aws-lambda';
 import { getCredentials } from '/opt/nodejs/modules/ocpi-credentials/ocpi-credentials.db';
 import { OCPIAuthorizerContext } from '/opt/nodejs/api/base.model';
-import { extractToken, getPartnerId, getPrimaryRole } from '/opt/nodejs/utils/ocpi-utils';
+import {
+  extractToken,
+  getPartnerId,
+  getPrimaryRole,
+} from '/opt/nodejs/utils/ocpi-utils';
 
 export const handler = async (event: APIGatewayRequestAuthorizerEventV2) => {
   try {
@@ -10,18 +14,17 @@ export const handler = async (event: APIGatewayRequestAuthorizerEventV2) => {
 
     const token = extractToken(authHeader);
 
-    console.log('Auth attempt:', {
-      hasToken: !!token,
-      token: token?.slice(0, 8),
-    });
-
     if (!token) {
+      console.log('Auth attempt failed: empty token');
       return { isAuthorized: false };
     }
     // Lookup credentials
     const item = await getCredentials(token);
 
     if (!item) {
+      console.log('Auth attempt failed:', {
+        token: token?.slice(0, 8),
+      });
       return { isAuthorized: false };
     }
     const context: OCPIAuthorizerContext = {
@@ -31,7 +34,7 @@ export const handler = async (event: APIGatewayRequestAuthorizerEventV2) => {
       role: getPrimaryRole(item.roles)?.role,
       country_code: getPrimaryRole(item.roles)?.country_code,
       party_id: getPrimaryRole(item.roles)?.party_id,
-      credentialPk: item.pk
+      credentialPk: item.pk,
     };
 
     // Successfully authenticated

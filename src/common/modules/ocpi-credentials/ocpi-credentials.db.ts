@@ -1,17 +1,22 @@
-import { queryBySk, saveItem, updateItem, deleteItem } from '/opt/nodejs/aws/dynamodb';
+import {
+  deleteItem,
+  queryBySk,
+  saveItem,
+  updateItem,
+} from '/opt/nodejs/aws/dynamodb';
 import { Aws } from '/opt/nodejs/aws/constants';
-
-const TABLE = Aws.dynamoDBTables.credentials;
 import {
   OCPICredential,
   OCPICredentialItem,
 } from '/opt/nodejs/modules/ocpi-credentials/ocpi-credentials.model';
 import { hashToken } from '/opt/nodejs/utils/crypto.utils';
 
+const TABLE = Aws.dynamoDBTables.credentials;
+
 export const saveNewCredentials = async (
-    credentials: OCPICredential,
-    generatedToken: string,
-    secretRef: string,
+  credentials: OCPICredential,
+  generatedToken: string,
+  secretRef: string,
 ): Promise<void> => {
   // hash new generated access token
   const tokenHash = hashToken(generatedToken);
@@ -30,26 +35,58 @@ export const saveNewCredentials = async (
 };
 
 export const getCredentials = async (
-    token: string,
+  token: string,
 ): Promise<OCPICredentialItem | null> => {
-  const tokenHash = hashToken(token);
+  const credentials = await queryBySk<OCPICredentialItem>(
+    TABLE,
+    `TOKEN#${hashToken(token)}`,
+    'CREDENTIALS',
+  );
+  if (credentials) {
+    return credentials;
+  }
+
+  // Some CPOs Base64-encode the token before sending it (per OCPI 2.2+).
+  // Retry with the decoded value in case the raw token yielded no match.
+  const decodedToken = decodeBase64Token(token);
+  if (!decodedToken || decodedToken === token) {
+    return null;
+  }
 
   return await queryBySk<OCPICredentialItem>(
-      TABLE,
-      `TOKEN#${tokenHash}`,
-      'CREDENTIALS',
+    TABLE,
+    `TOKEN#${hashToken(decodedToken)}`,
+    'CREDENTIALS',
   );
 };
 
-export const invalidateBootstrapToken = async (token: string): Promise<void> => {
+/**
+ * Attempts to Base64-decode a token. Returns null when the input is not valid
+ * Base64 (i.e. re-encoding the decoded value does not reproduce the input).
+ */
+const decodeBase64Token = (token: string): string | null => {
+  try {
+    const decoded = Buffer.from(token, 'base64').toString('utf8');
+    if (Buffer.from(decoded, 'utf8').toString('base64') !== token) {
+      return null;
+    }
+    return decoded;
+  } catch {
+    return null;
+  }
+};
+
+export const invalidateBootstrapToken = async (
+  token: string,
+): Promise<void> => {
   const tokenHash = hashToken(token);
 
   await updateItem(
-      TABLE,
-      `TOKEN#${tokenHash}`,
-      'CREDENTIALS',
-      'SET bootstrapToken = :val',
-      { ':val': false },
+    TABLE,
+    `TOKEN#${tokenHash}`,
+    'CREDENTIALS',
+    'SET bootstrapToken = :val',
+    { ':val': false },
   );
 };
 
@@ -58,10 +95,10 @@ export const invalidateBootstrapToken = async (token: string): Promise<void> => 
  * for the new TOKEN_C and deleting the old token mapping.
  */
 export const rotateCredentialsToken = async (
-    oldCredentialPk: string,
-    updatedCredentials: OCPICredential,
-    generatedToken: string,
-    secretRef: string,
+  oldCredentialPk: string,
+  updatedCredentials: OCPICredential,
+  generatedToken: string,
+  secretRef: string,
 ): Promise<OCPICredentialItem> => {
   const newTokenHash = hashToken(generatedToken);
 
@@ -90,7 +127,7 @@ export const rotateCredentialsToken = async (
  * This removes the token lookup item so the related TOKEN_C can no longer be used.
  */
 export const deleteCredentials = async (
-    credentialPk: string,
+  credentialPk: string,
 ): Promise<void> => {
   await deleteItem(TABLE, credentialPk, 'CREDENTIALS');
 };
