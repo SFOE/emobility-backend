@@ -110,7 +110,7 @@ export const handler = withVersionCheck(
       // Fast-path: write status directly to DynamoDB if present in patch
       if (typeof patch['status'] === 'string') {
         try {
-          await upsertEvseCurrentStatus({
+          const written = await upsertEvseCurrentStatus({
             countryCode: pathCountryCode!,
             partyId: pathPartyId!,
             locationId: pathLocationId!,
@@ -119,9 +119,15 @@ export const handler = withVersionCheck(
             lastUpdated: patch['last_updated'] as string,
             receivedAt,
           });
-          console.info(
-            `[OCPI][locations/patch] EVSE status fast-path written for ${pathCountryCode}/${pathPartyId}/${pathLocationId}/${pathEvseUid}`,
-          );
+          if (written) {
+            console.info(
+              `[OCPI][locations/patch] EVSE status fast-path written for ${pathCountryCode}/${pathPartyId}/${pathLocationId}/${pathEvseUid}`,
+            );
+          } else {
+            console.info(
+              `[OCPI][locations/patch] EVSE status fast-path skipped (incoming last_updated is not newer) for ${pathCountryCode}/${pathPartyId}/${pathLocationId}/${pathEvseUid}`,
+            );
+          }
         } catch (err) {
           console.warn(
             `[OCPI][locations/patch] DynamoDB fast-path write failed for ${pathCountryCode}/${pathPartyId}/${pathLocationId}/${pathEvseUid}:`,

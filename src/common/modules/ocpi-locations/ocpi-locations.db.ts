@@ -12,12 +12,12 @@ export interface EvseStatusRecord {
   receivedAt: string;
 }
 
-export const upsertEvseCurrentStatus = async (record: EvseStatusRecord): Promise<void> => {
+export const upsertEvseCurrentStatus = async (record: EvseStatusRecord): Promise<boolean> => {
   const pk = `LOCATION#${record.countryCode}#${record.partyId}#${record.locationId}`;
   const sk = `EVSE#${record.evseUid}`;
   const gsi1sk = `${record.receivedAt}#${record.countryCode}#${record.partyId}#${record.locationId}#${record.evseUid}`;
 
-  await conditionalUpdateItem(
+  return conditionalUpdateItem(
     Aws.dynamoDBTables.evseCurrentStatus,
     pk,
     sk,
