@@ -13,6 +13,8 @@ import {
 import { putRawToS3 } from '/opt/nodejs/aws/s3';
 import { publishIngestionEvent } from '/opt/nodejs/aws/sqs';
 import { Aws } from '/opt/nodejs/aws/constants';
+import { upsertEvseCurrentStatus } from '/opt/nodejs/modules/ocpi-locations/ocpi-locations.db';
+import type { EVSEStatus } from '/opt/nodejs/modules/ocpi-locations/ocpi-locations.model';
 
 export const handler = withVersionCheck(
   (_event, auth) =>
@@ -103,6 +105,29 @@ export const handler = withVersionCheck(
           err,
         );
         return ErrorHandler.handleError(err);
+      }
+
+      // Fast-path: write status directly to DynamoDB if present in patch
+      if (typeof patch['status'] === 'string') {
+        try {
+          await upsertEvseCurrentStatus({
+            countryCode: pathCountryCode!,
+            partyId: pathPartyId!,
+            locationId: pathLocationId!,
+            evseUid: pathEvseUid!,
+            status: patch['status'] as EVSEStatus,
+            lastUpdated: patch['last_updated'] as string,
+            receivedAt,
+          });
+          console.info(
+            `[OCPI][locations/patch] EVSE status fast-path written for ${pathCountryCode}/${pathPartyId}/${pathLocationId}/${pathEvseUid}`,
+          );
+        } catch (err) {
+          console.warn(
+            `[OCPI][locations/patch] DynamoDB fast-path write failed for ${pathCountryCode}/${pathPartyId}/${pathLocationId}/${pathEvseUid}:`,
+            err,
+          );
+        }
       }
 
       // PATCH returns no data per OCPI spec

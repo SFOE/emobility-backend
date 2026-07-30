@@ -1,4 +1,4 @@
-import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
+import { ConditionalCheckFailedException, DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import {
   DeleteCommand,
   DynamoDBDocument,
@@ -178,5 +178,35 @@ export const deleteItem = async (
     console.error(err);
     const message = `Error deleting item from DynamoDB table ${tableName}`;
     throw new Error(message);
+  }
+};
+
+export const conditionalUpdateItem = async (
+  tableName: string,
+  pk: string,
+  sk: string,
+  updateExpression: string,
+  expressionAttributeNames: Record<string, string>,
+  expressionAttributeValues: Record<string, unknown>,
+  conditionExpression: string,
+): Promise<boolean> => {
+  try {
+    await dynamoDocClient.send(
+      new UpdateCommand({
+        TableName: tableName,
+        Key: { pk, sk },
+        UpdateExpression: updateExpression,
+        ExpressionAttributeNames: expressionAttributeNames,
+        ExpressionAttributeValues: expressionAttributeValues,
+        ConditionExpression: conditionExpression,
+      }),
+    );
+    return true;
+  } catch (err) {
+    if (err instanceof ConditionalCheckFailedException) {
+      return false;
+    }
+    console.error(err);
+    throw new Error(`Error conditionally updating item in DynamoDB table ${tableName}`);
   }
 };
