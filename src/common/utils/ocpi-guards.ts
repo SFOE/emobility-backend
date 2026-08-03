@@ -208,6 +208,28 @@ export function assertOwnership(
   );
 }
 
+// Validates that the patch body contains a valid ISO 8601 last_updated field. Called inline after body parsing in all PATCH handlers.
+export function assertValidPatchLastUpdated(
+  patch: Record<string, unknown>,
+  partnerId: string,
+  label: string,
+): APIGatewayProxyResult | null {
+  if (
+    typeof patch['last_updated'] !== 'string' ||
+    patch['last_updated'].length === 0 ||
+    isNaN(Date.parse(patch['last_updated']))
+  ) {
+    console.warn(
+      `[OCPI][${label}] Rejected — missing or invalid last_updated from ${partnerId}`,
+    );
+    return ErrorHandler.handleBadRequestError(
+      2001,
+      'Partial updates must include a valid ISO 8601 last_updated field.',
+    );
+  }
+  return null;
+}
+
 // Enforces that path identifiers match the body identifiers (country_code, party_id, id). Called inline after body parsing.
 export function assertBodyConsistency(
   body: { country_code: string; party_id: string; id: string },

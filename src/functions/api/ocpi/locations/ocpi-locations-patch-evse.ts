@@ -7,12 +7,15 @@ import {
   assertNotBootstrap,
   assertOwnership,
   assertRole,
+  assertValidPatchLastUpdated,
   parseRequestBody,
   withVersionCheck,
 } from '/opt/nodejs/utils/ocpi-guards';
 import { putRawToS3 } from '/opt/nodejs/aws/s3';
 import { publishIngestionEvent } from '/opt/nodejs/aws/sqs';
 import { Aws } from '/opt/nodejs/aws/constants';
+import { upsertEvseCurrentStatus } from '/opt/nodejs/modules/ocpi-locations/ocpi-locations.db';
+import type { EVSEStatus } from '/opt/nodejs/modules/ocpi-locations/ocpi-locations.model';
 
 export const handler = withVersionCheck(
   (_event, auth) =>
@@ -40,18 +43,8 @@ export const handler = withVersionCheck(
       }
       const patch = bodyResult.data;
 
-      if (
-        typeof patch['last_updated'] !== 'string' ||
-        patch['last_updated'].length === 0
-      ) {
-        console.warn(
-          `[OCPI][locations/patch] Rejected — missing last_updated in body from ${authContext.partnerId}`,
-        );
-        return ErrorHandler.handleBadRequestError(
-          2001,
-          'Partial updates must include the last_updated field.',
-        );
-      }
+      const lastUpdatedError = assertValidPatchLastUpdated(patch, authContext.partnerId, 'locations/patch');
+      if (lastUpdatedError) { return lastUpdatedError; }
 
       const receivedAt = new Date().toISOString();
       const objectId = `${pathLocationId}*${pathEvseUid}`;
@@ -103,6 +96,35 @@ export const handler = withVersionCheck(
           err,
         );
         return ErrorHandler.handleError(err);
+      }
+
+      // Fast-path: write status directly to DynamoDB if present in patch
+      if (typeof patch['status'] === 'string') {
+        try {
+          const written = await upsertEvseCurrentStatus({
+            countryCode: pathCountryCode!,
+            partyId: pathPartyId!,
+            locationId: pathLocationId!,
+            evseUid: pathEvseUid!,
+            status: patch['status'] as EVSEStatus,
+            lastUpdated: patch['last_updated'] as string,
+            receivedAt,
+          });
+          if (written) {
+            console.info(
+              `[OCPI][locations/patch] EVSE status fast-path written for ${pathCountryCode}/${pathPartyId}/${pathLocationId}/${pathEvseUid}`,
+            );
+          } else {
+            console.info(
+              `[OCPI][locations/patch] EVSE status fast-path skipped (incoming last_updated is not newer) for ${pathCountryCode}/${pathPartyId}/${pathLocationId}/${pathEvseUid}`,
+            );
+          }
+        } catch (err) {
+          console.warn(
+            `[OCPI][locations/patch] DynamoDB fast-path write failed for ${pathCountryCode}/${pathPartyId}/${pathLocationId}/${pathEvseUid}:`,
+            err,
+          );
+        }
       }
 
       // PATCH returns no data per OCPI spec

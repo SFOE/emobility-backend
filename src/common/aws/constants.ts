@@ -13,5 +13,6 @@ export const Aws = {
   dynamoDBTables: {
       versions: 'ocpi-versions',
       credentials: 'ocpi-credentials',
+      evseCurrentStatus: 'ocpi-evse-current-status',
   },
 };
