@@ -7,6 +7,7 @@ import {
   assertNotBootstrap,
   assertOwnership,
   assertRole,
+  assertValidPatchLastUpdated,
   parseRequestBody,
   withVersionCheck,
 } from '/opt/nodejs/utils/ocpi-guards';
@@ -39,18 +40,8 @@ export const handler = withVersionCheck(
       }
       const patch = bodyResult.data;
 
-      if (
-        typeof patch['last_updated'] !== 'string' ||
-        patch['last_updated'].length === 0
-      ) {
-        console.warn(
-          `[OCPI][locations/patch] Rejected — missing last_updated in body from ${authContext.partnerId}`,
-        );
-        return ErrorHandler.handleBadRequestError(
-          2001,
-          'Partial updates must include the last_updated field.',
-        );
-      }
+      const lastUpdatedError = assertValidPatchLastUpdated(patch, authContext.partnerId, 'locations/patch');
+      if (lastUpdatedError) { return lastUpdatedError; }
 
       const receivedAt = new Date().toISOString();
 
