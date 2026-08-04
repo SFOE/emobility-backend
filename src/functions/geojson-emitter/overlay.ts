@@ -10,12 +10,15 @@ import type { GoldEvse, GoldLocation, StatusByKey, StatusItem } from './types';
 
 export function parseStatusItems(items: StatusItem[]): StatusByKey {
   return Object.fromEntries(
-    items.map((item) => [item.pk, { status: item.status, last_updated: item.last_updated }]),
+    items.map((item) => [
+      `${item.pk}#${item.sk}`,
+      { status: item.status, last_updated: item.last_updated },
+    ]),
   );
 }
 
 function evseKey(location: GoldLocation, evse: GoldEvse): string {
-  return `${location.country_code}#${location.party_id}#${location.id}#${evse.evse_uid}`;
+  return `LOCATION#${location.country_code}#${location.party_id}#${location.id}#EVSE#${evse.evse_uid}`;
 }
 
 export function overlayStatus(locations: GoldLocation[], statusByKey: StatusByKey): GoldLocation[] {

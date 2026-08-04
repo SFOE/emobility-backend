@@ -61,8 +61,10 @@ export interface GoldExport {
 
 /** One row from the DynamoDB EVSE current-status table. */
 export interface StatusItem {
-  /** Composite key: country_code#party_id#location_id#evse_uid */
+  /** Partition key: LOCATION#country_code#party_id#location_id */
   pk: string;
+  /** Sort key: EVSE#evse_uid */
+  sk: string;
   status: string;
   last_updated: string;
 }
