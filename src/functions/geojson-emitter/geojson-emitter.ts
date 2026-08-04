@@ -88,10 +88,13 @@ export async function run(
   generatedAt: string,
 ): Promise<void> {
   const exportData = await loadExportFn();
+  console.log(`Loaded Gold export: ${exportData.locations.length} locations`);
 
   let statusByKey;
   try {
-    statusByKey = parseStatusItems(await scanStatusFn());
+    const statusItems = await scanStatusFn();
+    statusByKey = parseStatusItems(statusItems);
+    console.log(`Loaded ${statusItems.length} EVSE status entries from DynamoDB`);
   } catch (err) {
     console.warn(
       `WARNING: DynamoDB status scan failed, falling back to Gold's baked-in status: ${err}`,
@@ -101,7 +104,12 @@ export async function run(
 
   const overlaidLocations = overlayStatus(exportData.locations, statusByKey);
   const featureCollection = buildFeatureCollection(overlaidLocations, generatedAt);
+
+  console.log(
+    `Writing GeoJSON: ${featureCollection.features.length} features, generated_at=${generatedAt}`,
+  );
   await writeGeoJsonFn(featureCollection);
+  console.log(`GeoJSON successfully written to s3 key: ${GEOJSON_OUTPUT_KEY}`);
 }
 
 export const handler = async (): Promise<void> => {
