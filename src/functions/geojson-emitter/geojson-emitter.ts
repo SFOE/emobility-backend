@@ -11,20 +11,16 @@
  * fallback status, refreshing at the Gold cadence instead of not at all. This
  * also means the emitter can be deployed ahead of DynamoDB/the status API.
  *
- * The S3 and DynamoDB clients are created once at module scope rather than per
- * invocation, so warm invocations reuse them – AWS's documented Lambda
- * execution-environment-reuse best practice.
- *
- * Note: this handler does not import from /opt/nodejs/aws/constants because that
- * module throws at startup for env vars unrelated to the emitter (RAW_DATA_BUCKET_NAME
- * etc.). The emitter reads only TARGET_BUCKET; the DynamoDB table name is a fixed
- * infrastructure constant shared with the OCPI API (Aws.dynamoDBTables.evseCurrentStatus).
+ * The DynamoDB client is created once at module scope for warm-invocation reuse.
+ * The S3 client is created per invocation via STS AssumeRole so that credentials
+ * never expire mid-run (STS sessions are valid for 1 hour by default).
  */
 
 import { GetObjectCommand, PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocument } from '@aws-sdk/lib-dynamodb';
 import { getRequiredLambdaEnv } from '/opt/nodejs/utils/api.utils';
+import { createCrossAccountS3Client } from '/opt/nodejs/aws/s3';
 import { overlayStatus, parseStatusItems } from './overlay';
 import { buildFeatureCollection } from './render';
 import type { GeoJsonFeatureCollection, GoldExport, StatusItem } from './types';
@@ -36,11 +32,10 @@ const REGION = 'eu-central-1';
 /** Matches Aws.dynamoDBTables.evseCurrentStatus in src/common/aws/constants.ts */
 const EVSE_STATUS_TABLE = 'ocpi-evse-current-status';
 
-// Initialized once per execution environment and reused across warm invocations.
-const s3Client = new S3Client({ region: REGION });
+// DynamoDB client initialized once per execution environment (same-account, no role assumption needed).
 const dynamoDocClient = DynamoDBDocument.from(new DynamoDBClient({ region: REGION }));
 
-async function loadExport(bucket: string, key: string): Promise<GoldExport> {
+async function loadExport(s3Client: S3Client, bucket: string, key: string): Promise<GoldExport> {
   const response = await s3Client.send(new GetObjectCommand({ Bucket: bucket, Key: key }));
   const body = await response.Body!.transformToString();
   return JSON.parse(body) as GoldExport;
@@ -63,6 +58,7 @@ async function scanDynamoStatus(tableName: string): Promise<StatusItem[]> {
 }
 
 async function writeGeoJson(
+  s3Client: S3Client,
   bucket: string,
   key: string,
   featureCollection: GeoJsonFeatureCollection,
@@ -110,11 +106,14 @@ export async function run(
 
 export const handler = async (): Promise<void> => {
   const bucket = getRequiredLambdaEnv('TARGET_BUCKET');
+  const crossAccountRoleArn = getRequiredLambdaEnv('CROSS_ACCOUNT_ROLE_LANDING_ZONE_ARN');
+
+  const s3Client = await createCrossAccountS3Client(crossAccountRoleArn);
 
   await run(
-    () => loadExport(bucket, GOLD_EXPORT_KEY),
+    () => loadExport(s3Client, bucket, GOLD_EXPORT_KEY),
     () => scanDynamoStatus(EVSE_STATUS_TABLE),
-    (featureCollection) => writeGeoJson(bucket, GEOJSON_OUTPUT_KEY, featureCollection),
+    (featureCollection) => writeGeoJson(s3Client, bucket, GEOJSON_OUTPUT_KEY, featureCollection),
     new Date().toISOString(),
   );
 };
