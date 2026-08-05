@@ -26,6 +26,31 @@ export const CONNECTOR_STANDARD_LABELS: Record<string, string> = {
   TESLA_R: 'Tesla',
 };
 
+export const FACILITY_LABELS: Record<string, string> = {
+  HOTEL: 'Hotel',
+  RESTAURANT: 'Restaurant',
+  CAFE: 'Café',
+  MALL: 'Einkaufszentrum',
+  SUPERMARKET: 'Supermarkt',
+  SPORT: 'Sportanlage',
+  RECREATION_AREA: 'Erholungsgebiet',
+  NATURE: 'Naturgebiet',
+  MUSEUM: 'Museum',
+  BIKE_SHARING: 'Bike-Sharing',
+  BUS_STOP: 'Bushaltestelle',
+  TAXI_STAND: 'Taxistand',
+  TRAM_STOP: 'Tramhaltestelle',
+  METRO_STATION: 'Metrostation',
+  TRAIN_STATION: 'Bahnhof',
+  AIRPORT: 'Flughafen',
+  PARKING_LOT: 'Parkplatz',
+  CARPOOL_PARKING: 'Fahrgemeinschaftsparkplatz',
+  FUEL_STATION: 'Tankstelle',
+  WIFI: 'WLAN',
+};
+
+export const FACILITIES_FALLBACK_TEXT = 'Keine Angabe';
+
 export const PRICE_COMPONENT_UNITS: Record<string, string> = {
   ENERGY: 'kWh',
   TIME: 'Min',
@@ -37,3 +62,25 @@ export const PRICE_FALLBACK_TEXT =
   'Bitte konsultieren Sie für eine Preisauskunft Ihren Anbieter';
 
 export const UNRESOLVED = 'UNCLEARWHATTODOHERE';
+
+/** Maps ISO weekday number (1=Monday … 7=Sunday) to German abbreviation. */
+export const WEEKDAY_LABELS: Record<number, string> = {
+  1: 'Mo',
+  2: 'Di',
+  3: 'Mi',
+  4: 'Do',
+  5: 'Fr',
+  6: 'Sa',
+  7: 'So',
+};
+
+export const RENEWABLE_ENERGY_SOURCE_CATEGORIES = new Set([
+  'GENERAL_GREEN',
+  'SOLAR',
+  'WIND',
+  'WATER',
+]);
+
+export const OPENING_HOURS_FALLBACK_TEXT = 'Keine Angabe';
+export const PAYMENT_FALLBACK_TEXT = 'Keine Angabe';
+export const ENERGY_MIX_FALLBACK_TEXT = 'Keine Angabe';

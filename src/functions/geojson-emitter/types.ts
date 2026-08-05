@@ -59,6 +59,19 @@ export interface GoldExport {
   locations: GoldLocation[];
 }
 
+/** Parsed structure of opening_hours_json from the Gold export. */
+export interface OpeningHours {
+  twentyfourseven?: boolean;
+  regular_hours?: Array<{ weekday: number; period_begin: string; period_end: string }>;
+  exceptional_openings?: Array<{ period_begin: string; period_end: string }>;
+  exceptional_closings?: Array<{ period_begin: string; period_end: string }>;
+}
+
+/** Parsed structure of energy_mix_json from the Gold export. */
+export interface EnergyMix {
+  energy_sources?: Array<{ source: string; percentage: number }>;
+}
+
 /** One row from the DynamoDB EVSE current-status table. */
 export interface StatusItem {
   /** Partition key: LOCATION#country_code#party_id#location_id */
@@ -93,15 +106,6 @@ export interface FeatureProperties {
   Availability: string;
   symbology: string;
   description: string;
-  operator: { name?: string; url?: string };
-  address: string;
-  credit_card_payable: boolean;
-  debit_card_payable: boolean;
-  opening_hours: unknown;
-  facilities: string[];
-  energy_mix: unknown;
-  tariffs: GoldTariff[];
-  evses: EvseProperties[];
 }
 
 export interface GeoJsonFeature {
