@@ -15,12 +15,13 @@ export interface GoldTariffElement {
 
 export interface GoldTariff {
   id?: string;
-  currency: string;
+  /** OCPI tariff type, e.g. AD_HOC_PAYMENT. Only AD_HOC_PAYMENT is shown as a price. */
+  type?: string;
+  currency?: string;
   elements: GoldTariffElement[];
 }
 
 export interface GoldConnector {
-  connector_id?: string;
   standard: string;
   max_electric_power: number;
   tariff_ids?: string[];
@@ -28,8 +29,7 @@ export interface GoldConnector {
 
 export interface GoldEvse {
   evse_uid: string;
-  evse_id?: string;
-  status: string;
+  status?: string;
   connectors: GoldConnector[];
 }
 
@@ -50,6 +50,9 @@ export interface GoldLocation {
   facilities?: string[];
   /** JSON-stringified energy mix object, as stored in the Gold export. */
   energy_mix_json?: string;
+  vehicle_types?: string[];
+  /** e.g. "2/10" – rendered as-is unless empty or ending in "/0". */
+  accessible_evse_count?: string;
   tariffs: GoldTariff[];
   evses: GoldEvse[];
   evse_ids: string[];
@@ -86,21 +89,6 @@ export type StatusByKey = Record<string, { status: string; last_updated: string 
 
 // --- GeoJSON output types ---
 
-export interface ConnectorProperties {
-  connector_id: string | undefined;
-  standard: string;
-  standard_label: string;
-  max_electric_power: number;
-  price: string;
-}
-
-export interface EvseProperties {
-  evse_id: string | undefined;
-  status: string;
-  status_label: string;
-  connectors: ConnectorProperties[];
-}
-
 export interface FeatureProperties {
   location_id: string;
   Availability: string;
@@ -117,6 +105,8 @@ export interface GeoJsonFeature {
 
 export interface GeoJsonFeatureCollection {
   type: 'FeatureCollection';
+  name: string;
+  crs: { type: 'name'; properties: { name: string } };
   generated_at: string;
   features: GeoJsonFeature[];
 }
