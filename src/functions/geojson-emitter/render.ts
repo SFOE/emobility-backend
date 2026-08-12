@@ -86,7 +86,7 @@ function sumPriceComponentsByType(components: GoldTariffPriceComponent[]): Recor
 
 function formatTariffPrice(tariff: GoldTariff): string | null {
   const totals = sumPriceComponentsByType(tariffPriceComponents(tariff));
-  if (Object.keys(totals).length === 0) return null;
+  if (Object.keys(totals).length === 0) {return null;}
   const currency = tariff.currency || PRICE_CURRENCY_FALLBACK;
   return PRICE_COMPONENT_ORDER.filter((type) => type in totals)
       .map((type) => `${formatG(totals[type]!)} ${currency}/${PRICE_COMPONENT_UNITS[type]}`)
@@ -107,7 +107,7 @@ function connectorPrice(
     const tariff = tariffsByIdMap[tariffId];
     if (tariff !== undefined && tariff.type === AD_HOC_PAYMENT_TARIFF_TYPE) {
       const price = formatTariffPrice(tariff);
-      if (price !== null) return price;
+      if (price !== null) {return price;}
     }
   }
   return PRICE_FALLBACK_TEXT;
@@ -180,7 +180,7 @@ function renderExceptionalPeriods(openingHours: OpeningHours): string[] {
 }
 
 function renderOpeningHours(openingHours: OpeningHours | null): string {
-  if (!openingHours) return OPENING_HOURS_FALLBACK_TEXT;
+  if (!openingHours) {return OPENING_HOURS_FALLBACK_TEXT;}
   let base: string;
   if (openingHours.twentyfourseven) {
     base = 'Mo-So, 0:00-24:00 Uhr';
@@ -207,9 +207,9 @@ function renderPayment(location: GoldLocation): string {
 }
 
 function renderEnergyMix(energyMix: EnergyMix | null): string {
-  if (!energyMix) return ENERGY_MIX_FALLBACK_TEXT;
+  if (!energyMix) {return ENERGY_MIX_FALLBACK_TEXT;}
   const sources = energyMix.energy_sources ?? [];
-  if (sources.length === 0) return ENERGY_MIX_FALLBACK_TEXT;
+  if (sources.length === 0) {return ENERGY_MIX_FALLBACK_TEXT;}
   const renewablePercentage = sources
       .filter((s) => RENEWABLE_ENERGY_SOURCE_CATEGORIES.has(s.source))
       .reduce((sum, s) => sum + s.percentage, 0);
@@ -217,12 +217,12 @@ function renderEnergyMix(energyMix: EnergyMix | null): string {
 }
 
 function renderFacilities(facilities: string[] | undefined): string {
-  if (!facilities || facilities.length === 0) return FACILITIES_FALLBACK_TEXT;
+  if (!facilities || facilities.length === 0) {return FACILITIES_FALLBACK_TEXT;}
   return facilities.map((f) => FACILITY_LABELS[f] ?? f).join(', ');
 }
 
 function renderVehicleTypes(vehicleTypes: string[] | undefined): string {
-  if (!vehicleTypes || vehicleTypes.length === 0) return VEHICLE_TYPES_FALLBACK_TEXT;
+  if (!vehicleTypes || vehicleTypes.length === 0) {return VEHICLE_TYPES_FALLBACK_TEXT;}
   return vehicleTypes.map((v) => VEHICLE_TYPE_LABELS[v] ?? v).join(', ');
 }
 
@@ -258,7 +258,7 @@ function renderEvseBlock(evse: GoldEvse, tariffsByIdMap: Record<string, GoldTari
 
 function renderNetwork(location: GoldLocation): string {
   const operatorName = escapeHtml(location.operator_name ?? 'Information not available');
-  if (!location.operator_url) return operatorName;
+  if (!location.operator_url) {return operatorName;}
   return `<a href="${escapeHtml(location.operator_url)}" target="_blank">${operatorName}</a>`;
 }
 
