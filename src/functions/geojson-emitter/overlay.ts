@@ -1,19 +1,19 @@
 /**
  * Pure EVSE status overlay – plain objects in, plain objects out, no AWS/network I/O.
  *
- * The DynamoDB partition key ("pk") holds the full composite EVSE business key
- * `country_code#party_id#location_id#evse_uid`, so overlayStatus rebuilds that
- * same composite string per EVSE to look up its live status.
+ * The DynamoDB partition key ("pk") holds LOCATION#country_code#party_id#location_id
+ * and the sort key ("sk") holds EVSE#evse_uid. overlayStatus rebuilds that same
+ * composite string per EVSE to look up its live status.
  */
 
 import type { GoldEvse, GoldLocation, StatusByKey, StatusItem } from './types';
 
 export function parseStatusItems(items: StatusItem[]): StatusByKey {
   return Object.fromEntries(
-    items.map((item) => [
-      `${item.pk}#${item.sk}`,
-      { status: item.status, last_updated: item.last_updated },
-    ]),
+      items.map((item) => [
+        `${item.pk}#${item.sk}`,
+        { status: item.status, last_updated: item.last_updated },
+      ]),
   );
 }
 
