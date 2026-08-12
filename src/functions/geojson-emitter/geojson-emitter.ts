@@ -21,19 +21,18 @@ import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocument } from '@aws-sdk/lib-dynamodb';
 import { getRequiredLambdaEnv } from '/opt/nodejs/utils/api.utils';
 import { createCrossAccountS3Client } from '/opt/nodejs/aws/s3';
+import { Aws } from '/opt/nodejs/aws/constants';
 import { overlayStatus, parseStatusItems } from './overlay';
 import { buildFeatureCollection } from './render';
 import type { GeoJsonFeatureCollection, GoldExport, StatusItem } from './types';
 
 const GOLD_EXPORT_KEY = 'gold_location_serving_export/latest.json';
 const GEOJSON_OUTPUT_KEY = 'final_geojson/latest.json';
-const REGION = 'eu-central-1';
 
-/** Matches Aws.dynamoDBTables.evseCurrentStatus in src/common/aws/constants.ts */
-const EVSE_STATUS_TABLE = 'ocpi-evse-current-status';
+const EVSE_STATUS_TABLE = Aws.dynamoDBTables.evseCurrentStatus;
 
 // DynamoDB client initialized once per execution environment (same-account, no role assumption needed).
-const dynamoDocClient = DynamoDBDocument.from(new DynamoDBClient({ region: REGION }));
+const dynamoDocClient = DynamoDBDocument.from(new DynamoDBClient({ region: Aws.region }));
 
 async function loadExport(s3Client: S3Client, bucket: string, key: string): Promise<GoldExport> {
   const response = await s3Client.send(new GetObjectCommand({ Bucket: bucket, Key: key }));
