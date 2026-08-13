@@ -82,8 +82,9 @@ const emitIngestionMetric = (event: IngestionEvent): void => {
     dimensionSets: [
       ['type'],
       ['ocpi_version'],
-      ['type', 'action'],
-      ['country_code', 'party_id', 'type'],
+      // Per-CPO breakdown including `action`, so dashboards can isolate e.g.
+      // only new/replaced objects (PUT) per CPO rather than all writes.
+      ['country_code', 'party_id', 'type', 'action'],
     ],
     dimensions: {
       type: event.type,
