@@ -65,7 +65,11 @@ export interface GoldExport {
 /** Parsed structure of opening_hours_json from the Gold export. */
 export interface OpeningHours {
   twentyfourseven?: boolean;
-  regular_hours?: Array<{ weekday: number; period_begin: string; period_end: string }>;
+  regular_hours?: Array<{
+    weekday: number;
+    period_begin: string;
+    period_end: string;
+  }>;
   exceptional_openings?: Array<{ period_begin: string; period_end: string }>;
   exceptional_closings?: Array<{ period_begin: string; period_end: string }>;
 }
@@ -85,7 +89,16 @@ export interface StatusItem {
   last_updated: string;
 }
 
-export type StatusByKey = Record<string, { status: string; last_updated: string }>;
+export type StatusByKey = Record<
+  string,
+  { status: string; last_updated: string }
+>;
+
+/** Result of the status overlay: the locations plus how many EVSE statuses were replaced. */
+export interface OverlayResult {
+  locations: GoldLocation[];
+  appliedCount: number;
+}
 
 // --- GeoJSON output types ---
 

@@ -64,7 +64,8 @@ describe('overlayStatus', () => {
 
         const result = overlayStatus(locations, statusByKey);
 
-        expect(result[0]!.evses[0]!.status).toBe('CHARGING');
+        expect(result.locations[0]!.evses[0]!.status).toBe('CHARGING');
+        expect(result.appliedCount).toBe(1);
     });
 
     it('keeps the export baked-in status when no live status matches', () => {
@@ -72,7 +73,8 @@ describe('overlayStatus', () => {
 
         const result = overlayStatus(locations, {});
 
-        expect(result[0]!.evses[0]!.status).toBe('AVAILABLE');
+        expect(result.locations[0]!.evses[0]!.status).toBe('AVAILABLE');
+        expect(result.appliedCount).toBe(0);
     });
 
     it('does not mutate the input locations', () => {
@@ -97,11 +99,12 @@ describe('overlayStatus', () => {
 
         const result = overlayStatus(locations, statusByKey);
 
-        expect(result[0]!.evses[0]!.status).toBe('AVAILABLE');
-        expect(result[0]!.evses[1]!.status).toBe('RESERVED');
+        expect(result.locations[0]!.evses[0]!.status).toBe('AVAILABLE');
+        expect(result.locations[0]!.evses[1]!.status).toBe('RESERVED');
+        expect(result.appliedCount).toBe(1);
     });
 
-    it('returns an empty array for no locations', () => {
-        expect(overlayStatus([], {})).toEqual([]);
+    it('returns an empty result for no locations', () => {
+        expect(overlayStatus([], {})).toEqual({ locations: [], appliedCount: 0 });
     });
 });

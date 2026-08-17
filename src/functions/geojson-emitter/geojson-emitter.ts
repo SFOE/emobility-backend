@@ -16,7 +16,11 @@
  * never expire mid-run (STS sessions are valid for 1 hour by default).
  */
 
-import { GetObjectCommand, PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
+import {
+  GetObjectCommand,
+  PutObjectCommand,
+  S3Client,
+} from '@aws-sdk/client-s3';
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocument } from '@aws-sdk/lib-dynamodb';
 import { getRequiredLambdaEnv } from '/opt/nodejs/utils/api.utils';
@@ -24,7 +28,12 @@ import { createCrossAccountS3Client } from '/opt/nodejs/aws/s3';
 import { Aws } from '/opt/nodejs/aws/constants';
 import { overlayStatus, parseStatusItems } from './overlay';
 import { buildFeatureCollection } from './render';
-import type { GeoJsonFeatureCollection, GoldExport, StatusItem } from './types';
+import type {
+  GeoJsonFeatureCollection,
+  GoldExport,
+  StatusByKey,
+  StatusItem,
+} from './types';
 
 const GOLD_EXPORT_KEY = 'gold_location_serving_export/latest.json';
 const GEOJSON_OUTPUT_KEY = 'final_geojson/latest.json';
@@ -32,10 +41,18 @@ const GEOJSON_OUTPUT_KEY = 'final_geojson/latest.json';
 const EVSE_STATUS_TABLE = Aws.dynamoDBTables.evseCurrentStatus;
 
 // DynamoDB client initialized once per execution environment (same-account, no role assumption needed).
-const dynamoDocClient = DynamoDBDocument.from(new DynamoDBClient({ region: Aws.region }));
+const dynamoDocClient = DynamoDBDocument.from(
+  new DynamoDBClient({ region: Aws.region }),
+);
 
-async function loadExport(s3Client: S3Client, bucket: string, key: string): Promise<GoldExport> {
-  const response = await s3Client.send(new GetObjectCommand({ Bucket: bucket, Key: key }));
+async function loadExport(
+  s3Client: S3Client,
+  bucket: string,
+  key: string,
+): Promise<GoldExport> {
+  const response = await s3Client.send(
+    new GetObjectCommand({ Bucket: bucket, Key: key }),
+  );
   const body = await response.Body!.transformToString();
   return JSON.parse(body) as GoldExport;
 }
@@ -70,6 +87,7 @@ async function writeGeoJson(
       ContentType: 'application/json',
     }),
   );
+  console.log(`GeoJSON successfully written to s3://${bucket}/${key}`);
 }
 
 /**
@@ -83,44 +101,62 @@ async function writeGeoJson(
 export async function run(
   loadExportFn: () => Promise<GoldExport>,
   scanStatusFn: () => Promise<StatusItem[]>,
-  writeGeoJsonFn: (featureCollection: GeoJsonFeatureCollection) => Promise<void>,
+  writeGeoJsonFn: (
+    featureCollection: GeoJsonFeatureCollection,
+  ) => Promise<void>,
   generatedAt: string,
 ): Promise<void> {
   const exportData = await loadExportFn();
-  console.log(`Loaded Gold export: ${exportData.locations.length} locations`);
+  const evseCount = exportData.locations.reduce(
+    (sum, loc) => sum + loc.evses.length,
+    0,
+  );
+  console.log(
+    `Loaded Gold export: ${exportData.locations.length} locations, ${evseCount} EVSEs`,
+  );
 
-  let statusByKey;
+  let statusByKey: StatusByKey = {};
+  let scannedCount = 0;
   try {
     const statusItems = await scanStatusFn();
+    scannedCount = statusItems.length;
     statusByKey = parseStatusItems(statusItems);
-    console.log(`Loaded ${statusItems.length} EVSE status entries from DynamoDB`);
+    console.log(`Scanned ${scannedCount} EVSE status entries from DynamoDB`);
   } catch (err) {
     console.warn(
       `WARNING: DynamoDB status scan failed, falling back to Gold's baked-in status: ${err}`,
     );
-    statusByKey = {};
   }
 
-  const overlaidLocations = overlayStatus(exportData.locations, statusByKey);
-  const featureCollection = buildFeatureCollection(overlaidLocations, generatedAt);
+  const { locations: overlaidLocations, appliedCount } = overlayStatus(
+    exportData.locations,
+    statusByKey,
+  );
+  const featureCollection = buildFeatureCollection(
+    overlaidLocations,
+    generatedAt,
+  );
 
   console.log(
-    `Writing GeoJSON: ${featureCollection.features.length} features, generated_at=${generatedAt}`,
+    `Applied live status to ${appliedCount} of ${evseCount} EVSEs (${scannedCount - appliedCount} DynamoDB entries had no matching EVSE)`,
   );
+
   await writeGeoJsonFn(featureCollection);
-  console.log(`GeoJSON successfully written to s3 key: ${GEOJSON_OUTPUT_KEY}`);
 }
 
 export const handler = async (): Promise<void> => {
   const bucket = getRequiredLambdaEnv('TARGET_BUCKET');
-  const crossAccountRoleArn = getRequiredLambdaEnv('CROSS_ACCOUNT_ROLE_LANDING_ZONE_ARN');
+  const crossAccountRoleArn = getRequiredLambdaEnv(
+    'CROSS_ACCOUNT_ROLE_LANDING_ZONE_ARN',
+  );
 
   const s3Client = await createCrossAccountS3Client(crossAccountRoleArn);
 
   await run(
     () => loadExport(s3Client, bucket, GOLD_EXPORT_KEY),
     () => scanDynamoStatus(EVSE_STATUS_TABLE),
-    (featureCollection) => writeGeoJson(s3Client, bucket, GEOJSON_OUTPUT_KEY, featureCollection),
+    (featureCollection) =>
+      writeGeoJson(s3Client, bucket, GEOJSON_OUTPUT_KEY, featureCollection),
     new Date().toISOString(),
   );
 };

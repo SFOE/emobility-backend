@@ -63,6 +63,26 @@ describe('run — happy path', () => {
         expect(written.features[0]!.properties.Availability).toBe('Charging');
     });
 
+    it('logs how many scanned status entries were actually applied', async () => {
+        const loadExport = jest.fn<Promise<GoldExport>, []>().mockResolvedValue(makeExport());
+        const scanStatus = jest
+            .fn<Promise<StatusItem[]>, []>()
+            .mockResolvedValue([makeStatusItem(), { ...makeStatusItem(), sk: 'EVSE#UNKNOWN' }]);
+        const writeGeoJson = jest.fn<Promise<void>, [GeoJsonFeatureCollection]>().mockResolvedValue();
+        const logSpy = jest.spyOn(console, 'log').mockImplementation();
+
+        await run(loadExport, scanStatus, writeGeoJson, GENERATED_AT);
+
+        const logged = logSpy.mock.calls.map((call) => String(call[0]));
+        expect(logged).toContain('Loaded Gold export: 1 locations, 1 EVSEs');
+        expect(logged).toContain('Scanned 2 EVSE status entries from DynamoDB');
+        expect(logged).toContain(
+            'Applied live status to 1 of 1 EVSEs (1 DynamoDB entries had no matching EVSE)',
+        );
+
+        logSpy.mockRestore();
+    });
+
     it('calls the steps in order: load, scan, then write', async () => {
         const calls: string[] = [];
         const loadExport = jest.fn(async () => {
