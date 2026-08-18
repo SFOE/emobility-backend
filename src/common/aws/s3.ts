@@ -1,4 +1,8 @@
-import { S3Client, PutObjectCommand, GetObjectCommand } from '@aws-sdk/client-s3';
+import {
+  S3Client,
+  PutObjectCommand,
+  GetObjectCommand,
+} from '@aws-sdk/client-s3';
 import { STSClient, AssumeRoleCommand } from '@aws-sdk/client-sts';
 import { Aws } from '/opt/nodejs/aws/constants';
 import { IngestionAction, IngestionObjectType } from '/opt/nodejs/aws/sqs';
@@ -83,20 +87,26 @@ export const buildLandingZoneKey = (timestamp: Date): string => {
 };
 
 // Assumes a cross-account IAM role via STS and returns a new S3Client with the temporary credentials.
-export const createCrossAccountS3Client = async (roleArn: string): Promise<S3Client> => {
+export const createCrossAccountS3Client = async (
+  roleArn: string,
+): Promise<S3Client> => {
   const stsClient = new STSClient({ region: Aws.region });
-  const { Credentials } = await stsClient.send(new AssumeRoleCommand({
-    RoleArn: roleArn,
-    RoleSessionName: 'ocpi-raw-data-loader',
-  }));
+  const { Credentials } = await stsClient.send(
+    new AssumeRoleCommand({
+      RoleArn: roleArn,
+      RoleSessionName: 'ocpi-raw-data-loader',
+    }),
+  );
 
-    if (
-        !Credentials?.AccessKeyId ||
-        !Credentials.SecretAccessKey ||
-        !Credentials.SessionToken
-    ) {
-        throw new Error('Failed to assume cross-account role for Landing Zone S3 upload.');
-    }
+  if (
+    !Credentials?.AccessKeyId ||
+    !Credentials.SecretAccessKey ||
+    !Credentials.SessionToken
+  ) {
+    throw new Error(
+      'Failed to assume cross-account role for Landing Zone S3 upload.',
+    );
+  }
 
   return new S3Client({
     ...Aws.s3Config,
@@ -108,23 +118,36 @@ export const createCrossAccountS3Client = async (roleArn: string): Promise<S3Cli
   });
 };
 
+// Returns an S3Client for a bucket in a foreign AWS account that is accessed with static
+// IAM access keys instead of an assumed role (e.g. the swisstopo data.geo.admin.ch bucket).
+export const createStaticCredentialsS3Client = (
+  region: string,
+  credentials: { accessKeyId: string; secretAccessKey: string },
+): S3Client =>
+  new S3Client({
+    ...Aws.s3Config,
+    region,
+    credentials,
+  });
+
 // Serializes records as JSONL, gzip-compresses and uploads to S3. Accepts an optional client for cross-account writes.
 export async function putJsonLinesGzipToS3(
-    bucketName: string,
-    key: string,
-    records: unknown[],
-    client: S3Client = s3Client,
+  bucketName: string,
+  key: string,
+  records: unknown[],
+  client: S3Client = s3Client,
 ): Promise<void> {
-  const jsonLines = records.map((record) => JSON.stringify(record)).join('\n') + '\n';
+  const jsonLines =
+    records.map((record) => JSON.stringify(record)).join('\n') + '\n';
   const compressedBody = gzipSync(jsonLines);
 
   await client.send(
-      new PutObjectCommand({
-        Bucket: bucketName,
-        Key: key,
-        Body: compressedBody,
-        ContentType: 'application/jsonl',
-        ContentEncoding: 'gzip',
-      }),
+    new PutObjectCommand({
+      Bucket: bucketName,
+      Key: key,
+      Body: compressedBody,
+      ContentType: 'application/jsonl',
+      ContentEncoding: 'gzip',
+    }),
   );
 }
