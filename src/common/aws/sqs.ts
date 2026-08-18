@@ -72,6 +72,11 @@ export const publishIngestionEvent = async (
   emitIngestionMetric(event);
 };
 
+// Maps an ingestion object type to its OCPI module. EVSEs and connectors are
+// part of the Locations module, tariffs are their own module.
+const ocpiModuleOf = (type: IngestionObjectType): 'locations' | 'tariffs' =>
+  type === 'tariffs' ? 'tariffs' : 'locations';
+
 // Emits an `ObjectsIngested` EMF metric for a published ingestion event.
 const emitIngestionMetric = (event: IngestionEvent): void => {
   emitMetric({
@@ -85,10 +90,14 @@ const emitIngestionMetric = (event: IngestionEvent): void => {
       // Per-CPO breakdown including `action`, so dashboards can isolate e.g.
       // only new/replaced objects (PUT) per CPO rather than all writes.
       ['country_code', 'party_id', 'type', 'action'],
+      // Per-CPO breakdown rolled up to the OCPI module (locations incl. EVSE +
+      // connector, tariffs), so dashboards can show one line per CPO per module.
+      ['country_code', 'party_id', 'module'],
     ],
     dimensions: {
       type: event.type,
       action: event.action,
+      module: ocpiModuleOf(event.type),
       country_code: event.country_code,
       party_id: event.party_id,
       ocpi_version: event.ocpi_version,
