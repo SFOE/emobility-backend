@@ -12,8 +12,15 @@
  * also means the emitter can be deployed ahead of DynamoDB/the status API.
  *
  * The DynamoDB client is created once at module scope for warm-invocation reuse.
- * The S3 client is created per invocation via STS AssumeRole so that credentials
- * never expire mid-run (STS sessions are valid for 1 hour by default).
+ * The S3 client reading the Gold export is created per invocation via STS
+ * AssumeRole so that credentials never expire mid-run (STS sessions are valid
+ * for 1 hour by default). The S3 client writing to the swisstopo bucket
+ * (data.geo.admin.ch, foreign account, eu-west-1) uses static IAM access keys
+ * loaded from Secrets Manager, since no cross-account role exists there.
+ *
+ * The GeoJSON is published once per language (de/fr/it/en) with identical
+ * content, because the geo.admin.ch layer configuration expects one file per
+ * language initially.
  */
 
 import {
@@ -24,7 +31,11 @@ import {
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocument } from '@aws-sdk/lib-dynamodb';
 import { getRequiredLambdaEnv } from '/opt/nodejs/utils/api.utils';
-import { createCrossAccountS3Client } from '/opt/nodejs/aws/s3';
+import {
+  createCrossAccountS3Client,
+  createStaticCredentialsS3Client,
+} from '/opt/nodejs/aws/s3';
+import { getS3AccessKeySecret } from '/opt/nodejs/aws/secrets-manager';
 import { Aws } from '/opt/nodejs/aws/constants';
 import { overlayStatus, parseStatusItems } from './overlay';
 import { buildFeatureCollection } from './render';
@@ -36,7 +47,8 @@ import type {
 } from './types';
 
 const GOLD_EXPORT_KEY = 'gold_location_serving_export/latest.json';
-const GEOJSON_OUTPUT_KEY = 'final_geojson/latest.json';
+const GEOJSON_FILE_BASENAME = 'ch.bfe.ladestellen-elektromobilitaet';
+const GEOJSON_LANGUAGES = ['de', 'fr', 'it', 'en'] as const;
 
 const EVSE_STATUS_TABLE = Aws.dynamoDBTables.evseCurrentStatus;
 
@@ -73,21 +85,32 @@ async function scanDynamoStatus(tableName: string): Promise<StatusItem[]> {
   return items;
 }
 
-async function writeGeoJson(
+/**
+ * Publishes the identical FeatureCollection once per language, since the
+ * geo.admin.ch layer configuration expects one file per language.
+ */
+export async function writeGeoJson(
   s3Client: S3Client,
   bucket: string,
-  key: string,
+  keyPrefix: string,
   featureCollection: GeoJsonFeatureCollection,
 ): Promise<void> {
-  await s3Client.send(
-    new PutObjectCommand({
-      Bucket: bucket,
-      Key: key,
-      Body: JSON.stringify(featureCollection),
-      ContentType: 'application/json',
+  const body = JSON.stringify(featureCollection);
+
+  await Promise.all(
+    GEOJSON_LANGUAGES.map(async (language) => {
+      const key = `${keyPrefix}/${GEOJSON_FILE_BASENAME}_${language}.json`;
+      await s3Client.send(
+        new PutObjectCommand({
+          Bucket: bucket,
+          Key: key,
+          Body: body,
+          ContentType: 'application/json',
+        }),
+      );
+      console.log(`GeoJSON successfully written to s3://${bucket}/${key}`);
     }),
   );
-  console.log(`GeoJSON successfully written to s3://${bucket}/${key}`);
 }
 
 /**
@@ -145,18 +168,34 @@ export async function run(
 }
 
 export const handler = async (): Promise<void> => {
-  const bucket = getRequiredLambdaEnv('TARGET_BUCKET');
+  const goldBucket = getRequiredLambdaEnv('TARGET_BUCKET');
   const crossAccountRoleArn = getRequiredLambdaEnv(
     'CROSS_ACCOUNT_ROLE_LANDING_ZONE_ARN',
   );
 
-  const s3Client = await createCrossAccountS3Client(crossAccountRoleArn);
+  const goldS3Client = await createCrossAccountS3Client(crossAccountRoleArn);
+
+  const swisstopoCredentials = await getS3AccessKeySecret(
+    Aws.swisstopoCredentialsSecretName,
+  );
+  const swisstopoS3Client = createStaticCredentialsS3Client(
+    Aws.swisstopoBucketRegion,
+    {
+      accessKeyId: swisstopoCredentials.ACCESS_KEY_ID,
+      secretAccessKey: swisstopoCredentials.SECRET_ACCESS_KEY,
+    },
+  );
 
   await run(
-    () => loadExport(s3Client, bucket, GOLD_EXPORT_KEY),
+    () => loadExport(goldS3Client, goldBucket, GOLD_EXPORT_KEY),
     () => scanDynamoStatus(EVSE_STATUS_TABLE),
     (featureCollection) =>
-      writeGeoJson(s3Client, bucket, GEOJSON_OUTPUT_KEY, featureCollection),
+      writeGeoJson(
+        swisstopoS3Client,
+        Aws.swisstopoBucketName,
+        Aws.swisstopoGeoJsonKeyPrefix,
+        featureCollection,
+      ),
     new Date().toISOString(),
   );
 };
