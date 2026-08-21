@@ -1,3 +1,14 @@
+import { GetObjectCommand, PutObjectCommand, S3Client, } from '@aws-sdk/client-s3';
+import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
+import { DynamoDBDocument } from '@aws-sdk/lib-dynamodb';
+import { getRequiredLambdaEnv } from '/opt/nodejs/utils/api.utils';
+import { createCrossAccountS3Client, createStaticCredentialsS3Client, } from '/opt/nodejs/aws/s3';
+import { getS3AccessKeySecret } from '/opt/nodejs/aws/secrets-manager';
+import { Aws } from '/opt/nodejs/aws/constants';
+import { overlayStatus, parseStatusItems } from './overlay';
+import { buildFeatureCollection } from './render';
+import type { GeoJsonFeatureCollection, GoldExport, StatusByKey, StatusItem, } from './types';
+
 /**
  * Lambda entry point + pure orchestration.
  *
@@ -26,29 +37,6 @@
  * content, because the geo.admin.ch layer configuration expects one file per
  * language initially.
  */
-
-import {
-  GetObjectCommand,
-  PutObjectCommand,
-  S3Client,
-} from '@aws-sdk/client-s3';
-import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
-import { DynamoDBDocument } from '@aws-sdk/lib-dynamodb';
-import { getRequiredLambdaEnv } from '/opt/nodejs/utils/api.utils';
-import {
-  createCrossAccountS3Client,
-  createStaticCredentialsS3Client,
-} from '/opt/nodejs/aws/s3';
-import { getS3AccessKeySecret } from '/opt/nodejs/aws/secrets-manager';
-import { Aws } from '/opt/nodejs/aws/constants';
-import { overlayStatus, parseStatusItems } from './overlay';
-import { buildFeatureCollection } from './render';
-import type {
-  GeoJsonFeatureCollection,
-  GoldExport,
-  StatusByKey,
-  StatusItem,
-} from './types';
 
 const GOLD_EXPORT_KEY = 'gold_location_serving_export/latest.json';
 const GOLD_GEOJSON_KEY_PREFIX = 'final_geojson';
@@ -196,22 +184,21 @@ export const handler = async (): Promise<void> => {
         featureCollection,
       );
 
-      if (!swisstopo) {
-        return;
+      if (swisstopo) {
+        // if swisstopo config is here, write GEOJSON to swisstopo
+        const credentials = await getS3AccessKeySecret(
+          swisstopo.credentialsSecretName,
+        );
+        await writeGeoJson(
+          createStaticCredentialsS3Client(swisstopo.bucketRegion, {
+            accessKeyId: credentials.ACCESS_KEY_ID,
+            secretAccessKey: credentials.SECRET_ACCESS_KEY,
+          }),
+          swisstopo.bucketName,
+          swisstopo.geoJsonKeyPrefix,
+          featureCollection,
+        );
       }
-
-      const credentials = await getS3AccessKeySecret(
-        swisstopo.credentialsSecretName,
-      );
-      await writeGeoJson(
-        createStaticCredentialsS3Client(swisstopo.bucketRegion, {
-          accessKeyId: credentials.ACCESS_KEY_ID,
-          secretAccessKey: credentials.SECRET_ACCESS_KEY,
-        }),
-        swisstopo.bucketName,
-        swisstopo.geoJsonKeyPrefix,
-        featureCollection,
-      );
     },
     new Date().toISOString(),
   );
