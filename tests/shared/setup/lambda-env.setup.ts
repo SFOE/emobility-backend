@@ -20,14 +20,3 @@ process.env.DATA_LAKE_HOUSE_LANDING_ZONE_BUCKET_NAME =
 process.env.CROSS_ACCOUNT_ROLE_LANDING_ZONE_ARN =
   process.env.CROSS_ACCOUNT_ROLE_LANDING_ZONE_ARN ??
   'arn:aws:iam::000000000000:role/test-landing-zone-role';
-
-process.env.SWISSTOPO_BUCKET_NAME =
-  process.env.SWISSTOPO_BUCKET_NAME ?? 'emobility-dev-swisstopo-bucket';
-
-process.env.SWISSTOPO_GEOJSON_KEY_PREFIX =
-  process.env.SWISSTOPO_GEOJSON_KEY_PREFIX ??
-  'ch.bfe.ladestellen-elektromobilitaet/test';
-
-process.env.SWISSTOPO_CREDENTIALS_SECRET_NAME =
-  process.env.SWISSTOPO_CREDENTIALS_SECRET_NAME ??
-  'SWISSTOPO_BUCKET_LADESTELLEN_ELEKTROMOBILITAET_CREDENTIALS';

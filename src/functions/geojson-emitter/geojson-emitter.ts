@@ -1,3 +1,14 @@
+import { GetObjectCommand, PutObjectCommand, S3Client, } from '@aws-sdk/client-s3';
+import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
+import { DynamoDBDocument } from '@aws-sdk/lib-dynamodb';
+import { getRequiredLambdaEnv } from '/opt/nodejs/utils/api.utils';
+import { createCrossAccountS3Client, createStaticCredentialsS3Client, } from '/opt/nodejs/aws/s3';
+import { getS3AccessKeySecret } from '/opt/nodejs/aws/secrets-manager';
+import { Aws } from '/opt/nodejs/aws/constants';
+import { overlayStatus, parseStatusItems } from './overlay';
+import { buildFeatureCollection } from './render';
+import type { GeoJsonFeatureCollection, GoldExport, StatusByKey, StatusItem, } from './types';
+
 /**
  * Lambda entry point + pure orchestration.
  *
@@ -12,41 +23,23 @@
  * also means the emitter can be deployed ahead of DynamoDB/the status API.
  *
  * The DynamoDB client is created once at module scope for warm-invocation reuse.
- * The S3 client reading the Gold export is created per invocation via STS
- * AssumeRole so that credentials never expire mid-run (STS sessions are valid
- * for 1 hour by default). The S3 client writing to the swisstopo bucket
- * (data.geo.admin.ch, foreign account, eu-west-1) uses static IAM access keys
- * loaded from Secrets Manager, since no cross-account role exists there.
+ * The S3 client reading the Gold export and writing the GeoJSON back into Gold
+ * is created per invocation via STS AssumeRole so that credentials never expire
+ * mid-run (STS sessions are valid for 1 hour by default).
+ *
+ * The Gold bucket is always a publication target. The swisstopo bucket
+ * (data.geo.admin.ch, foreign account, eu-west-1) is an additional target that
+ * is only used when it is configured via the SWISSTOPO_* environment
+ * variables; its S3 client uses static IAM access keys loaded from Secrets
+ * Manager, since no cross-account role exists there.
  *
  * The GeoJSON is published once per language (de/fr/it/en) with identical
  * content, because the geo.admin.ch layer configuration expects one file per
  * language initially.
  */
 
-import {
-  GetObjectCommand,
-  PutObjectCommand,
-  S3Client,
-} from '@aws-sdk/client-s3';
-import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
-import { DynamoDBDocument } from '@aws-sdk/lib-dynamodb';
-import { getRequiredLambdaEnv } from '/opt/nodejs/utils/api.utils';
-import {
-  createCrossAccountS3Client,
-  createStaticCredentialsS3Client,
-} from '/opt/nodejs/aws/s3';
-import { getS3AccessKeySecret } from '/opt/nodejs/aws/secrets-manager';
-import { Aws } from '/opt/nodejs/aws/constants';
-import { overlayStatus, parseStatusItems } from './overlay';
-import { buildFeatureCollection } from './render';
-import type {
-  GeoJsonFeatureCollection,
-  GoldExport,
-  StatusByKey,
-  StatusItem,
-} from './types';
-
 const GOLD_EXPORT_KEY = 'gold_location_serving_export/latest.json';
+const GOLD_GEOJSON_KEY_PREFIX = 'final_geojson';
 const GEOJSON_FILE_BASENAME = 'ch.bfe.ladestellen-elektromobilitaet';
 const GEOJSON_LANGUAGES = ['de', 'fr', 'it', 'en'] as const;
 
@@ -175,27 +168,38 @@ export const handler = async (): Promise<void> => {
 
   const goldS3Client = await createCrossAccountS3Client(crossAccountRoleArn);
 
-  const swisstopoCredentials = await getS3AccessKeySecret(
-    Aws.swisstopoCredentialsSecretName,
-  );
-  const swisstopoS3Client = createStaticCredentialsS3Client(
-    Aws.swisstopoBucketRegion,
-    {
-      accessKeyId: swisstopoCredentials.ACCESS_KEY_ID,
-      secretAccessKey: swisstopoCredentials.SECRET_ACCESS_KEY,
-    },
-  );
+  // Undefined in environments where the swisstopo publication is not
+  // configured (dev); there the GeoJSON is only written back into Gold.
+  const swisstopo = Aws.swisstopoConfig;
 
   await run(
     () => loadExport(goldS3Client, goldBucket, GOLD_EXPORT_KEY),
     () => scanDynamoStatus(EVSE_STATUS_TABLE),
-    (featureCollection) =>
-      writeGeoJson(
-        swisstopoS3Client,
-        Aws.swisstopoBucketName,
-        Aws.swisstopoGeoJsonKeyPrefix,
+    async (featureCollection) => {
+      // Gold is written first so a swisstopo failure cannot suppress it.
+      await writeGeoJson(
+        goldS3Client,
+        goldBucket,
+        GOLD_GEOJSON_KEY_PREFIX,
         featureCollection,
-      ),
+      );
+
+      if (swisstopo) {
+        // if swisstopo config is here, write GEOJSON to swisstopo
+        const credentials = await getS3AccessKeySecret(
+          swisstopo.credentialsSecretName,
+        );
+        await writeGeoJson(
+          createStaticCredentialsS3Client(swisstopo.bucketRegion, {
+            accessKeyId: credentials.ACCESS_KEY_ID,
+            secretAccessKey: credentials.SECRET_ACCESS_KEY,
+          }),
+          swisstopo.bucketName,
+          swisstopo.geoJsonKeyPrefix,
+          featureCollection,
+        );
+      }
+    },
     new Date().toISOString(),
   );
 };
