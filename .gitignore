@@ -147,3 +147,4 @@ vite.config.ts.timestamp-*
 .DS_Store
 
 infra/*
+/scripts/prod-bootstrap-token.txt

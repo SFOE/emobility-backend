@@ -50,16 +50,35 @@ const dynamoDocClient = DynamoDBDocument.from(
   new DynamoDBClient({ region: Aws.region }),
 );
 
+// The Gold export key may not exist yet (e.g. before the first Gold Glue run).
+// S3 signals that with a NoSuchKey / HTTP 404 on GetObject.
+const isMissingKeyError = (err: unknown): boolean => {
+  const e = err as { name?: string; $metadata?: { httpStatusCode?: number } };
+  return e?.name === 'NoSuchKey' || e?.$metadata?.httpStatusCode === 404;
+};
+
+/**
+ * Loads the Gold export, or returns `null` if it does not exist yet so the
+ * emitter can run on schedule before Gold has produced any data. Any other
+ * S3 or JSON error still propagates.
+ */
 async function loadExport(
   s3Client: S3Client,
   bucket: string,
   key: string,
-): Promise<GoldExport> {
-  const response = await s3Client.send(
-    new GetObjectCommand({ Bucket: bucket, Key: key }),
-  );
-  const body = await response.Body!.transformToString();
-  return JSON.parse(body) as GoldExport;
+): Promise<GoldExport | null> {
+  try {
+    const response = await s3Client.send(
+      new GetObjectCommand({ Bucket: bucket, Key: key }),
+    );
+    const body = await response.Body!.transformToString();
+    return JSON.parse(body) as GoldExport;
+  } catch (err) {
+    if (isMissingKeyError(err)) {
+      return null;
+    }
+    throw err;
+  }
 }
 
 async function scanDynamoStatus(tableName: string): Promise<StatusItem[]> {
@@ -115,7 +134,7 @@ export async function writeGeoJson(
  * overlay so Gold's baked-in status is used instead.
  */
 export async function run(
-  loadExportFn: () => Promise<GoldExport>,
+  loadExportFn: () => Promise<GoldExport | null>,
   scanStatusFn: () => Promise<StatusItem[]>,
   writeGeoJsonFn: (
     featureCollection: GeoJsonFeatureCollection,
@@ -123,6 +142,14 @@ export async function run(
   generatedAt: string,
 ): Promise<void> {
   const exportData = await loadExportFn();
+  if (!exportData) {
+    console.warn(
+      'Gold export not available yet — skipping GeoJSON generation (no data to publish).',
+    );
+    // To see the metric in the cloudwatch dashboard
+    console.log(`Loaded Gold export: 0 locations, 0 EVSEs`);
+    return;
+  }
   const evseCount = exportData.locations.reduce(
     (sum, loc) => sum + loc.evses.length,
     0,
