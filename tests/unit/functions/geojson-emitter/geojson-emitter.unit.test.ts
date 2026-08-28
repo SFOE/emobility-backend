@@ -194,6 +194,34 @@ describe('run — export failure aborts the run', () => {
   });
 });
 
+describe('run — missing Gold export completes without writing', () => {
+  it('skips the write and does not throw when the export is not there yet', async () => {
+    const loadExport = jest
+      .fn<Promise<GoldExport | null>, []>()
+      .mockResolvedValue(null);
+    const scanStatus = jest
+      .fn<Promise<StatusItem[]>, []>()
+      .mockResolvedValue([]);
+    const writeGeoJson = jest
+      .fn<Promise<void>, [GeoJsonFeatureCollection]>()
+      .mockResolvedValue();
+    const warnSpy = jest.spyOn(console, 'warn').mockImplementation();
+
+    await expect(
+      run(loadExport, scanStatus, writeGeoJson, GENERATED_AT),
+    ).resolves.toBeUndefined();
+
+    expect(writeGeoJson).not.toHaveBeenCalled();
+    // The status scan is not even attempted when there is no export.
+    expect(scanStatus).not.toHaveBeenCalled();
+    expect(warnSpy.mock.calls.map((call) => String(call[0]))).toContainEqual(
+      expect.stringContaining('Gold export not available yet'),
+    );
+
+    warnSpy.mockRestore();
+  });
+});
+
 describe('run — status scan failure falls back to baked-in status', () => {
   it('still writes using the export baked-in status when the scan fails', async () => {
     const loadExport = jest
