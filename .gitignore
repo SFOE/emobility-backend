@@ -148,3 +148,4 @@ vite.config.ts.timestamp-*
 
 infra/*
 /scripts/prod-bootstrap-token.txt
+/scripts/test-bootstrap-token.txt
