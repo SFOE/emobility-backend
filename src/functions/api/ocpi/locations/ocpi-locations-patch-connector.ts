@@ -21,89 +21,100 @@ export const handler = withVersionCheck(
     assertRole(auth, 'locations/patch') ??
     assertOwnership(auth, 'locations/patch'),
 )(async (
-    event: APIGatewayProxyEventV2WithLambdaAuthorizer<OCPIAuthorizerContext>,
-    authContext: OCPIAuthorizerContext,
-    ocpiVersion: string,
-  ): Promise<APIGatewayProxyResult> => {
+  event: APIGatewayProxyEventV2WithLambdaAuthorizer<OCPIAuthorizerContext>,
+  authContext: OCPIAuthorizerContext,
+  ocpiVersion: string,
+): Promise<APIGatewayProxyResult> => {
+  try {
+    const pathCountryCode = event.pathParameters?.country_code;
+    const pathPartyId = event.pathParameters?.party_id;
+    const pathLocationId = event.pathParameters?.location_id;
+    const pathEvseUid = event.pathParameters?.evse_uid;
+    const pathConnectorId = event.pathParameters?.connector_id;
+
+    // PATCH body is a partial object — parse as a generic map to avoid enforcing all mandatory fields, but last_updated MUST be present per OCPI spec
+    const bodyResult = parseRequestBody<Record<string, unknown>>(event.body);
+    if (!bodyResult.success) {
+      console.warn(
+        `[OCPI][locations/patch] Rejected — invalid or missing request body from ${authContext.partnerId}`,
+      );
+      return bodyResult.error;
+    }
+    const patch = bodyResult.data;
+
+    const lastUpdatedError = assertValidPatchLastUpdated(
+      patch,
+      authContext.partnerId,
+      'locations/patch',
+    );
+    if (lastUpdatedError) {
+      return lastUpdatedError;
+    }
+
+    const receivedAt = new Date().toISOString();
+
+    // Persist the raw patch payload to S3 as the canonical ingestion record
+    let s3Key: string;
     try {
-      const pathCountryCode = event.pathParameters?.country_code;
-      const pathPartyId = event.pathParameters?.party_id;
-      const pathLocationId = event.pathParameters?.location_id;
-      const pathEvseUid = event.pathParameters?.evse_uid;
-      const pathConnectorId = event.pathParameters?.connector_id;
-
-      // PATCH body is a partial object — parse as a generic map to avoid enforcing all mandatory fields, but last_updated MUST be present per OCPI spec
-      const bodyResult = parseRequestBody<Record<string, unknown>>(event.body);
-      if (!bodyResult.success) {
-        console.warn(
-          `[OCPI][locations/patch] Rejected — invalid or missing request body from ${authContext.partnerId}`,
-        );
-        return bodyResult.error;
-      }
-      const patch = bodyResult.data;
-
-      const lastUpdatedError = assertValidPatchLastUpdated(patch, authContext.partnerId, 'locations/patch');
-      if (lastUpdatedError) { return lastUpdatedError; }
-
-      const receivedAt = new Date().toISOString();
-      const objectId = `${pathLocationId}*${pathEvseUid}*${pathConnectorId}`;
-
-      // Persist the raw patch payload to S3 as the canonical ingestion record
-      let s3Key: string;
-      try {
-        s3Key = await putRawToS3(
-          patch,
-          'connector',
-          'PATCH',
-          pathCountryCode!,
-          pathPartyId!,
-          [`location_id=${pathLocationId}`, `evse_uid=${pathEvseUid}`, `connector_id=${pathConnectorId}`],
-          receivedAt,
-        );
-        console.info(
-          `[OCPI][locations/patch] Raw connector patch stored to s3://${Aws.rawDataBucketName}/${s3Key} from ${authContext.partnerId}`,
-        );
-      } catch (err) {
-        console.error(
-          `[OCPI][locations/patch] S3 write failed for ${pathCountryCode}/${pathPartyId}/${pathLocationId}/${pathEvseUid}/${pathConnectorId} from ${authContext.partnerId}:`,
-          err,
-        );
-        return ErrorHandler.handleError(err);
-      }
-
-      // Publish an ingestion event to SQS so downstream processors can pick up the S3 object
-      try {
-        await publishIngestionEvent({
-          action: 'PATCH',
-          type: 'connector',
-          object_id: objectId,
-          country_code: pathCountryCode!,
-          party_id: pathPartyId!,
-          ocpi_version: ocpiVersion,
-          received_at: receivedAt,
-          raw: {
-            bucket: Aws.rawDataBucketName,
-            key: s3Key,
-          },
-        });
-        console.info(
-          `[OCPI][locations/patch] Ingested connector patch ${pathCountryCode}/${pathPartyId}/${pathLocationId}/${pathEvseUid}/${pathConnectorId} from ${authContext.partnerId} → s3:${s3Key}`,
-        );
-      } catch (err) {
-        console.error(
-          `[OCPI][locations/patch] SQS publish failed — orphaned S3 object at s3://${Aws.rawDataBucketName}/${s3Key} from ${authContext.partnerId}:`,
-          err,
-        );
-        return ErrorHandler.handleError(err);
-      }
-
-      // PATCH returns no data per OCPI spec
-      return prepareOCPIResponse(null);
+      s3Key = await putRawToS3(
+        patch,
+        'connector',
+        'PATCH',
+        pathCountryCode!,
+        pathPartyId!,
+        [
+          `location_id=${pathLocationId}`,
+          `evse_uid=${pathEvseUid}`,
+          `connector_id=${pathConnectorId}`,
+        ],
+        receivedAt,
+      );
+      console.info(
+        `[OCPI][locations/patch] Raw connector patch stored to s3://${Aws.rawDataBucketName}/${s3Key} from ${authContext.partnerId}`,
+      );
     } catch (err) {
       console.error(
-        `[OCPI][locations/patch] Unexpected error for party ${authContext.partnerId}:`,
+        `[OCPI][locations/patch] S3 write failed for ${pathCountryCode}/${pathPartyId}/${pathLocationId}/${pathEvseUid}/${pathConnectorId} from ${authContext.partnerId}:`,
         err,
       );
       return ErrorHandler.handleError(err);
     }
-  });
+
+    // Publish an ingestion event to SQS so downstream processors can pick up the S3 object
+    try {
+      await publishIngestionEvent({
+        action: 'PATCH',
+        type: 'connector',
+        location_id: pathLocationId!,
+        evse_uid: pathEvseUid!,
+        connector_id: pathConnectorId!,
+        country_code: pathCountryCode!,
+        party_id: pathPartyId!,
+        ocpi_version: ocpiVersion,
+        received_at: receivedAt,
+        raw: {
+          bucket: Aws.rawDataBucketName,
+          key: s3Key,
+        },
+      });
+      console.info(
+        `[OCPI][locations/patch] Ingested connector patch ${pathCountryCode}/${pathPartyId}/${pathLocationId}/${pathEvseUid}/${pathConnectorId} from ${authContext.partnerId} → s3:${s3Key}`,
+      );
+    } catch (err) {
+      console.error(
+        `[OCPI][locations/patch] SQS publish failed — orphaned S3 object at s3://${Aws.rawDataBucketName}/${s3Key} from ${authContext.partnerId}:`,
+        err,
+      );
+      return ErrorHandler.handleError(err);
+    }
+
+    // PATCH returns no data per OCPI spec
+    return prepareOCPIResponse(null);
+  } catch (err) {
+    console.error(
+      `[OCPI][locations/patch] Unexpected error for party ${authContext.partnerId}:`,
+      err,
+    );
+    return ErrorHandler.handleError(err);
+  }
+});

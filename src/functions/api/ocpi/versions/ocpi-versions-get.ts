@@ -20,4 +20,3 @@ export const handler = async (
     return ErrorHandler.handleError(error);
   }
 };
-

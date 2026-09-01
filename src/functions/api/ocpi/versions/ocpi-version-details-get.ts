@@ -1,7 +1,7 @@
-import {APIGatewayProxyEvent, APIGatewayProxyResult} from "aws-lambda";
-import {ErrorHandler} from "/opt/nodejs/api/error/api-error-handler";
-import {prepareOCPIResponse} from "/opt/nodejs/utils/api.utils";
-import {getOCPIVersionDetails} from "/opt/nodejs/modules/ocpi-version/ocpi-version.db";
+import { APIGatewayProxyEvent, APIGatewayProxyResult } from 'aws-lambda';
+import { ErrorHandler } from '/opt/nodejs/api/error/api-error-handler';
+import { prepareOCPIResponse } from '/opt/nodejs/utils/api.utils';
+import { getOCPIVersionDetails } from '/opt/nodejs/modules/ocpi-version/ocpi-version.db';
 
 /**
  * Handles GET /ocpi/{version}.
@@ -9,21 +9,21 @@ import {getOCPIVersionDetails} from "/opt/nodejs/modules/ocpi-version/ocpi-versi
  * allowing external partners to discover supported API resources.
  */
 export const handler = async (
-    event: APIGatewayProxyEvent,
+  event: APIGatewayProxyEvent,
 ): Promise<APIGatewayProxyResult> => {
-    const version = event.pathParameters?.version;
-    console.log('Get version detail of:', version);
+  const version = event.pathParameters?.version;
+  console.log('Get version detail of:', version);
 
-    try {
-        if (!version) {
-            return ErrorHandler.handleError('Version is required.');
-        }
-        const versionDetail = await getOCPIVersionDetails(version);
-        if (!versionDetail) {
-            return ErrorHandler.handleUnsupportedVersionError(version);
-        }
-        return prepareOCPIResponse(versionDetail);
-    } catch (error) {
-        return ErrorHandler.handleError(error);
+  try {
+    if (!version) {
+      return ErrorHandler.handleError('Version is required.');
     }
+    const versionDetail = await getOCPIVersionDetails(version);
+    if (!versionDetail) {
+      return ErrorHandler.handleUnsupportedVersionError(version);
+    }
+    return prepareOCPIResponse(versionDetail);
+  } catch (error) {
+    return ErrorHandler.handleError(error);
+  }
 };
