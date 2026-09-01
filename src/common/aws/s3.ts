@@ -1,9 +1,9 @@
 import {
-  S3Client,
-  PutObjectCommand,
   GetObjectCommand,
+  PutObjectCommand,
+  S3Client,
 } from '@aws-sdk/client-s3';
-import { STSClient, AssumeRoleCommand } from '@aws-sdk/client-sts';
+import { AssumeRoleCommand, STSClient } from '@aws-sdk/client-sts';
 import { Aws } from '/opt/nodejs/aws/constants';
 import { IngestionAction, IngestionObjectType } from '/opt/nodejs/aws/sqs';
 import { gzipSync } from 'node:zlib';
@@ -79,11 +79,17 @@ export const getRawFromS3 = async (
 };
 
 // Builds a time-partitioned Landing Zone S3 key for one batch.
-// Example: ocpi-raw/year=2026/month=05/day=28/20260528T112631000Z.jsonl.gz
+// `uniqueId` (the Lambda requestId) makes the key unique per invocation so that
+// concurrent invocations finishing in the same millisecond cannot overwrite each
+// other's batch. Duplicate records produced by a retry are deduplicated in the Bronze ETL.
+// Example: ocpi-raw/year=2026/month=05/day=28/20260528T112631000Z-<requestId>.jsonl.gz
 // The Landing Zone is a raw transient dump — module, action, country and party are stored in each record and processed in the Bronze ETL.
-export const buildLandingZoneKey = (timestamp: Date): string => {
+export const buildLandingZoneKey = (
+  timestamp: Date,
+  uniqueId: string,
+): string => {
   const { year, month, day, ts } = buildDatePartitions(timestamp);
-  return `ocpi-raw/year=${year}/month=${month}/day=${day}/${ts}.jsonl.gz`;
+  return `ocpi-raw/year=${year}/month=${month}/day=${day}/${ts}-${uniqueId}.jsonl.gz`;
 };
 
 // Assumes a cross-account IAM role via STS and returns a new S3Client with the temporary credentials.
