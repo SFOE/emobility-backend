@@ -70,6 +70,26 @@ jobs:
           role-to-assume: ${{ vars.AWS_OIDC_ROLE_ARN }}
           aws-region: eu-central-1
 
+      # Scan the production dependencies of the node-modules layer with AWS Inspector
+      - name: Scan node-modules layer with Inspector
+        uses: aws-actions/vulnerability-scan-github-action-for-amazon-inspector@develop
+        id: inspector
+        with:
+          artifact_type: repository
+          artifact_path: dist/node-modules-layer/
+          display_vulnerability_findings: enabled
+          critical_threshold: 1
+          high_threshold: 1
+          medium_threshold: 0
+          low_threshold: 0
+          other_threshold: 0
+
+      - name: Vulnerability scan results
+        run: cat ${{ steps.inspector.outputs.inspector_scan_results_markdown }}
+
+      - name: Check vulnerability threshold
+        run: exit ${{ steps.inspector.outputs.vulnerability_threshold_exceeded }}
+
       # Resolve the version to a short SHA (7 chars)
       - name: Set version
         id: set-version

@@ -1,0 +1,43 @@
+# .inspector-ignore — vulnerability suppression allowlist for the node-modules layer
+# =============================================================================
+# Format: one vulnerability ID (CVE / GHSA) per line. Blank lines and lines
+# beginning with '#' are ignored. Each entry is a DELIBERATE, documented
+# risk-acceptance — not a blanket mute. Ignored findings are excluded from the
+# scan report and do not count towards the vulnerability thresholds configured
+# in .github/workflows/deploy-dev.yml and .github/workflows/publish-tag.yml.
+#
+# Per-finding format:
+#   # SEVERITY X.X
+#   # Residual risk: <why this finding is acceptable in our project context>
+#   CVE-XXXX-XXXXX
+#
+# Scanned artifact: dist/node-modules-layer/ (production dependencies only)
+# Runtime: AWS Lambda (Node.js), no OS/container surface, no shell access
+# =============================================================================
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# fast-xml-builder 1.1.4 (transitive: @aws-sdk/xml-builder → fast-xml-parser 5.5.8)
+# ─────────────────────────────────────────────────────────────────────────────
+# WHY PRESENT: @aws-sdk/xml-builder pins fast-xml-parser to exactly 5.5.8,
+#   which in turn requires fast-xml-builder ^1.1.4.
+# WHY SUPPRESSED: Amazon Inspector does not report this finding as high or
+#   critical. In the Inspector console it appears as MEDIUM (CVSS v3.1, ~6.1)
+#   and therefore does not warrant blocking a deployment. Only the CI/CD scan
+#   rates it HIGH, because it applies the GHSA CVSS v4.0 score (8.7). The two
+#   ratings disagree on the vector: v4.0 assumes UI:N / VI:H, v3.1 assumes
+#   UI:R / I:L. We follow the severity assessment shown in the console.
+# RESIDUAL RISK: LOW. The vulnerability allows attribute values containing
+#   unwanted quotes to bypass attribute sanitisation during XML *building*.
+#   Our Lambdas exchange OCPI payloads as JSON and never build XML from
+#   user-supplied input; fast-xml-builder is only reachable through the AWS
+#   SDK's internal request serialisation, where the input is SDK-generated.
+# NOTE: A fix IS available (1.1.7+), and it is permitted by the existing
+#   ^1.1.4 range — only the lockfile entry is stale. Upgrading is preferable
+#   to suppressing.
+# WHEN TO REVISIT: On the next lockfile refresh, or if Inspector raises the
+#   console severity to high/critical.
+
+# HIGH 8.7 (CVSS v4.0, CI/CD scan) / MEDIUM ~6.1 (CVSS v3.1, Inspector console)
+# Residual risk: No user-supplied XML is built; fast-xml-builder is reached only via AWS SDK-internal serialisation.
+CVE-2026-44665
