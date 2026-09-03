@@ -7,7 +7,6 @@ import { Tariff } from '/opt/nodejs/modules/ocpi-tariffs/ocpi-tariffs.model';
 import {
   assertBodyConsistency,
   assertNotBootstrap,
-  assertOwnership,
   assertRole,
   parseRequestBody,
   withVersionCheck,
@@ -18,9 +17,7 @@ import { Aws } from '/opt/nodejs/aws/constants';
 
 export const handler = withVersionCheck(
   (_event, auth) =>
-    assertNotBootstrap(auth, 'tariffs/put') ??
-    assertRole(auth, 'tariffs/put') ??
-    assertOwnership(auth, 'tariffs/put'),
+    assertNotBootstrap(auth, 'tariffs/put') ?? assertRole(auth, 'tariffs/put'),
 )(async (
   event: APIGatewayProxyEventV2WithLambdaAuthorizer<OCPIAuthorizerContext>,
   authContext: OCPIAuthorizerContext,

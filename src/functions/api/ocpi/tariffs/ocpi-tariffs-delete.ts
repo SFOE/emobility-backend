@@ -5,7 +5,6 @@ import { ErrorHandler } from '/opt/nodejs/api/error/api-error-handler';
 import { prepareOCPIResponse } from '/opt/nodejs/utils/api.utils';
 import {
   assertNotBootstrap,
-  assertOwnership,
   assertRole,
   withVersionCheck,
 } from '/opt/nodejs/utils/ocpi-guards';
@@ -14,8 +13,7 @@ import { publishIngestionEvent } from '/opt/nodejs/aws/sqs';
 export const handler = withVersionCheck(
   (_event, auth) =>
     assertNotBootstrap(auth, 'tariffs/delete') ??
-    assertRole(auth, 'tariffs/delete') ??
-    assertOwnership(auth, 'tariffs/delete'),
+    assertRole(auth, 'tariffs/delete'),
 )(async (
   event: APIGatewayProxyEventV2WithLambdaAuthorizer<OCPIAuthorizerContext>,
   authContext: OCPIAuthorizerContext,
