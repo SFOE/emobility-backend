@@ -11,7 +11,7 @@ import { prepareOCPIResponse } from '/opt/nodejs/utils/api.utils';
 export const handler = async (
   event: APIGatewayProxyEvent,
 ): Promise<APIGatewayProxyResult> => {
-  console.log('GET versions:', JSON.stringify(event, null, 2));
+  console.log('GET versions requestId:', event.requestContext?.requestId);
 
   try {
     const versions = await getOCPIVersions();
