@@ -46,8 +46,7 @@ export const withVersionCheck =
 
 // Discriminated union result type for parseRequestBody.
 type ParseBodyResult<T> =
-  | { success: true; data: T }
-  | { success: false; error: APIGatewayProxyResult };
+  { success: true; data: T } | { success: false; error: APIGatewayProxyResult };
 
 // Parses and validates the JSON request body. Returns success:false with a 400 response if missing or malformed.
 export function parseRequestBody<T>(
@@ -185,26 +184,6 @@ export function assertRole(
     2000,
     `Role '${authContext.role}' is not a valid OCPI role.`,
     405,
-  );
-}
-
-// Enforces Client Owned Objects: party in auth token must match country_code/party_id in the URL path.
-export function assertOwnership(
-  authContext: OCPIAuthorizerContext,
-  label: string,
-): APIGatewayProxyResult | null {
-  if (
-    authContext.country_code?.length === 2 &&
-    authContext.party_id?.length === 3
-  ) {
-    return null;
-  }
-  console.warn(
-    `[OCPI][${label}] Rejected — invalid party identifiers for ${authContext.partnerId}: auth=${authContext.country_code}/${authContext.party_id}`,
-  );
-  return ErrorHandler.handleBadRequestError(
-    2001,
-    'Authenticated party does not own this namespace.',
   );
 }
 

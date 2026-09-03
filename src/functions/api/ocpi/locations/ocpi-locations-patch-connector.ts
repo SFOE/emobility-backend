@@ -5,7 +5,6 @@ import { OCPIAuthorizerContext } from '/opt/nodejs/api/base.model';
 import { prepareOCPIResponse } from '/opt/nodejs/utils/api.utils';
 import {
   assertNotBootstrap,
-  assertOwnership,
   assertRole,
   assertValidPatchLastUpdated,
   parseRequestBody,
@@ -18,8 +17,7 @@ import { Aws } from '/opt/nodejs/aws/constants';
 export const handler = withVersionCheck(
   (_event, auth) =>
     assertNotBootstrap(auth, 'locations/patch') ??
-    assertRole(auth, 'locations/patch') ??
-    assertOwnership(auth, 'locations/patch'),
+    assertRole(auth, 'locations/patch'),
 )(async (
   event: APIGatewayProxyEventV2WithLambdaAuthorizer<OCPIAuthorizerContext>,
   authContext: OCPIAuthorizerContext,

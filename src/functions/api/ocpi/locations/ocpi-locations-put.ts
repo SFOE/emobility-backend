@@ -7,7 +7,6 @@ import { Location } from '/opt/nodejs/modules/ocpi-locations/ocpi-locations.mode
 import {
   assertBodyConsistency,
   assertNotBootstrap,
-  assertOwnership,
   assertRole,
   parseRequestBody,
   withVersionCheck,
@@ -19,8 +18,7 @@ import { Aws } from '/opt/nodejs/aws/constants';
 export const handler = withVersionCheck(
   (_event, auth) =>
     assertNotBootstrap(auth, 'locations/put') ??
-    assertRole(auth, 'locations/put') ??
-    assertOwnership(auth, 'locations/put'),
+    assertRole(auth, 'locations/put'),
 )(async (
   event: APIGatewayProxyEventV2WithLambdaAuthorizer<OCPIAuthorizerContext>,
   authContext: OCPIAuthorizerContext,
