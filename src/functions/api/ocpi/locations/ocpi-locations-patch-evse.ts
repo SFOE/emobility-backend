@@ -14,7 +14,7 @@ import { putRawToS3 } from '/opt/nodejs/aws/s3';
 import { publishIngestionEvent } from '/opt/nodejs/aws/sqs';
 import { Aws } from '/opt/nodejs/aws/constants';
 import { upsertEvseCurrentStatus } from '/opt/nodejs/modules/ocpi-locations/ocpi-locations.db';
-import type { EVSEStatus } from '/opt/nodejs/modules/ocpi-locations/ocpi-locations.model';
+import { isEVSEStatus } from '/opt/nodejs/modules/ocpi-locations/ocpi-locations.model';
 
 export const handler = withVersionCheck(
   (_event, auth) =>
@@ -102,15 +102,16 @@ export const handler = withVersionCheck(
       return ErrorHandler.handleError(err);
     }
 
-    // Fast-path: write status directly to DynamoDB if present in patch
-    if (typeof patch['status'] === 'string') {
+    // Fast-path: write status directly to DynamoDB only if a valid EVSE status is present in the patch.
+    const patchStatus = patch['status'];
+    if (isEVSEStatus(patchStatus)) {
       try {
         const written = await upsertEvseCurrentStatus({
           countryCode: pathCountryCode!,
           partyId: pathPartyId!,
           locationId: pathLocationId!,
           evseUid: pathEvseUid!,
-          status: patch['status'] as EVSEStatus,
+          status: patchStatus,
           lastUpdated: patch['last_updated'] as string,
           receivedAt,
         });
@@ -124,11 +125,15 @@ export const handler = withVersionCheck(
           );
         }
       } catch (err) {
-        console.warn(
+        console.error(
           `[OCPI][locations/patch] DynamoDB fast-path write failed for ${pathCountryCode}/${pathPartyId}/${pathLocationId}/${pathEvseUid}:`,
           err,
         );
       }
+    } else if (typeof patchStatus === 'string') {
+      console.error(
+        `[OCPI][locations/patch] EVSE status fast-path skipped — invalid status '${patchStatus}' for ${pathCountryCode}/${pathPartyId}/${pathLocationId}/${pathEvseUid}`,
+      );
     }
 
     // PATCH returns no data per OCPI spec

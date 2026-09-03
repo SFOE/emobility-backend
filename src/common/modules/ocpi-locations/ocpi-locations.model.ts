@@ -1,15 +1,22 @@
 // ─── Enums ────────────────────────────────────────────────────────────────────
 
-export type EVSEStatus =
-  | 'AVAILABLE'
-  | 'BLOCKED'
-  | 'CHARGING'
-  | 'INOPERATIVE'
-  | 'OUTOFORDER'
-  | 'PLANNED'
-  | 'REMOVED'
-  | 'RESERVED'
-  | 'UNKNOWN';
+export const EVSE_STATUSES = [
+  'AVAILABLE',
+  'BLOCKED',
+  'CHARGING',
+  'INOPERATIVE',
+  'OUTOFORDER',
+  'PLANNED',
+  'REMOVED',
+  'RESERVED',
+  'UNKNOWN',
+] as const;
+
+export type EVSEStatus = (typeof EVSE_STATUSES)[number];
+
+export const isEVSEStatus = (value: unknown): value is EVSEStatus =>
+  typeof value === 'string' &&
+  (EVSE_STATUSES as readonly string[]).includes(value);
 
 export type ConnectorType =
   | 'CHADEMO'
@@ -57,7 +64,8 @@ export type ConnectorType =
 
 export type ConnectorFormat = 'SOCKET' | 'CABLE';
 
-export type PowerType = 'AC_1_PHASE' | 'AC_2_PHASE' | 'AC_2_PHASE_SPLIT' | 'AC_3_PHASE' | 'DC';
+export type PowerType =
+  'AC_1_PHASE' | 'AC_2_PHASE' | 'AC_2_PHASE_SPLIT' | 'AC_3_PHASE' | 'DC';
 
 export type ParkingType =
   | 'ALONG_MOTORWAY'
@@ -83,10 +91,10 @@ export type Capability =
   | 'UNLOCK_CAPABLE';
 
 export type ConnectorCapability =
-  | 'ISO_15118_2_PLUG_AND_CHARGE'
-  | 'ISO_15118_20_PLUG_AND_CHARGE';
+  'ISO_15118_2_PLUG_AND_CHARGE' | 'ISO_15118_20_PLUG_AND_CHARGE';
 
-export type ParkingRestriction = 'EV_ONLY' | 'PLUGGED' | 'DISABLED' | 'CUSTOMERS' | 'MOTORCYCLES';
+export type ParkingRestriction =
+  'EV_ONLY' | 'PLUGGED' | 'DISABLED' | 'CUSTOMERS' | 'MOTORCYCLES';
 
 export type Facility =
   | 'HOTEL'
@@ -143,7 +151,14 @@ export type ImageCategory =
   | 'OTHER'
   | 'OWNER';
 
-export type DayOfWeek = 'MONDAY' | 'TUESDAY' | 'WEDNESDAY' | 'THURSDAY' | 'FRIDAY' | 'SATURDAY' | 'SUNDAY';
+export type DayOfWeek =
+  | 'MONDAY'
+  | 'TUESDAY'
+  | 'WEDNESDAY'
+  | 'THURSDAY'
+  | 'FRIDAY'
+  | 'SATURDAY'
+  | 'SUNDAY';
 
 export type TokenType = 'AD_HOC_USER' | 'APP_USER' | 'OTHER' | 'RFID';
 
