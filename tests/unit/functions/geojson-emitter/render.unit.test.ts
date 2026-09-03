@@ -43,19 +43,21 @@ describe('buildFeatureCollection — per-location isolation', () => {
       full_location_id: 'CH*TIA*BAD',
       evses: undefined as unknown as GoldEvse[],
     });
-    const warnSpy = jest
-      .spyOn(console, 'warn')
+    // The per-location skip is logged at error level; the run summary at warn.
+    const errorSpy = jest
+      .spyOn(console, 'error')
       .mockImplementation(() => undefined);
+    jest.spyOn(console, 'warn').mockImplementation(() => undefined);
 
     const fc = buildFeatureCollection([good, bad], '2026-01-01T00:00:00Z');
 
     expect(fc.features).toHaveLength(1);
     expect(fc.features[0]!.id).toBe('CH*TIA*GOOD');
     expect(
-      warnSpy.mock.calls.some((c) => String(c[0]).includes('CH*TIA*BAD')),
+      errorSpy.mock.calls.some((c) => String(c[0]).includes('CH*TIA*BAD')),
     ).toBe(true);
 
-    warnSpy.mockRestore();
+    jest.restoreAllMocks();
   });
 });
 
