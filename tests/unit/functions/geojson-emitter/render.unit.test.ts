@@ -35,6 +35,32 @@ function makeLocation(overrides: Partial<GoldLocation> = {}): GoldLocation {
   };
 }
 
+describe('buildFeatureCollection — per-location isolation', () => {
+  it('skips a location whose feature build throws and still emits the others', () => {
+    const good = makeLocation({ full_location_id: 'CH*TIA*GOOD' });
+    // evses undefined makes buildFeature throw inside computeAvailability.
+    const bad = makeLocation({
+      full_location_id: 'CH*TIA*BAD',
+      evses: undefined as unknown as GoldEvse[],
+    });
+    // The per-location skip is logged at error level; the run summary at warn.
+    const errorSpy = jest
+      .spyOn(console, 'error')
+      .mockImplementation(() => undefined);
+    jest.spyOn(console, 'warn').mockImplementation(() => undefined);
+
+    const fc = buildFeatureCollection([good, bad], '2026-01-01T00:00:00Z');
+
+    expect(fc.features).toHaveLength(1);
+    expect(fc.features[0]!.id).toBe('CH*TIA*GOOD');
+    expect(
+      errorSpy.mock.calls.some((c) => String(c[0]).includes('CH*TIA*BAD')),
+    ).toBe(true);
+
+    jest.restoreAllMocks();
+  });
+});
+
 describe('computeAvailability', () => {
   it('returns Available when any EVSE is available', () => {
     const evses = [

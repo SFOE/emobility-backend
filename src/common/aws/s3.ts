@@ -7,6 +7,7 @@ import { AssumeRoleCommand, STSClient } from '@aws-sdk/client-sts';
 import { Aws } from '/opt/nodejs/aws/constants';
 import { IngestionAction, IngestionObjectType } from '/opt/nodejs/aws/sqs';
 import { gzipSync } from 'node:zlib';
+import { randomUUID } from 'node:crypto';
 
 // forcePathStyle is required when a custom S3 endpoint is set (e.g. in integration tests against Ministack),
 // because virtual-hosted-style URLs (bucket.localhost) do not resolve via DNS.
@@ -28,10 +29,11 @@ const buildS3Key = (
   partyId: string,
   resourceSegments: string[],
   timestamp: Date,
+  uniqueId: string,
 ): string => {
   const { year, month, day, ts } = buildDatePartitions(timestamp);
   const resource = resourceSegments.join('/');
-  return `${type}/year=${year}/month=${month}/day=${day}/country=${countryCode}/party=${partyId}/${resource}/${action}_${ts}.json`;
+  return `${type}/year=${year}/month=${month}/day=${day}/country=${countryCode}/party=${partyId}/${resource}/${action}_${ts}_${uniqueId}.json`;
 };
 
 // Writes the raw payload to S3 and returns the object key.
@@ -45,6 +47,8 @@ export const putRawToS3 = async (
   receivedAt: string,
 ): Promise<string> => {
   const bucket = Aws.rawDataBucketName;
+  // A per-write random suffix keeps the key unique so two writes for the same
+  // object in the same millisecond cannot silently overwrite each other's raw record.
   const key = buildS3Key(
     type,
     action,
@@ -52,6 +56,7 @@ export const putRawToS3 = async (
     partyId,
     resourceSegments,
     new Date(receivedAt),
+    randomUUID(),
   );
 
   await s3Client.send(

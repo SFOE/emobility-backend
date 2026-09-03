@@ -1,10 +1,14 @@
 jest.mock('../../../../../../src/common/aws/s3');
 jest.mock('../../../../../../src/common/aws/sqs');
+jest.mock(
+  '../../../../../../src/common/modules/ocpi-locations/ocpi-locations.db',
+);
 
 import { APIGatewayProxyResult } from 'aws-lambda';
 import { handler } from '../../../../../../src/functions/api/ocpi/locations/ocpi-locations-patch-evse';
 import { putRawToS3 } from '/opt/nodejs/aws/s3';
 import { publishIngestionEvent } from '/opt/nodejs/aws/sqs';
+import { upsertEvseCurrentStatus } from '/opt/nodejs/modules/ocpi-locations/ocpi-locations.db';
 import { Aws } from '/opt/nodejs/aws/constants';
 import { buildEvsePatchEvent } from '../../../../../shared/fixtures/ocpi-locations.fixture';
 import {
@@ -17,6 +21,10 @@ const mockPutRawToS3 = putRawToS3 as jest.MockedFunction<typeof putRawToS3>;
 const mockPublishIngestionEvent = publishIngestionEvent as jest.MockedFunction<
   typeof publishIngestionEvent
 >;
+const mockUpsertEvseCurrentStatus =
+  upsertEvseCurrentStatus as jest.MockedFunction<
+    typeof upsertEvseCurrentStatus
+  >;
 
 const MOCK_S3_KEY =
   'evse/year=2025/month=01/day=01/country=CH/party=EMS/location_id=LOC001/evse_uid=EVSE001/PATCH_20250101T000000000Z.json';
@@ -31,6 +39,7 @@ describe('ocpi-locations-patch-evse handler', () => {
 
     mockPutRawToS3.mockResolvedValue(MOCK_S3_KEY);
     mockPublishIngestionEvent.mockResolvedValue(undefined);
+    mockUpsertEvseCurrentStatus.mockResolvedValue(true);
   });
 
   describe('last_updated validation', () => {
@@ -103,6 +112,36 @@ describe('ocpi-locations-patch-evse handler', () => {
           raw: { bucket: Aws.rawDataBucketName, key: MOCK_S3_KEY },
         }),
       );
+    });
+  });
+
+  describe('EVSE status fast-path validation', () => {
+    it('writes the status to DynamoDB when it is a valid EVSE status', async () => {
+      await handler(
+        buildEvsePatchEvent({
+          body: JSON.stringify({
+            status: 'CHARGING',
+            last_updated: '2026-01-01T00:00:00Z',
+          }),
+        }),
+      );
+
+      expect(mockUpsertEvseCurrentStatus).toHaveBeenCalledWith(
+        expect.objectContaining({ status: 'CHARGING' }),
+      );
+    });
+
+    it('does NOT write to DynamoDB when the status is not a valid EVSE status', async () => {
+      await handler(
+        buildEvsePatchEvent({
+          body: JSON.stringify({
+            status: 'charging',
+            last_updated: '2026-01-01T00:00:00Z',
+          }),
+        }),
+      );
+
+      expect(mockUpsertEvseCurrentStatus).not.toHaveBeenCalled();
     });
   });
 
