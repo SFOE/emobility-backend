@@ -72,7 +72,7 @@ jobs:
 
       # Scan the production dependencies of the node-modules layer with AWS Inspector
       - name: Scan node-modules layer with Inspector
-        uses: aws-actions/vulnerability-scan-github-action-for-amazon-inspector@develop
+        uses: aws-actions/vulnerability-scan-github-action-for-amazon-inspector@v1.6.0
         id: inspector
         with:
           artifact_type: repository

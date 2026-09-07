@@ -14,15 +14,13 @@ Legende: 🟠 HIGH · 🟡 MEDIUM · 🟢 LOW · 🔧 externe Infra · ✅ erled
 - **HIGH — GeoJSON Per-Feature-Isolation:** `buildFeatureCollection` überspringt fehlerhafte Locations statt den ganzen Publish zu brechen (`render.ts`).
 - **HIGH — Raw-S3-Key eindeutig:** `putRawToS3` hängt `randomUUID()` an den Key (`s3.ts`).
 - **Raw-data-loader (früher):** Batch-Key mit `awsRequestId`, AssumeRole im try, fehlender Gold-Export sauber behandelt, teures Debug-Log entfernt, `raw`-Guard.
+- **H1 — Security-Scan-Action gepinnt:** `@develop` → `@v1.6.0` in `deploy-dev.yml` und `publish-tag.yml` (mutable-branch-Supply-Chain-Risiko beseitigt; Inputs verifiziert identisch zu `develop`). Hinweis: die verbleibenden Actions (`checkout`, `setup-node`, `configure-aws-credentials`, …) sind noch auf bewegliche Major-Tags gepinnt — siehe LOW.
 
 ---
 
 ## 🟠 HIGH — offen
 
-### H1 · Security-Scan-Action auf mutable `@develop` gepinnt
-- **Wo:** `.github/workflows/deploy-dev.yml`, `.github/workflows/publish-tag.yml` — `aws-actions/vulnerability-scan-github-action-for-amazon-inspector@develop`
-- **Problem:** Das CVE-Gate jedes Deployments läuft mit beliebigem Dev-Branch-Stand einer Third-Party-Action (Supply-Chain-Risiko).
-- **Fix:** Auf Release-Tag + Commit-SHA pinnen; per Dependabot aktualisieren.
+Keine offenen HIGH-Punkte mehr.
 
 ---
 
