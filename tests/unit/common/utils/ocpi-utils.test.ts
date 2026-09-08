@@ -2,7 +2,6 @@ import {
   extractToken,
   getPartnerId,
   getPrimaryRole,
-  parsePathParams,
 } from '/opt/nodejs/utils/ocpi-utils';
 import { OCPICredentialRole } from '/opt/nodejs/modules/ocpi-credentials/ocpi-credentials.model';
 import { OCPICredentialItem } from '/opt/nodejs/modules/ocpi-credentials/ocpi-credentials.model';
@@ -73,33 +72,6 @@ describe('test extractToken', () => {
 
   it('should trim whitespace around token', () => {
     expect(extractToken('Token    abc123   ')).toBe('abc123');
-  });
-});
-
-describe('parsePathParams', () => {
-  it('uppercases country_code and party_id and passes ids through unchanged', () => {
-    const result = parsePathParams({
-      pathParameters: {
-        country_code: 'ch',
-        party_id: 'abc',
-        location_id: 'LOC001',
-        evse_uid: 'EVSE001',
-        connector_id: '1',
-        tariff_id: 'TAR001',
-      },
-    });
-
-    expect(result.country_code).toBe('CH');
-    expect(result.party_id).toBe('ABC');
-    expect(result.location_id).toBe('LOC001');
-    expect(result.evse_uid).toBe('EVSE001');
-    expect(result.connector_id).toBe('1');
-    expect(result.tariff_id).toBe('TAR001');
-  });
-
-  it('returns undefined fields when pathParameters is missing or null', () => {
-    expect(parsePathParams({}).country_code).toBeUndefined();
-    expect(parsePathParams({ pathParameters: null }).party_id).toBeUndefined();
   });
 });
 

@@ -32,6 +32,18 @@ describe('ocpi-locations-put handler', () => {
     mockPublishIngestionEvent.mockResolvedValue(undefined);
   });
 
+  describe('path identifier validation', () => {
+    it('returns 400 (OCPI 2001) and does not write to S3 when a path id has a key-breaking char', async () => {
+      const result = await handler(
+        buildLocationPutEvent({ location_id: 'LOC#1' }),
+      );
+
+      expect(result.statusCode).toBe(400);
+      expect(parseBody(result).status_code).toBe(2001);
+      expect(mockPutRawToS3).not.toHaveBeenCalled();
+    });
+  });
+
   describe('happy path', () => {
     it('returns 200 with OCPI status 1000', async () => {
       const result = await handler(buildLocationPutEvent());

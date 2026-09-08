@@ -10,7 +10,6 @@ import {
   parseRequestBody,
   withVersionCheck,
 } from '/opt/nodejs/utils/ocpi-guards';
-import { parsePathParams } from '/opt/nodejs/utils/ocpi-utils';
 import { putRawToS3 } from '/opt/nodejs/aws/s3';
 import { publishIngestionEvent } from '/opt/nodejs/aws/sqs';
 import { Aws } from '/opt/nodejs/aws/constants';
@@ -23,6 +22,7 @@ export const handler = withVersionCheck(
   event: APIGatewayProxyEventV2WithLambdaAuthorizer<OCPIAuthorizerContext>,
   authContext: OCPIAuthorizerContext,
   ocpiVersion: string,
+  pathParams,
 ): Promise<APIGatewayProxyResult> => {
   try {
     const {
@@ -30,7 +30,7 @@ export const handler = withVersionCheck(
       party_id: pathPartyId,
       location_id: pathLocationId,
       evse_uid: pathEvseUid,
-    } = parsePathParams(event);
+    } = pathParams;
 
     // Parse and validate the incoming EVSE payload
     const bodyResult = parseRequestBody<EVSE>(event.body);

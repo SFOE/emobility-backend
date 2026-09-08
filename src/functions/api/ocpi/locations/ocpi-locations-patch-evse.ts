@@ -10,7 +10,6 @@ import {
   parseRequestBody,
   withVersionCheck,
 } from '/opt/nodejs/utils/ocpi-guards';
-import { parsePathParams } from '/opt/nodejs/utils/ocpi-utils';
 import { putRawToS3 } from '/opt/nodejs/aws/s3';
 import { publishIngestionEvent } from '/opt/nodejs/aws/sqs';
 import { Aws } from '/opt/nodejs/aws/constants';
@@ -25,6 +24,7 @@ export const handler = withVersionCheck(
   event: APIGatewayProxyEventV2WithLambdaAuthorizer<OCPIAuthorizerContext>,
   authContext: OCPIAuthorizerContext,
   ocpiVersion: string,
+  pathParams,
 ): Promise<APIGatewayProxyResult> => {
   try {
     const {
@@ -32,7 +32,7 @@ export const handler = withVersionCheck(
       party_id: pathPartyId,
       location_id: pathLocationId,
       evse_uid: pathEvseUid,
-    } = parsePathParams(event);
+    } = pathParams;
 
     // PATCH body is a partial object — parse as a generic map to avoid enforcing all mandatory fields, but last_updated MUST be present per OCPI spec
     const bodyResult = parseRequestBody<Record<string, unknown>>(event.body);

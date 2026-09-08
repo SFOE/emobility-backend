@@ -8,7 +8,6 @@ import {
   assertRole,
   withVersionCheck,
 } from '/opt/nodejs/utils/ocpi-guards';
-import { parsePathParams } from '/opt/nodejs/utils/ocpi-utils';
 import { publishIngestionEvent } from '/opt/nodejs/aws/sqs';
 
 export const handler = withVersionCheck(
@@ -16,16 +15,17 @@ export const handler = withVersionCheck(
     assertNotBootstrap(auth, 'tariffs/delete') ??
     assertRole(auth, 'tariffs/delete'),
 )(async (
-  event: APIGatewayProxyEventV2WithLambdaAuthorizer<OCPIAuthorizerContext>,
+  _event: APIGatewayProxyEventV2WithLambdaAuthorizer<OCPIAuthorizerContext>,
   authContext: OCPIAuthorizerContext,
   ocpiVersion: string,
+  pathParams,
 ): Promise<APIGatewayProxyResult> => {
   try {
     const {
       country_code: pathCountryCode,
       party_id: pathPartyId,
       tariff_id: pathTariffId,
-    } = parsePathParams(event);
+    } = pathParams;
 
     const receivedAt = new Date().toISOString();
 

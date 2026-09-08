@@ -15,6 +15,8 @@ Legende: 🟠 HIGH · 🟡 MEDIUM · 🟢 LOW · 🔧 externe Infra · ✅ erled
 - **HIGH — Raw-S3-Key eindeutig:** `putRawToS3` hängt `randomUUID()` an den Key (`s3.ts`).
 - **Raw-data-loader (früher):** Batch-Key mit `awsRequestId`, AssumeRole im try, fehlender Gold-Export sauber behandelt, teures Debug-Log entfernt, `raw`-Guard.
 - **H1 — Security-Scan-Action gepinnt:** `@develop` → `@v1.6.0` in `deploy-dev.yml` und `publish-tag.yml` (mutable-branch-Supply-Chain-Risiko beseitigt; Inputs verifiziert identisch zu `develop`). Hinweis: die verbleibenden Actions (`checkout`, `setup-node`, `configure-aws-credentials`, …) sind noch auf bewegliche Major-Tags gepinnt — siehe LOW.
+- **Path-Parameter zentralisiert + cc/party uppercase:** `parsePathParams` in `ocpi-utils.ts`; `assertBodyConsistency` vergleicht cc/party case-insensitiv (CiString). Konsistente Keys/Partitionen/Dimensionen.
+- **M1 — Charset-Validierung der Path-IDs:** neuer Guard `assertValidPathIdentifiers` (in `ocpi-guards.ts`), in allen 8 Write-Handlern vor der Key-Nutzung aufgerufen. Lehnt Whitespace, `/`, `#`, `=` und Nicht-Printable-ASCII ab und erzwingt die OCPI-Längen (cc=2, party=3, Resource-IDs 1–36) → keine korrupten Athena/Glue-Partitionen oder DynamoDB-Keys mehr.
 
 ---
 
@@ -25,11 +27,6 @@ Keine offenen HIGH-Punkte mehr.
 ---
 
 ## 🟡 MEDIUM — offen
-
-### M1 · Path-/Body-Identifier ohne Charset-Validierung in S3-/DynamoDB-Keys
-- **Wo:** `s3.ts` (`buildS3Key`), Locations/Tariffs PUT/PATCH-Handler, `ocpi-locations.db.ts` (`LOCATION#..` Keys). Nur die Credentials validieren Charset.
-- **Problem:** `#`, `=`, Whitespace, url-dekodierte Segmente in `country_code`/`party_id`/`location_id`/`evse_uid`/`connector_id`/`tariff_id` können Athena/Glue-Partitionierung oder DynamoDB-Keys korrumpieren/kollidieren.
-- **Fix:** Jeden Path-/Body-Identifier vor Key-Nutzung gegen OCPI CiString (Charset + Länge) validieren.
 
 ### M2 · STS AssumeRole pro Invocation, kein Caching
 - **Wo:** `s3.ts` (`createCrossAccountS3Client`), genutzt in `ocpi-raw-data-loader.ts` und `geojson-emitter.ts`.
