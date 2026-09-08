@@ -23,11 +23,14 @@ export const handler = withVersionCheck(
   event: APIGatewayProxyEventV2WithLambdaAuthorizer<OCPIAuthorizerContext>,
   authContext: OCPIAuthorizerContext,
   ocpiVersion: string,
+  pathParams,
 ): Promise<APIGatewayProxyResult> => {
   try {
-    const pathCountryCode = event.pathParameters?.country_code;
-    const pathPartyId = event.pathParameters?.party_id;
-    const pathLocationId = event.pathParameters?.location_id;
+    const {
+      country_code: pathCountryCode,
+      party_id: pathPartyId,
+      location_id: pathLocationId,
+    } = pathParams;
 
     // Parse and validate the incoming location payload
     const bodyResult = parseRequestBody<Location>(event.body);
@@ -61,9 +64,9 @@ export const handler = withVersionCheck(
         location,
         'locations',
         'PUT',
-        location.country_code,
-        location.party_id,
-        [`location_id=${location.id}`],
+        pathCountryCode!,
+        pathPartyId!,
+        [`location_id=${pathLocationId}`],
         receivedAt,
       );
       console.info(
@@ -83,8 +86,8 @@ export const handler = withVersionCheck(
         action: 'PUT',
         type: 'locations',
         location_id: pathLocationId!,
-        country_code: location.country_code,
-        party_id: location.party_id,
+        country_code: pathCountryCode!,
+        party_id: pathPartyId!,
         ocpi_version: ocpiVersion,
         received_at: receivedAt,
         raw: {

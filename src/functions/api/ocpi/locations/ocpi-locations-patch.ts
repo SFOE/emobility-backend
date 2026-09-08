@@ -22,11 +22,14 @@ export const handler = withVersionCheck(
   event: APIGatewayProxyEventV2WithLambdaAuthorizer<OCPIAuthorizerContext>,
   authContext: OCPIAuthorizerContext,
   ocpiVersion: string,
+  pathParams,
 ): Promise<APIGatewayProxyResult> => {
   try {
-    const pathCountryCode = event.pathParameters?.country_code;
-    const pathPartyId = event.pathParameters?.party_id;
-    const pathLocationId = event.pathParameters?.location_id;
+    const {
+      country_code: pathCountryCode,
+      party_id: pathPartyId,
+      location_id: pathLocationId,
+    } = pathParams;
 
     // PATCH body is a partial object — parse as generic map, but last_updated MUST be present per OCPI spec
     const bodyResult = parseRequestBody<Record<string, unknown>>(event.body);

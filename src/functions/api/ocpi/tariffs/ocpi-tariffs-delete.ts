@@ -15,14 +15,17 @@ export const handler = withVersionCheck(
     assertNotBootstrap(auth, 'tariffs/delete') ??
     assertRole(auth, 'tariffs/delete'),
 )(async (
-  event: APIGatewayProxyEventV2WithLambdaAuthorizer<OCPIAuthorizerContext>,
+  _event: APIGatewayProxyEventV2WithLambdaAuthorizer<OCPIAuthorizerContext>,
   authContext: OCPIAuthorizerContext,
   ocpiVersion: string,
+  pathParams,
 ): Promise<APIGatewayProxyResult> => {
   try {
-    const pathCountryCode = event.pathParameters?.country_code;
-    const pathPartyId = event.pathParameters?.party_id;
-    const pathTariffId = event.pathParameters?.tariff_id;
+    const {
+      country_code: pathCountryCode,
+      party_id: pathPartyId,
+      tariff_id: pathTariffId,
+    } = pathParams;
 
     const receivedAt = new Date().toISOString();
 

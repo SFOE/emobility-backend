@@ -4,7 +4,9 @@ import {
   assertIsBootstrap,
   assertNotBootstrap,
   assertRole,
+  assertValidPathIdentifiers,
   getRequiredBaseUrl,
+  parsePathParams,
   parseRequestBody,
   validateCredentialsPayload,
   withVersionCheck,
@@ -161,6 +163,102 @@ describe('assertBodyConsistency', () => {
     expect(result?.statusCode).toBe(400);
     expect(parseBody(result!).status_code).toBe(2001);
   });
+
+  it('returns null when country_code/party_id differ only in case (CiString)', () => {
+    expect(
+      assertBodyConsistency(
+        { country_code: 'de', party_id: 'xyz', id: 'T01' },
+        'DE',
+        'XYZ',
+        'T01',
+        'test',
+        'CPO-XYZ-DE',
+      ),
+    ).toBeNull();
+  });
+
+  it('still rejects when only the id differs by case (id is compared exactly)', () => {
+    const result = assertBodyConsistency(
+      { country_code: 'DE', party_id: 'XYZ', id: 't01' },
+      'DE',
+      'XYZ',
+      'T01',
+      'test',
+      'CPO-XYZ-DE',
+    );
+    expect(result?.statusCode).toBe(400);
+    expect(parseBody(result!).status_code).toBe(2001);
+  });
+});
+
+describe('assertValidPathIdentifiers', () => {
+  const ok = {
+    country_code: 'CH',
+    party_id: 'ABC',
+    location_id: 'LOC001',
+    evse_uid: 'CH*ABC*E1',
+    connector_id: '1',
+    tariff_id: 'TARIFF-001',
+  };
+
+  it('returns null for valid identifiers (incl. * - . which OCPI allows)', () => {
+    expect(assertValidPathIdentifiers(ok, 'test', 'CPO-ABC-CH')).toBeNull();
+  });
+
+  it('skips fields not present on the route (undefined)', () => {
+    expect(
+      assertValidPathIdentifiers(
+        { country_code: 'CH', party_id: 'ABC' },
+        'test',
+        'p',
+      ),
+    ).toBeNull();
+  });
+
+  it.each(['a/b', 'a#b', 'k=v', 'a b', ' ', 'LOC\t1'])(
+    'rejects a location_id containing key-breaking char %p',
+    (bad) => {
+      const result = assertValidPathIdentifiers(
+        { ...ok, location_id: bad },
+        'test',
+        'p',
+      );
+      expect(result?.statusCode).toBe(400);
+      expect(parseBody(result!).status_code).toBe(2001);
+    },
+  );
+
+  it('rejects country_code that is not exactly 2 chars', () => {
+    expect(
+      assertValidPathIdentifiers({ ...ok, country_code: 'CHE' }, 'test', 'p')
+        ?.statusCode,
+    ).toBe(400);
+    expect(
+      assertValidPathIdentifiers({ ...ok, country_code: 'C' }, 'test', 'p')
+        ?.statusCode,
+    ).toBe(400);
+  });
+
+  it('rejects party_id that is not exactly 3 chars', () => {
+    expect(
+      assertValidPathIdentifiers({ ...ok, party_id: 'AB' }, 'test', 'p')
+        ?.statusCode,
+    ).toBe(400);
+  });
+
+  it('rejects a resource id longer than 36 chars or empty', () => {
+    expect(
+      assertValidPathIdentifiers(
+        { ...ok, tariff_id: 'x'.repeat(37) },
+        'test',
+        'p',
+      )?.statusCode,
+    ).toBe(400);
+    expect(
+      assertValidPathIdentifiers({ ...ok, location_id: '' }, 'test', 'p')
+        ?.statusCode,
+    ).toBe(400);
+  });
 });
 
 describe('parseRequestBody', () => {
@@ -293,6 +391,33 @@ describe('getRequiredBaseUrl', () => {
   });
 });
 
+describe('parsePathParams', () => {
+  it('uppercases country_code and party_id and passes ids through unchanged', () => {
+    const result = parsePathParams({
+      pathParameters: {
+        country_code: 'ch',
+        party_id: 'abc',
+        location_id: 'LOC001',
+        evse_uid: 'EVSE001',
+        connector_id: '1',
+        tariff_id: 'TAR001',
+      },
+    });
+
+    expect(result.country_code).toBe('CH');
+    expect(result.party_id).toBe('ABC');
+    expect(result.location_id).toBe('LOC001');
+    expect(result.evse_uid).toBe('EVSE001');
+    expect(result.connector_id).toBe('1');
+    expect(result.tariff_id).toBe('TAR001');
+  });
+
+  it('returns undefined fields when pathParameters is missing or null', () => {
+    expect(parsePathParams({}).country_code).toBeUndefined();
+    expect(parsePathParams({ pathParameters: null }).party_id).toBeUndefined();
+  });
+});
+
 describe('withVersionCheck', () => {
   function buildEvent(
     version: string,
@@ -322,6 +447,7 @@ describe('withVersionCheck', () => {
       expect.anything(),
       authContext,
       '2.2.1',
+      expect.anything(),
     );
   });
 

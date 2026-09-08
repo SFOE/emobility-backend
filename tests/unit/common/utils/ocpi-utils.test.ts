@@ -1,8 +1,10 @@
-import { extractToken, getPartnerId, getPrimaryRole } from '/opt/nodejs/utils/ocpi-utils';
-import { OCPICredentialRole } from '/opt/nodejs/modules/ocpi-credentials/ocpi-credentials.model';
 import {
-  OCPICredentialItem,
-} from '/opt/nodejs/modules/ocpi-credentials/ocpi-credentials.model';
+  extractToken,
+  getPartnerId,
+  getPrimaryRole,
+} from '/opt/nodejs/utils/ocpi-utils';
+import { OCPICredentialRole } from '/opt/nodejs/modules/ocpi-credentials/ocpi-credentials.model';
+import { OCPICredentialItem } from '/opt/nodejs/modules/ocpi-credentials/ocpi-credentials.model';
 
 describe('test getPartnerId', () => {
   it('returns CPO role if present', () => {
@@ -76,15 +78,30 @@ describe('test extractToken', () => {
 describe('test getPrimaryRole', () => {
   it('returns the CPO role when present', () => {
     const roles: OCPICredentialRole[] = [
-      { role: 'EMSP', party_id: 'ABC', country_code: 'DE', business_details: { name: 'Test EMSP' } },
-      { role: 'CPO', party_id: 'XYZ', country_code: 'CH', business_details: { name: 'Test CPO' } },
+      {
+        role: 'EMSP',
+        party_id: 'ABC',
+        country_code: 'DE',
+        business_details: { name: 'Test EMSP' },
+      },
+      {
+        role: 'CPO',
+        party_id: 'XYZ',
+        country_code: 'CH',
+        business_details: { name: 'Test CPO' },
+      },
     ];
     expect(getPrimaryRole(roles)).toEqual(roles[1]);
   });
 
   it('falls back to the first role when no CPO exists', () => {
     const roles: OCPICredentialRole[] = [
-      { role: 'EMSP', party_id: 'ABC', country_code: 'DE', business_details: { name: 'Test EMSP' } },
+      {
+        role: 'EMSP',
+        party_id: 'ABC',
+        country_code: 'DE',
+        business_details: { name: 'Test EMSP' },
+      },
     ];
     expect(getPrimaryRole(roles)).toEqual(roles[0]);
   });

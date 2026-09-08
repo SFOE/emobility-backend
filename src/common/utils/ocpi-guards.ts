@@ -4,23 +4,52 @@ import { OCPIAuthorizerContext } from '/opt/nodejs/api/base.model';
 import { ErrorHandler } from '/opt/nodejs/api/error/api-error-handler';
 import { SUPPORTED_VERSIONS } from '/opt/nodejs/config.constants';
 import {
+  OCPI_ROLES,
   OCPICredential,
   OCPICredentialRole,
   OCPIRole,
-  OCPI_ROLES,
 } from '/opt/nodejs/modules/ocpi-credentials/ocpi-credentials.model';
 
 // Types
+export interface OcpiPathParams {
+  country_code?: string;
+  party_id?: string;
+  location_id?: string;
+  evse_uid?: string;
+  connector_id?: string;
+  tariff_id?: string;
+}
+
 export type OCPIHandler = (
   event: APIGatewayProxyEventV2WithLambdaAuthorizer<OCPIAuthorizerContext>,
   authContext: OCPIAuthorizerContext,
   ocpiVersion: string,
+  pathParams: OcpiPathParams,
 ) => Promise<APIGatewayProxyResult>;
 
 export type GuardFn = (
   event: APIGatewayProxyEventV2WithLambdaAuthorizer<OCPIAuthorizerContext>,
   authContext: OCPIAuthorizerContext,
 ) => APIGatewayProxyResult | null;
+
+/**
+ * Reads the OCPI path parameters once. country_code and party_id are CiString
+ * and normalized to uppercase, so they stay consistent everywhere they become
+ * S3 partitions, DynamoDB keys, object_ids and metric dimensions.
+ */
+export const parsePathParams = (event: {
+  pathParameters?: { [name: string]: string | undefined } | null;
+}): OcpiPathParams => {
+  const params = event.pathParameters ?? {};
+  return {
+    country_code: params.country_code?.toUpperCase(),
+    party_id: params.party_id?.toUpperCase(),
+    location_id: params.location_id,
+    evse_uid: params.evse_uid,
+    connector_id: params.connector_id,
+    tariff_id: params.tariff_id,
+  };
+};
 
 // Validates the OCPI version, extracts the authorizer context, runs the optional guard, then calls the handler.
 export const withVersionCheck =
@@ -41,7 +70,19 @@ export const withVersionCheck =
       return guardError;
     }
 
-    return handler(event, authContext, version);
+    // Parse, normalize (uppercase cc/party) and validate the path identifiers
+    // once, then hand the result to the handler.
+    const pathParams = parsePathParams(event);
+    const idError = assertValidPathIdentifiers(
+      pathParams,
+      event.routeKey,
+      authContext.partnerId,
+    );
+    if (idError) {
+      return idError;
+    }
+
+    return handler(event, authContext, version, pathParams);
   };
 
 // Discriminated union result type for parseRequestBody.
@@ -218,9 +259,11 @@ export function assertBodyConsistency(
   label: string,
   partnerId: string,
 ): APIGatewayProxyResult | null {
+  // country_code and party_id are CiString (case-insensitive) per OCPI; compare
+  // them case-insensitively. The resource id stays an exact match.
   if (
-    body.country_code === pathCountryCode &&
-    body.party_id === pathPartyId &&
+    body.country_code?.toUpperCase() === pathCountryCode?.toUpperCase() &&
+    body.party_id?.toUpperCase() === pathPartyId?.toUpperCase() &&
     body.id === pathId
   ) {
     return null;
@@ -233,4 +276,51 @@ export function assertBodyConsistency(
     2001,
     'Identifiers in path and body do not match.',
   );
+}
+
+// Printable ASCII (OCPI CiString) excluding characters that would break S3 keys,
+// Hive partitions or DynamoDB composite keys: whitespace, '/', '#', '='.
+const isKeySafeId = (value: string, minLen: number, maxLen: number): boolean =>
+  value.length >= minLen &&
+  value.length <= maxLen &&
+  /^[\x21-\x7E]+$/.test(value) &&
+  !/[/#=]/.test(value);
+
+// Validates the OCPI path identifiers before they are used to build S3 keys and
+// DynamoDB keys. Only the fields present on the current route are checked.
+export function assertValidPathIdentifiers(
+  params: OcpiPathParams,
+  label: string,
+  partnerId: string,
+): APIGatewayProxyResult | null {
+  const fields: Array<{
+    name: string;
+    value?: string;
+    min: number;
+    max: number;
+  }> = [
+    { name: 'country_code', value: params.country_code, min: 2, max: 2 },
+    { name: 'party_id', value: params.party_id, min: 3, max: 3 },
+    { name: 'location_id', value: params.location_id, min: 1, max: 36 },
+    { name: 'evse_uid', value: params.evse_uid, min: 1, max: 36 },
+    { name: 'connector_id', value: params.connector_id, min: 1, max: 36 },
+    { name: 'tariff_id', value: params.tariff_id, min: 1, max: 36 },
+  ];
+
+  for (const field of fields) {
+    if (field.value === undefined) {
+      continue; // not part of this route
+    }
+    if (!isKeySafeId(field.value, field.min, field.max)) {
+      console.error(
+        `[OCPI][${label}] Rejected — invalid ${field.name} '${field.value}' from ${partnerId}`,
+      );
+      return ErrorHandler.handleBadRequestError(
+        2001,
+        `Invalid ${field.name}: must be printable ASCII without whitespace, '/', '#' or '='.`,
+      );
+    }
+  }
+
+  return null;
 }

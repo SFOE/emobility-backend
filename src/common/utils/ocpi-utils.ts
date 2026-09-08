@@ -1,4 +1,7 @@
-import { OCPICredentialItem, OCPICredentialRole } from '/opt/nodejs/modules/ocpi-credentials/ocpi-credentials.model';
+import {
+  OCPICredentialItem,
+  OCPICredentialRole,
+} from '/opt/nodejs/modules/ocpi-credentials/ocpi-credentials.model';
 
 export { validateCredentialsPayload } from '/opt/nodejs/utils/ocpi-guards';
 
@@ -28,7 +31,7 @@ export const extractToken = (authHeader?: string): string | null => {
  * Prefers CPO and falls back to the first available role.
  */
 export const getPrimaryRole = (
-    roles: OCPICredentialRole[],
+  roles: OCPICredentialRole[],
 ): OCPICredentialRole => {
   return roles?.find((role) => role.role === 'CPO') ?? roles?.[0];
 };

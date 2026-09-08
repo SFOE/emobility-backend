@@ -22,11 +22,14 @@ export const handler = withVersionCheck(
   event: APIGatewayProxyEventV2WithLambdaAuthorizer<OCPIAuthorizerContext>,
   authContext: OCPIAuthorizerContext,
   ocpiVersion: string,
+  pathParams,
 ): Promise<APIGatewayProxyResult> => {
   try {
-    const pathCountryCode = event.pathParameters?.country_code;
-    const pathPartyId = event.pathParameters?.party_id;
-    const pathTariffId = event.pathParameters?.tariff_id;
+    const {
+      country_code: pathCountryCode,
+      party_id: pathPartyId,
+      tariff_id: pathTariffId,
+    } = pathParams;
 
     // Parse and validate the incoming tariff payload
     const bodyResult = parseRequestBody<Tariff>(event.body);
@@ -60,9 +63,9 @@ export const handler = withVersionCheck(
         tariff,
         'tariffs',
         'PUT',
-        tariff.country_code,
-        tariff.party_id,
-        [`tariff_id=${tariff.id}`],
+        pathCountryCode!,
+        pathPartyId!,
+        [`tariff_id=${pathTariffId}`],
         receivedAt,
       );
       console.info(
@@ -82,8 +85,8 @@ export const handler = withVersionCheck(
         action: 'PUT',
         type: 'tariffs',
         tariff_id: pathTariffId!,
-        country_code: tariff.country_code,
-        party_id: tariff.party_id,
+        country_code: pathCountryCode!,
+        party_id: pathPartyId!,
         ocpi_version: ocpiVersion,
         received_at: receivedAt,
         raw: {

@@ -22,13 +22,16 @@ export const handler = withVersionCheck(
   event: APIGatewayProxyEventV2WithLambdaAuthorizer<OCPIAuthorizerContext>,
   authContext: OCPIAuthorizerContext,
   ocpiVersion: string,
+  pathParams,
 ): Promise<APIGatewayProxyResult> => {
   try {
-    const pathCountryCode = event.pathParameters?.country_code;
-    const pathPartyId = event.pathParameters?.party_id;
-    const pathLocationId = event.pathParameters?.location_id;
-    const pathEvseUid = event.pathParameters?.evse_uid;
-    const pathConnectorId = event.pathParameters?.connector_id;
+    const {
+      country_code: pathCountryCode,
+      party_id: pathPartyId,
+      location_id: pathLocationId,
+      evse_uid: pathEvseUid,
+      connector_id: pathConnectorId,
+    } = pathParams;
 
     // Parse and validate the incoming connector payload
     const bodyResult = parseRequestBody<Connector>(event.body);
