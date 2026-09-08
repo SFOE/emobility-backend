@@ -11,6 +11,7 @@ import {
   parseRequestBody,
   withVersionCheck,
 } from '/opt/nodejs/utils/ocpi-guards';
+import { parsePathParams } from '/opt/nodejs/utils/ocpi-utils';
 import { putRawToS3 } from '/opt/nodejs/aws/s3';
 import { publishIngestionEvent } from '/opt/nodejs/aws/sqs';
 import { Aws } from '/opt/nodejs/aws/constants';
@@ -25,9 +26,11 @@ export const handler = withVersionCheck(
   ocpiVersion: string,
 ): Promise<APIGatewayProxyResult> => {
   try {
-    const pathCountryCode = event.pathParameters?.country_code;
-    const pathPartyId = event.pathParameters?.party_id;
-    const pathLocationId = event.pathParameters?.location_id;
+    const {
+      country_code: pathCountryCode,
+      party_id: pathPartyId,
+      location_id: pathLocationId,
+    } = parsePathParams(event);
 
     // Parse and validate the incoming location payload
     const bodyResult = parseRequestBody<Location>(event.body);
@@ -61,9 +64,9 @@ export const handler = withVersionCheck(
         location,
         'locations',
         'PUT',
-        location.country_code,
-        location.party_id,
-        [`location_id=${location.id}`],
+        pathCountryCode!,
+        pathPartyId!,
+        [`location_id=${pathLocationId}`],
         receivedAt,
       );
       console.info(
@@ -83,8 +86,8 @@ export const handler = withVersionCheck(
         action: 'PUT',
         type: 'locations',
         location_id: pathLocationId!,
-        country_code: location.country_code,
-        party_id: location.party_id,
+        country_code: pathCountryCode!,
+        party_id: pathPartyId!,
         ocpi_version: ocpiVersion,
         received_at: receivedAt,
         raw: {

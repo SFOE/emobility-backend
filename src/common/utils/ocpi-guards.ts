@@ -218,9 +218,11 @@ export function assertBodyConsistency(
   label: string,
   partnerId: string,
 ): APIGatewayProxyResult | null {
+  // country_code and party_id are CiString (case-insensitive) per OCPI; compare
+  // them case-insensitively. The resource id stays an exact match.
   if (
-    body.country_code === pathCountryCode &&
-    body.party_id === pathPartyId &&
+    body.country_code?.toUpperCase() === pathCountryCode?.toUpperCase() &&
+    body.party_id?.toUpperCase() === pathPartyId?.toUpperCase() &&
     body.id === pathId
   ) {
     return null;

@@ -161,6 +161,32 @@ describe('assertBodyConsistency', () => {
     expect(result?.statusCode).toBe(400);
     expect(parseBody(result!).status_code).toBe(2001);
   });
+
+  it('returns null when country_code/party_id differ only in case (CiString)', () => {
+    expect(
+      assertBodyConsistency(
+        { country_code: 'de', party_id: 'xyz', id: 'T01' },
+        'DE',
+        'XYZ',
+        'T01',
+        'test',
+        'CPO-XYZ-DE',
+      ),
+    ).toBeNull();
+  });
+
+  it('still rejects when only the id differs by case (id is compared exactly)', () => {
+    const result = assertBodyConsistency(
+      { country_code: 'DE', party_id: 'XYZ', id: 't01' },
+      'DE',
+      'XYZ',
+      'T01',
+      'test',
+      'CPO-XYZ-DE',
+    );
+    expect(result?.statusCode).toBe(400);
+    expect(parseBody(result!).status_code).toBe(2001);
+  });
 });
 
 describe('parseRequestBody', () => {

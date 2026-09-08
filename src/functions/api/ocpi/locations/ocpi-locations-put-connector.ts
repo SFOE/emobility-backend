@@ -10,6 +10,7 @@ import {
   parseRequestBody,
   withVersionCheck,
 } from '/opt/nodejs/utils/ocpi-guards';
+import { parsePathParams } from '/opt/nodejs/utils/ocpi-utils';
 import { putRawToS3 } from '/opt/nodejs/aws/s3';
 import { publishIngestionEvent } from '/opt/nodejs/aws/sqs';
 import { Aws } from '/opt/nodejs/aws/constants';
@@ -24,11 +25,13 @@ export const handler = withVersionCheck(
   ocpiVersion: string,
 ): Promise<APIGatewayProxyResult> => {
   try {
-    const pathCountryCode = event.pathParameters?.country_code;
-    const pathPartyId = event.pathParameters?.party_id;
-    const pathLocationId = event.pathParameters?.location_id;
-    const pathEvseUid = event.pathParameters?.evse_uid;
-    const pathConnectorId = event.pathParameters?.connector_id;
+    const {
+      country_code: pathCountryCode,
+      party_id: pathPartyId,
+      location_id: pathLocationId,
+      evse_uid: pathEvseUid,
+      connector_id: pathConnectorId,
+    } = parsePathParams(event);
 
     // Parse and validate the incoming connector payload
     const bodyResult = parseRequestBody<Connector>(event.body);

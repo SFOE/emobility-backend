@@ -1,8 +1,11 @@
-import { extractToken, getPartnerId, getPrimaryRole } from '/opt/nodejs/utils/ocpi-utils';
-import { OCPICredentialRole } from '/opt/nodejs/modules/ocpi-credentials/ocpi-credentials.model';
 import {
-  OCPICredentialItem,
-} from '/opt/nodejs/modules/ocpi-credentials/ocpi-credentials.model';
+  extractToken,
+  getPartnerId,
+  getPrimaryRole,
+  parsePathParams,
+} from '/opt/nodejs/utils/ocpi-utils';
+import { OCPICredentialRole } from '/opt/nodejs/modules/ocpi-credentials/ocpi-credentials.model';
+import { OCPICredentialItem } from '/opt/nodejs/modules/ocpi-credentials/ocpi-credentials.model';
 
 describe('test getPartnerId', () => {
   it('returns CPO role if present', () => {
@@ -73,18 +76,60 @@ describe('test extractToken', () => {
   });
 });
 
+describe('parsePathParams', () => {
+  it('uppercases country_code and party_id and passes ids through unchanged', () => {
+    const result = parsePathParams({
+      pathParameters: {
+        country_code: 'ch',
+        party_id: 'abc',
+        location_id: 'LOC001',
+        evse_uid: 'EVSE001',
+        connector_id: '1',
+        tariff_id: 'TAR001',
+      },
+    });
+
+    expect(result.country_code).toBe('CH');
+    expect(result.party_id).toBe('ABC');
+    expect(result.location_id).toBe('LOC001');
+    expect(result.evse_uid).toBe('EVSE001');
+    expect(result.connector_id).toBe('1');
+    expect(result.tariff_id).toBe('TAR001');
+  });
+
+  it('returns undefined fields when pathParameters is missing or null', () => {
+    expect(parsePathParams({}).country_code).toBeUndefined();
+    expect(parsePathParams({ pathParameters: null }).party_id).toBeUndefined();
+  });
+});
+
 describe('test getPrimaryRole', () => {
   it('returns the CPO role when present', () => {
     const roles: OCPICredentialRole[] = [
-      { role: 'EMSP', party_id: 'ABC', country_code: 'DE', business_details: { name: 'Test EMSP' } },
-      { role: 'CPO', party_id: 'XYZ', country_code: 'CH', business_details: { name: 'Test CPO' } },
+      {
+        role: 'EMSP',
+        party_id: 'ABC',
+        country_code: 'DE',
+        business_details: { name: 'Test EMSP' },
+      },
+      {
+        role: 'CPO',
+        party_id: 'XYZ',
+        country_code: 'CH',
+        business_details: { name: 'Test CPO' },
+      },
     ];
     expect(getPrimaryRole(roles)).toEqual(roles[1]);
   });
 
   it('falls back to the first role when no CPO exists', () => {
     const roles: OCPICredentialRole[] = [
-      { role: 'EMSP', party_id: 'ABC', country_code: 'DE', business_details: { name: 'Test EMSP' } },
+      {
+        role: 'EMSP',
+        party_id: 'ABC',
+        country_code: 'DE',
+        business_details: { name: 'Test EMSP' },
+      },
     ];
     expect(getPrimaryRole(roles)).toEqual(roles[0]);
   });

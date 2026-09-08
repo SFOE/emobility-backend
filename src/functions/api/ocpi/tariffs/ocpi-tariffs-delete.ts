@@ -8,6 +8,7 @@ import {
   assertRole,
   withVersionCheck,
 } from '/opt/nodejs/utils/ocpi-guards';
+import { parsePathParams } from '/opt/nodejs/utils/ocpi-utils';
 import { publishIngestionEvent } from '/opt/nodejs/aws/sqs';
 
 export const handler = withVersionCheck(
@@ -20,9 +21,11 @@ export const handler = withVersionCheck(
   ocpiVersion: string,
 ): Promise<APIGatewayProxyResult> => {
   try {
-    const pathCountryCode = event.pathParameters?.country_code;
-    const pathPartyId = event.pathParameters?.party_id;
-    const pathTariffId = event.pathParameters?.tariff_id;
+    const {
+      country_code: pathCountryCode,
+      party_id: pathPartyId,
+      tariff_id: pathTariffId,
+    } = parsePathParams(event);
 
     const receivedAt = new Date().toISOString();
 
