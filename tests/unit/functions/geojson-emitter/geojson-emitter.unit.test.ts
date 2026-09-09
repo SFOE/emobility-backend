@@ -48,13 +48,13 @@ describe('run — happy path', () => {
       .fn<Promise<StatusItem[]>, []>()
       .mockResolvedValue([]);
     const writeGeoJson = jest
-      .fn<Promise<void>, [GeoJsonFeatureCollection]>()
+      .fn<Promise<void>, [Record<string, GeoJsonFeatureCollection>]>()
       .mockResolvedValue();
 
     await run(loadExport, scanStatus, writeGeoJson, GENERATED_AT);
 
     expect(writeGeoJson).toHaveBeenCalledTimes(1);
-    const written = writeGeoJson.mock.calls[0]![0];
+    const written = writeGeoJson.mock.calls[0]![0].de;
     expect(written.type).toBe('FeatureCollection');
     expect(written.generated_at).toBe(GENERATED_AT);
     expect(written.features).toHaveLength(1);
@@ -69,13 +69,13 @@ describe('run — happy path', () => {
       .fn<Promise<StatusItem[]>, []>()
       .mockResolvedValue([makeStatusItem()]);
     const writeGeoJson = jest
-      .fn<Promise<void>, [GeoJsonFeatureCollection]>()
+      .fn<Promise<void>, [Record<string, GeoJsonFeatureCollection>]>()
       .mockResolvedValue();
 
     await run(loadExport, scanStatus, writeGeoJson, GENERATED_AT);
 
     // CHARGING live status wins over the export's baked-in AVAILABLE
-    const written = writeGeoJson.mock.calls[0]![0];
+    const written = writeGeoJson.mock.calls[0]![0].de;
     expect(written.features[0]!.properties.Availability).toBe('Charging');
   });
 
@@ -90,7 +90,7 @@ describe('run — happy path', () => {
         { ...makeStatusItem(), sk: 'EVSE#UNKNOWN' },
       ]);
     const writeGeoJson = jest
-      .fn<Promise<void>, [GeoJsonFeatureCollection]>()
+      .fn<Promise<void>, [Record<string, GeoJsonFeatureCollection>]>()
       .mockResolvedValue();
     const logSpy = jest.spyOn(console, 'log').mockImplementation();
 
@@ -130,17 +130,20 @@ describe('writeGeoJson — one file per language', () => {
   const BUCKET = 'data.geo.admin.ch';
   const PREFIX = 'ch.bfe.ladestellen-elektromobilitaet/test';
 
-  it('publishes the identical FeatureCollection under all four language keys', async () => {
+  it('publishes one file per language, each with its own content', async () => {
     const send = jest.fn().mockResolvedValue({});
-    const featureCollection = {
-      type: 'FeatureCollection',
-    } as unknown as GeoJsonFeatureCollection;
+    const collections = {
+      de: { type: 'FeatureCollection', name: 'de-content' },
+      fr: { type: 'FeatureCollection', name: 'fr-content' },
+      it: { type: 'FeatureCollection', name: 'it-content' },
+      en: { type: 'FeatureCollection', name: 'en-content' },
+    } as unknown as Record<string, GeoJsonFeatureCollection>;
 
     await writeGeoJson(
       { send } as unknown as S3Client,
       BUCKET,
       PREFIX,
-      featureCollection,
+      collections,
     );
 
     expect(send).toHaveBeenCalledTimes(4);
@@ -153,10 +156,12 @@ describe('writeGeoJson — one file per language', () => {
       `${PREFIX}/ch.bfe.ladestellen-elektromobilitaet_en.json`,
     ]);
 
+    // Each file gets ITS language's collection, not a shared one.
     for (const input of inputs) {
+      const language = input.Key.match(/_(\w\w)\.json$/)![1];
       expect(input.Bucket).toBe(BUCKET);
       expect(input.ContentType).toBe('application/json');
-      expect(input.Body).toBe(JSON.stringify(featureCollection));
+      expect(input.Body).toBe(JSON.stringify(collections[language]));
     }
   });
 
@@ -168,7 +173,7 @@ describe('writeGeoJson — one file per language', () => {
         { send } as unknown as S3Client,
         BUCKET,
         PREFIX,
-        {} as unknown as GeoJsonFeatureCollection,
+        {} as unknown as Record<string, GeoJsonFeatureCollection>,
       ),
     ).rejects.toThrow('S3 PutObject failed');
   });
@@ -183,7 +188,7 @@ describe('run — export failure aborts the run', () => {
       .fn<Promise<StatusItem[]>, []>()
       .mockResolvedValue([]);
     const writeGeoJson = jest
-      .fn<Promise<void>, [GeoJsonFeatureCollection]>()
+      .fn<Promise<void>, [Record<string, GeoJsonFeatureCollection>]>()
       .mockResolvedValue();
 
     await expect(
@@ -203,7 +208,7 @@ describe('run — missing Gold export completes without writing', () => {
       .fn<Promise<StatusItem[]>, []>()
       .mockResolvedValue([]);
     const writeGeoJson = jest
-      .fn<Promise<void>, [GeoJsonFeatureCollection]>()
+      .fn<Promise<void>, [Record<string, GeoJsonFeatureCollection>]>()
       .mockResolvedValue();
     const warnSpy = jest.spyOn(console, 'warn').mockImplementation();
 
@@ -231,14 +236,14 @@ describe('run — status scan failure falls back to baked-in status', () => {
       .fn<Promise<StatusItem[]>, []>()
       .mockRejectedValue(new Error('DynamoDB scan failed'));
     const writeGeoJson = jest
-      .fn<Promise<void>, [GeoJsonFeatureCollection]>()
+      .fn<Promise<void>, [Record<string, GeoJsonFeatureCollection>]>()
       .mockResolvedValue();
 
     await run(loadExport, scanStatus, writeGeoJson, GENERATED_AT);
 
     expect(writeGeoJson).toHaveBeenCalledTimes(1);
     // With no live status, the export's baked-in AVAILABLE is used
-    const written = writeGeoJson.mock.calls[0]![0];
+    const written = writeGeoJson.mock.calls[0]![0].de;
     expect(written.features[0]!.properties.Availability).toBe('Available');
   });
 
@@ -250,7 +255,7 @@ describe('run — status scan failure falls back to baked-in status', () => {
       .fn<Promise<StatusItem[]>, []>()
       .mockRejectedValue(new Error('DynamoDB scan failed'));
     const writeGeoJson = jest
-      .fn<Promise<void>, [GeoJsonFeatureCollection]>()
+      .fn<Promise<void>, [Record<string, GeoJsonFeatureCollection>]>()
       .mockResolvedValue();
 
     await expect(
