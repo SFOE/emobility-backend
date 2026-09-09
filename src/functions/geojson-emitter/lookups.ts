@@ -64,7 +64,18 @@ export const AD_HOC_PAYMENT_TARIFF_TYPE = 'AD_HOC_PAYMENT';
 
 export const PRICE_CURRENCY_FALLBACK = 'CHF';
 
-export const PRICE_FALLBACK_TEXT = 'Information nicht verfügbar.';
+export const PRICE_FALLBACK_TEXT = 'Preisinformationen nicht verfügbar';
+
+// Human-readable connector-type labels. OCPI `standard` codes are cryptic for
+// end users; map the common ones. Anything not listed keeps its OCPI code.
+export const CONNECTOR_STANDARD_LABELS: Record<string, string> = {
+  IEC_62196_T1: 'Type 1',
+  IEC_62196_T2: 'Type 2',
+  IEC_62196_T2_COMBO: 'CCS',
+  CHADEMO: 'CHAdeMO',
+  TESLA_R: 'Tesla',
+  TESLA_S: 'Tesla',
+};
 
 export const WEEKDAY_LABELS: Record<number, string> = {
   1: 'Mo',
@@ -99,4 +110,5 @@ export const VEHICLE_TYPE_LABELS: Record<string, string> = {
 };
 
 export const VEHICLE_TYPES_FALLBACK_TEXT = 'Information nicht verfügbar';
-export const ACCESSIBLE_EVSE_COUNT_FALLBACK_TEXT = 'Information nicht verfügbar';
+export const ACCESSIBLE_EVSE_COUNT_FALLBACK_TEXT =
+  'Information nicht verfügbar';

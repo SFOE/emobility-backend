@@ -5,6 +5,7 @@
 import {
   ACCESSIBLE_EVSE_COUNT_FALLBACK_TEXT,
   AD_HOC_PAYMENT_TARIFF_TYPE,
+  CONNECTOR_STANDARD_LABELS,
   ENERGY_MIX_FALLBACK_TEXT,
   FACILITIES_FALLBACK_TEXT,
   FACILITY_LABELS,
@@ -290,6 +291,12 @@ function renderCoordinates(location: GoldLocation): string {
   return `${location.latitude.toFixed(6)}, ${location.longitude.toFixed(6)}`;
 }
 
+// Maps the OCPI connector `standard` code to a human-readable label, falling
+// back to the raw OCPI code for standards without a friendlier name.
+function connectorStandardLabel(standard: string): string {
+  return CONNECTOR_STANDARD_LABELS[standard] ?? standard;
+}
+
 function renderEvseBlock(
   evse: GoldEvse,
   tariffsByIdMap: Record<string, GoldTariff>,
@@ -299,7 +306,7 @@ function renderEvseBlock(
   const connectorRows = evse.connectors
     .map(
       (connector) =>
-        `<tr><td>Steckdose ${escapeHtml(connector.standard)}` +
+        `<tr><td>Steckdose ${escapeHtml(connectorStandardLabel(connector.standard))}` +
         `<br/>${(connector.max_electric_power / 1000).toFixed(1)}kW` +
         `<br/>${escapeHtml(connectorPrice(connector, tariffsByIdMap))}</td></tr>`,
     )
@@ -349,6 +356,7 @@ export function renderDescription(location: GoldLocation): string {
     `<tr><td class="cell-left">Ladenetzwerk</td><td>${networkLink}</td></tr>` +
     `<tr><td class="cell-left">Standort</td>` +
     `<td>${escapeHtml(location.address_display)}</td></tr>` +
+    `<tr><td class="cell-left">Preis</td><td>Ad-hoc Preis je Ladepunkt</td></tr>` +
     `<tr><td class="cell-left">Bezahlmöglichkeit Kredit-/Debitkarte</td><td>${paymentLine}</td></tr>` +
     `<tr><td class="cell-left">Öffnungszeiten</td><td>${escapeHtml(openingHoursLine)}</td></tr>` +
     `<tr><td class="cell-left">Fahrzeugtyp</td><td>${escapeHtml(vehicleTypesLine)}</td></tr>` +
