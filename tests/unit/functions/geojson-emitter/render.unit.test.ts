@@ -227,7 +227,35 @@ describe('renderDescription — pricing', () => {
     });
 
     expect(renderDescription(location)).toContain(
-      'Information nicht verfügbar.',
+      'Preisinformationen nicht verfügbar',
+    );
+  });
+
+  it('renders human-readable connector labels and falls back to the OCPI code', () => {
+    const location = makeLocation({
+      evses: [
+        makeEvse({
+          connectors: [
+            { standard: 'IEC_62196_T2', max_electric_power: 22000 },
+            { standard: 'IEC_62196_T2_COMBO', max_electric_power: 50000 },
+            { standard: 'CHADEMO', max_electric_power: 50000 },
+            { standard: 'SOME_FUTURE_STANDARD', max_electric_power: 11000 },
+          ],
+        }),
+      ],
+    });
+
+    const html = renderDescription(location);
+    expect(html).toContain('Steckdose Type 2');
+    expect(html).toContain('Steckdose CCS');
+    expect(html).toContain('Steckdose CHAdeMO');
+    // Unknown standards keep their OCPI code.
+    expect(html).toContain('Steckdose SOME_FUTURE_STANDARD');
+  });
+
+  it('shows the ad-hoc price clarification line above the payment row', () => {
+    expect(renderDescription(makeLocation())).toContain(
+      '<td class="cell-left">Preis</td><td>Ad-hoc Preis je Ladepunkt</td>',
     );
   });
 
