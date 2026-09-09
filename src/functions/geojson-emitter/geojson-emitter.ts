@@ -1,13 +1,28 @@
-import { GetObjectCommand, PutObjectCommand, S3Client, } from '@aws-sdk/client-s3';
+import {
+  GetObjectCommand,
+  PutObjectCommand,
+  S3Client,
+} from '@aws-sdk/client-s3';
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocument } from '@aws-sdk/lib-dynamodb';
 import { getRequiredLambdaEnv } from '/opt/nodejs/utils/api.utils';
-import { createCrossAccountS3Client, createStaticCredentialsS3Client, } from '/opt/nodejs/aws/s3';
+import {
+  createCrossAccountS3Client,
+  createStaticCredentialsS3Client,
+} from '/opt/nodejs/aws/s3';
 import { getS3AccessKeySecret } from '/opt/nodejs/aws/secrets-manager';
 import { Aws } from '/opt/nodejs/aws/constants';
 import { overlayStatus, parseStatusItems } from './overlay';
 import { buildFeatureCollection } from './render';
-import type { GeoJsonFeatureCollection, GoldExport, StatusByKey, StatusItem, } from './types';
+import { GEOJSON_LANGUAGES, TRANSLATIONS, type Language } from './translations';
+import type {
+  GeoJsonFeatureCollection,
+  GoldExport,
+  StatusByKey,
+  StatusItem,
+} from './types';
+
+type FeatureCollectionByLanguage = Record<Language, GeoJsonFeatureCollection>;
 
 /**
  * Lambda entry point + pure orchestration.
@@ -33,15 +48,14 @@ import type { GeoJsonFeatureCollection, GoldExport, StatusByKey, StatusItem, } f
  * variables; its S3 client uses static IAM access keys loaded from Secrets
  * Manager, since no cross-account role exists there.
  *
- * The GeoJSON is published once per language (de/fr/it/en) with identical
- * content, because the geo.admin.ch layer configuration expects one file per
- * language initially.
+ * The GeoJSON is published once per language (de/fr/it/en); each file gets its
+ * own translated popup text (see translations.ts), because the geo.admin.ch
+ * layer configuration expects one file per language.
  */
 
 const GOLD_EXPORT_KEY = 'gold_location_serving_export/latest.json';
 const GOLD_GEOJSON_KEY_PREFIX = 'final_geojson';
 const GEOJSON_FILE_BASENAME = 'ch.bfe.ladestellen-elektromobilitaet';
-const GEOJSON_LANGUAGES = ['de', 'fr', 'it', 'en'] as const;
 
 const EVSE_STATUS_TABLE = Aws.dynamoDBTables.evseCurrentStatus;
 
@@ -98,17 +112,14 @@ async function scanDynamoStatus(tableName: string): Promise<StatusItem[]> {
 }
 
 /**
- * Publishes the identical FeatureCollection once per language, since the
- * geo.admin.ch layer configuration expects one file per language.
+ * Publishes one file per language, each with its own translated content.
  */
 export async function writeGeoJson(
   s3Client: S3Client,
   bucket: string,
   keyPrefix: string,
-  featureCollection: GeoJsonFeatureCollection,
+  collectionsByLanguage: FeatureCollectionByLanguage,
 ): Promise<void> {
-  const body = JSON.stringify(featureCollection);
-
   await Promise.all(
     GEOJSON_LANGUAGES.map(async (language) => {
       const key = `${keyPrefix}/${GEOJSON_FILE_BASENAME}_${language}.json`;
@@ -116,7 +127,7 @@ export async function writeGeoJson(
         new PutObjectCommand({
           Bucket: bucket,
           Key: key,
-          Body: body,
+          Body: JSON.stringify(collectionsByLanguage[language]),
           ContentType: 'application/json',
         }),
       );
@@ -137,7 +148,7 @@ export async function run(
   loadExportFn: () => Promise<GoldExport | null>,
   scanStatusFn: () => Promise<StatusItem[]>,
   writeGeoJsonFn: (
-    featureCollection: GeoJsonFeatureCollection,
+    collectionsByLanguage: FeatureCollectionByLanguage,
   ) => Promise<void>,
   generatedAt: string,
 ): Promise<void> {
@@ -175,16 +186,24 @@ export async function run(
     exportData.locations,
     statusByKey,
   );
-  const featureCollection = buildFeatureCollection(
-    overlaidLocations,
-    generatedAt,
-  );
 
   console.log(
     `Applied live status to ${appliedCount} of ${evseCount} EVSEs (${scannedCount - appliedCount} DynamoDB entries had no matching EVSE)`,
   );
 
-  await writeGeoJsonFn(featureCollection);
+  // Build one FeatureCollection per language, each with its own translated text.
+  const collectionsByLanguage = Object.fromEntries(
+    GEOJSON_LANGUAGES.map((language) => [
+      language,
+      buildFeatureCollection(
+        overlaidLocations,
+        generatedAt,
+        TRANSLATIONS[language],
+      ),
+    ]),
+  ) as FeatureCollectionByLanguage;
+
+  await writeGeoJsonFn(collectionsByLanguage);
 }
 
 export const handler = async (): Promise<void> => {
@@ -202,13 +221,13 @@ export const handler = async (): Promise<void> => {
   await run(
     () => loadExport(goldS3Client, goldBucket, GOLD_EXPORT_KEY),
     () => scanDynamoStatus(EVSE_STATUS_TABLE),
-    async (featureCollection) => {
+    async (collectionsByLanguage) => {
       // Gold is written first so a swisstopo failure cannot suppress it.
       await writeGeoJson(
         goldS3Client,
         goldBucket,
         GOLD_GEOJSON_KEY_PREFIX,
-        featureCollection,
+        collectionsByLanguage,
       );
 
       if (swisstopo) {
@@ -223,7 +242,7 @@ export const handler = async (): Promise<void> => {
           }),
           swisstopo.bucketName,
           swisstopo.geoJsonKeyPrefix,
-          featureCollection,
+          collectionsByLanguage,
         );
       }
     },

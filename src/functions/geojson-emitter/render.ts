@@ -1,26 +1,22 @@
 /**
  * Pure GeoJSON/HTML rendering – plain objects in, plain objects out, no AWS/network I/O.
+ *
+ * User-facing text is language-dependent: pass a `Translations` bundle (`t`).
+ * The public entry points default to German so existing German callers/tests
+ * keep working; the emitter passes each language explicitly.
  */
 
 import {
-  ACCESSIBLE_EVSE_COUNT_FALLBACK_TEXT,
   AD_HOC_PAYMENT_TARIFF_TYPE,
   CONNECTOR_STANDARD_LABELS,
-  ENERGY_MIX_FALLBACK_TEXT,
-  FACILITIES_FALLBACK_TEXT,
-  FACILITY_LABELS,
-  OPENING_HOURS_FALLBACK_TEXT,
+  ENERGY_UNIT,
   PRICE_COMPONENT_ORDER,
-  PRICE_COMPONENT_UNITS,
   PRICE_CURRENCY_FALLBACK,
-  PRICE_FALLBACK_TEXT,
   RENEWABLE_ENERGY_SOURCE_CATEGORIES,
   STATUS_CATEGORY_MAP,
-  STATUS_CLASS_LABELS,
-  VEHICLE_TYPE_LABELS,
-  VEHICLE_TYPES_FALLBACK_TEXT,
-  WEEKDAY_LABELS,
+  STATUS_CSS_CLASS,
 } from './lookups';
+import { TRANSLATIONS, type Translations } from './translations';
 import type {
   EnergyMix,
   GeoJsonFeature,
@@ -58,6 +54,12 @@ function escapeHtml(str: string): string {
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#039;');
+}
+
+// Time suffix appended after a time range (e.g. " Uhr"); empty for languages
+// that don't use one.
+function clockSuffix(t: Translations): string {
+  return t.clockSuffix ? ` ${t.clockSuffix}` : '';
 }
 
 export function computeAvailability(evses: GoldEvse[]): string {
@@ -99,7 +101,21 @@ function sumPriceComponentsByType(
   return totals;
 }
 
-function formatTariffPrice(tariff: GoldTariff): string | null {
+function priceComponentUnit(type: string, t: Translations): string {
+  switch (type) {
+    case 'ENERGY':
+      return ENERGY_UNIT;
+    case 'FLAT':
+      return t.units.charge;
+    case 'TIME':
+    case 'PARKING_TIME':
+      return t.units.minute;
+    default:
+      return type;
+  }
+}
+
+function formatTariffPrice(tariff: GoldTariff, t: Translations): string | null {
   const totals = sumPriceComponentsByType(tariffPriceComponents(tariff));
   if (Object.keys(totals).length === 0) {
     return null;
@@ -108,7 +124,7 @@ function formatTariffPrice(tariff: GoldTariff): string | null {
   return PRICE_COMPONENT_ORDER.filter((type) => type in totals)
     .map(
       (type) =>
-        `${formatG(totals[type]!)} ${currency}/${PRICE_COMPONENT_UNITS[type]}`,
+        `${formatG(totals[type]!)} ${currency}/${priceComponentUnit(type, t)}`,
     )
     .join(' + ');
 }
@@ -124,17 +140,18 @@ function indexTariffsById(tariffs: GoldTariff[]): Record<string, GoldTariff> {
 function connectorPrice(
   connector: GoldConnector,
   tariffsByIdMap: Record<string, GoldTariff>,
+  t: Translations,
 ): string {
   for (const tariffId of connector.tariff_ids ?? []) {
     const tariff = tariffsByIdMap[tariffId];
     if (tariff !== undefined && tariff.type === AD_HOC_PAYMENT_TARIFF_TYPE) {
-      const price = formatTariffPrice(tariff);
+      const price = formatTariffPrice(tariff, t);
       if (price !== null) {
         return price;
       }
     }
   }
-  return PRICE_FALLBACK_TEXT;
+  return t.priceUnavailable;
 }
 
 function parseJsonField<T>(rawJson: string | undefined | null): T | null {
@@ -188,101 +205,115 @@ function formatExceptionalDatetime(value: string): string {
   return `${dd}.${mm}.${yyyy} ${hh}:${min}`;
 }
 
-function formatExceptionalPeriod(period: {
-  period_begin: string;
-  period_end: string;
-}): string {
+function formatExceptionalPeriod(
+  period: { period_begin: string; period_end: string },
+  t: Translations,
+): string {
   const begin = formatExceptionalDatetime(period.period_begin);
   const end = formatExceptionalDatetime(period.period_end);
-  return `${begin}-${end} Uhr`;
+  return `${begin}-${end}${clockSuffix(t)}`;
 }
 
-function renderExceptionalPeriods(openingHours: OpeningHours): string[] {
+function renderExceptionalPeriods(
+  openingHours: OpeningHours,
+  t: Translations,
+): string[] {
   const notes: string[] = [];
   const openings = openingHours.exceptional_openings ?? [];
   if (openings.length > 0) {
     notes.push(
-      'Zusätzlich geöffnet: ' +
-        openings.map(formatExceptionalPeriod).join(', '),
+      `${t.additionallyOpen} ` +
+        openings.map((p) => formatExceptionalPeriod(p, t)).join(', '),
     );
   }
   const closings = openingHours.exceptional_closings ?? [];
   if (closings.length > 0) {
     notes.push(
-      'Ausnahmsweise geschlossen: ' +
-        closings.map(formatExceptionalPeriod).join(', '),
+      `${t.exceptionallyClosed} ` +
+        closings.map((p) => formatExceptionalPeriod(p, t)).join(', '),
     );
   }
   return notes;
 }
 
-function renderOpeningHours(openingHours: OpeningHours | null): string {
+function renderOpeningHours(
+  openingHours: OpeningHours | null,
+  t: Translations,
+): string {
   if (!openingHours) {
-    return OPENING_HOURS_FALLBACK_TEXT;
+    return t.notSpecified;
   }
+  const clock = clockSuffix(t);
   let base: string;
   if (openingHours.twentyfourseven) {
-    base = 'Mo-So, 0:00-24:00 Uhr';
+    base = `${t.weekdays[1]}-${t.weekdays[7]}, 0:00-24:00${clock}`;
   } else {
     const regularHours = openingHours.regular_hours ?? [];
     if (regularHours.length === 0) {
-      base = OPENING_HOURS_FALLBACK_TEXT;
+      base = t.notSpecified;
     } else {
       const parts = groupWeekdayRanges(regularHours).map((group) => {
         const startLabel =
-          WEEKDAY_LABELS[group.start_day] ?? String(group.start_day);
-        const endLabel = WEEKDAY_LABELS[group.end_day] ?? String(group.end_day);
+          t.weekdays[group.start_day] ?? String(group.start_day);
+        const endLabel = t.weekdays[group.end_day] ?? String(group.end_day);
         const dayRange =
           group.start_day === group.end_day
             ? startLabel
             : `${startLabel}-${endLabel}`;
-        return `${dayRange}, ${group.period_begin}-${group.period_end} Uhr`;
+        return `${dayRange}, ${group.period_begin}-${group.period_end}${clock}`;
       });
       base = parts.join(', ');
     }
   }
-  return [base, ...renderExceptionalPeriods(openingHours)].join('; ');
+  return [base, ...renderExceptionalPeriods(openingHours, t)].join('; ');
 }
 
-function renderPayment(location: GoldLocation): string {
+function renderPayment(location: GoldLocation, t: Translations): string {
   return location.credit_card_payable || location.debit_card_payable
-    ? 'Ja'
-    : 'Nein';
+    ? t.yes
+    : t.no;
 }
 
-function renderEnergyMix(energyMix: EnergyMix | null): string {
+function renderEnergyMix(energyMix: EnergyMix | null, t: Translations): string {
   if (!energyMix) {
-    return ENERGY_MIX_FALLBACK_TEXT;
+    return t.notSpecified;
   }
   const sources = energyMix.energy_sources ?? [];
   if (sources.length === 0) {
-    return ENERGY_MIX_FALLBACK_TEXT;
+    return t.notSpecified;
   }
   const renewablePercentage = sources
     .filter((s) => RENEWABLE_ENERGY_SOURCE_CATEGORIES.has(s.source))
     .reduce((sum, s) => sum + s.percentage, 0);
-  return `${formatG(renewablePercentage)}% erneuerbar`;
+  return `${formatG(renewablePercentage)}% ${t.renewableSuffix}`;
 }
 
-function renderFacilities(facilities: string[] | undefined): string {
+function renderFacilities(
+  facilities: string[] | undefined,
+  t: Translations,
+): string {
   if (!facilities || facilities.length === 0) {
-    return FACILITIES_FALLBACK_TEXT;
+    return t.notSpecified;
   }
-  return facilities.map((f) => FACILITY_LABELS[f] ?? f).join(', ');
+  return facilities.map((f) => t.facilities[f] ?? f).join(', ');
 }
 
-function renderVehicleTypes(vehicleTypes: string[] | undefined): string {
+function renderVehicleTypes(
+  vehicleTypes: string[] | undefined,
+  t: Translations,
+): string {
   if (!vehicleTypes || vehicleTypes.length === 0) {
-    return VEHICLE_TYPES_FALLBACK_TEXT;
+    return t.infoUnavailable;
   }
-  return vehicleTypes.map((v) => VEHICLE_TYPE_LABELS[v] ?? v).join(', ');
+  return vehicleTypes.map((v) => t.vehicleTypes[v] ?? v).join(', ');
 }
 
 function renderAccessibleEvseCount(
   accessibleEvseCount: string | undefined,
+  t: Translations,
 ): string {
   if (!accessibleEvseCount || accessibleEvseCount.endsWith('/0')) {
-    return ACCESSIBLE_EVSE_COUNT_FALLBACK_TEXT;
+    return t.infoUnavailable;
   }
   return accessibleEvseCount;
 }
@@ -300,15 +331,17 @@ function connectorStandardLabel(standard: string): string {
 function renderEvseBlock(
   evse: GoldEvse,
   tariffsByIdMap: Record<string, GoldTariff>,
+  t: Translations,
 ): string {
   const category = statusCategory(evse.status);
-  const [cssClass, label] = STATUS_CLASS_LABELS[category]!;
+  const cssClass = STATUS_CSS_CLASS[category] ?? 'unknown';
+  const label = t.status[category] ?? category;
   const connectorRows = evse.connectors
     .map(
       (connector) =>
-        `<tr><td>Steckdose ${escapeHtml(connectorStandardLabel(connector.standard))}` +
+        `<tr><td>${t.socketPrefix} ${escapeHtml(connectorStandardLabel(connector.standard))}` +
         `<br/>${(connector.max_electric_power / 1000).toFixed(1)}kW` +
-        `<br/>${escapeHtml(connectorPrice(connector, tariffsByIdMap))}</td></tr>`,
+        `<br/>${escapeHtml(connectorPrice(connector, tariffsByIdMap, t))}</td></tr>`,
     )
     .join('');
   return (
@@ -319,60 +352,68 @@ function renderEvseBlock(
   );
 }
 
-function renderNetwork(location: GoldLocation): string {
-  const operatorName = escapeHtml(
-    location.operator_name ?? 'Information not available',
-  );
+function renderNetwork(location: GoldLocation, t: Translations): string {
+  const operatorName = escapeHtml(location.operator_name ?? t.infoUnavailable);
   if (!location.operator_url) {
     return operatorName;
   }
   return `<a href="${escapeHtml(location.operator_url)}" target="_blank">${operatorName}</a>`;
 }
 
-export function renderDescription(location: GoldLocation): string {
+export function renderDescription(
+  location: GoldLocation,
+  t: Translations = TRANSLATIONS.de,
+): string {
   const tariffsByIdMap = indexTariffsById(location.tariffs);
   const evseBlocks = location.evses
-    .map((evse) => renderEvseBlock(evse, tariffsByIdMap))
+    .map((evse) => renderEvseBlock(evse, tariffsByIdMap, t))
     .join('');
   const feedbackIds = escapeHtml(location.evse_ids.join(','));
-  const networkLink = renderNetwork(location);
+  const networkLink = renderNetwork(location, t);
   const openingHoursLine = renderOpeningHours(
     parseJsonField<OpeningHours>(location.opening_hours_json),
+    t,
   );
-  const paymentLine = renderPayment(location);
-  const facilitiesLine = renderFacilities(location.facilities);
+  const paymentLine = renderPayment(location, t);
+  const facilitiesLine = renderFacilities(location.facilities, t);
   const energyMixLine = renderEnergyMix(
     parseJsonField<EnergyMix>(location.energy_mix_json),
+    t,
   );
-  const vehicleTypesLine = renderVehicleTypes(location.vehicle_types);
+  const vehicleTypesLine = renderVehicleTypes(location.vehicle_types, t);
   const accessibleEvseCountLine = renderAccessibleEvseCount(
     location.accessible_evse_count,
+    t,
   );
   const coordinatesLine = renderCoordinates(location);
+  const l = t.labels;
 
   return (
     `<div class="evse-data">${evseBlocks}</div>` +
     `<div class="station-data"><table><tbody>` +
-    `<tr><td class="cell-left">Ladenetzwerk</td><td>${networkLink}</td></tr>` +
-    `<tr><td class="cell-left">Standort</td>` +
+    `<tr><td class="cell-left">${l.network}</td><td>${networkLink}</td></tr>` +
+    `<tr><td class="cell-left">${l.location}</td>` +
     `<td>${escapeHtml(location.address_display)}</td></tr>` +
-    `<tr><td class="cell-left">Preis</td><td>Ad-hoc Preis je Ladepunkt</td></tr>` +
-    `<tr><td class="cell-left">Bezahlmöglichkeit Kredit-/Debitkarte</td><td>${paymentLine}</td></tr>` +
-    `<tr><td class="cell-left">Öffnungszeiten</td><td>${escapeHtml(openingHoursLine)}</td></tr>` +
-    `<tr><td class="cell-left">Fahrzeugtyp</td><td>${escapeHtml(vehicleTypesLine)}</td></tr>` +
-    `<tr><td class="cell-left">Anzahl Ladepunkte für Menschen mit Beeinträchtigung</td>` +
+    `<tr><td class="cell-left">${l.price}</td><td>${l.adHocPrice}</td></tr>` +
+    `<tr><td class="cell-left">${l.payment}</td><td>${paymentLine}</td></tr>` +
+    `<tr><td class="cell-left">${l.openingHours}</td><td>${escapeHtml(openingHoursLine)}</td></tr>` +
+    `<tr><td class="cell-left">${l.vehicleType}</td><td>${escapeHtml(vehicleTypesLine)}</td></tr>` +
+    `<tr><td class="cell-left">${l.accessibleEvseCount}</td>` +
     `<td>${escapeHtml(accessibleEvseCountLine)}</td></tr>` +
-    `<tr><td class="cell-left">Infrastruktur</td><td>${escapeHtml(facilitiesLine)}</td></tr>` +
-    `<tr><td class="cell-left">Energiequelle</td><td>${energyMixLine}</td></tr>` +
-    `<tr><td class="cell-left">Fehlerhafte Angaben?</td>` +
+    `<tr><td class="cell-left">${l.infrastructure}</td><td>${escapeHtml(facilitiesLine)}</td></tr>` +
+    `<tr><td class="cell-left">${l.energySource}</td><td>${energyMixLine}</td></tr>` +
+    `<tr><td class="cell-left">${l.feedbackQuestion}</td>` +
     `<td><a href="${FEEDBACK_URL}?stationids=${feedbackIds}" ` +
-    `target="_blank">Rückmeldung senden</a></td></tr>` +
-    `<tr><td class="cell-left">Geokoordinaten</td><td>${coordinatesLine}</td></tr>` +
+    `target="_blank">${l.feedbackLink}</a></td></tr>` +
+    `<tr><td class="cell-left">${l.coordinates}</td><td>${coordinatesLine}</td></tr>` +
     `</tbody></table></div>`
   );
 }
 
-export function buildFeature(location: GoldLocation): GeoJsonFeature {
+export function buildFeature(
+  location: GoldLocation,
+  t: Translations = TRANSLATIONS.de,
+): GeoJsonFeature {
   const availability = computeAvailability(location.evses);
   return {
     type: 'Feature',
@@ -385,7 +426,7 @@ export function buildFeature(location: GoldLocation): GeoJsonFeature {
       location_id: location.full_location_id,
       Availability: availability,
       symbology: computeSymbology(availability, location.evses),
-      description: renderDescription(location),
+      description: renderDescription(location, t),
     },
   };
 }
@@ -393,6 +434,7 @@ export function buildFeature(location: GoldLocation): GeoJsonFeature {
 export function buildFeatureCollection(
   locations: GoldLocation[],
   generatedAt: string,
+  t: Translations = TRANSLATIONS.de,
 ): GeoJsonFeatureCollection {
   // Per-location isolation: a single malformed Gold location (e.g. null latitude
   // or invalid opening_hours_json) must not abort the entire national publish.
@@ -401,7 +443,7 @@ export function buildFeatureCollection(
   let skipped = 0;
   for (const location of locations) {
     try {
-      features.push(buildFeature(location));
+      features.push(buildFeature(location, t));
     } catch (err) {
       skipped++;
       console.error(

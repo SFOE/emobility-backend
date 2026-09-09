@@ -1,16 +1,16 @@
 import {
   AD_HOC_PAYMENT_TARIFF_TYPE,
+  CONNECTOR_STANDARD_LABELS,
+  ENERGY_UNIT,
   PRICE_COMPONENT_ORDER,
-  PRICE_COMPONENT_UNITS,
   RENEWABLE_ENERGY_SOURCE_CATEGORIES,
   STATUS_CATEGORY_MAP,
-  STATUS_CLASS_LABELS,
-  WEEKDAY_LABELS,
+  STATUS_CSS_CLASS,
 } from '../../../../src/functions/geojson-emitter/lookups';
 
-describe('STATUS_CATEGORY_MAP / STATUS_CLASS_LABELS consistency', () => {
+describe('STATUS_CATEGORY_MAP / STATUS_CSS_CLASS consistency', () => {
   it('maps every category to one of the five display classes', () => {
-    const displayClasses = new Set(Object.keys(STATUS_CLASS_LABELS));
+    const displayClasses = new Set(Object.keys(STATUS_CSS_CLASS));
     for (const category of Object.values(STATUS_CATEGORY_MAP)) {
       expect(displayClasses.has(category)).toBe(true);
     }
@@ -30,21 +30,26 @@ describe('STATUS_CATEGORY_MAP / STATUS_CLASS_LABELS consistency', () => {
     expect(STATUS_CATEGORY_MAP['UNKNOWN']).toBe('UNKNOWN');
   });
 
-  it('provides a [cssClass, label] pair for each display class', () => {
-    for (const [cssClass, label] of Object.values(STATUS_CLASS_LABELS)) {
+  it('provides a non-empty CSS class for each display class', () => {
+    for (const cssClass of Object.values(STATUS_CSS_CLASS)) {
       expect(typeof cssClass).toBe('string');
       expect(cssClass.length).toBeGreaterThan(0);
-      expect(typeof label).toBe('string');
-      expect(label.length).toBeGreaterThan(0);
     }
   });
 });
 
 describe('price component tables', () => {
-  it('has a unit for every ordered price component type', () => {
-    for (const componentType of PRICE_COMPONENT_ORDER) {
-      expect(PRICE_COMPONENT_UNITS[componentType]).toBeDefined();
-    }
+  it('orders the expected price component types', () => {
+    expect(PRICE_COMPONENT_ORDER).toEqual([
+      'ENERGY',
+      'FLAT',
+      'PARKING_TIME',
+      'TIME',
+    ]);
+  });
+
+  it('uses kWh as the (universal) energy unit', () => {
+    expect(ENERGY_UNIT).toBe('kWh');
   });
 
   it('exposes AD_HOC_PAYMENT as the ad-hoc tariff type', () => {
@@ -52,11 +57,11 @@ describe('price component tables', () => {
   });
 });
 
-describe('WEEKDAY_LABELS', () => {
-  it('maps ISO weekdays 1..7 to German abbreviations', () => {
-    expect(Object.keys(WEEKDAY_LABELS)).toHaveLength(7);
-    expect(WEEKDAY_LABELS[1]).toBe('Mo');
-    expect(WEEKDAY_LABELS[7]).toBe('So');
+describe('CONNECTOR_STANDARD_LABELS', () => {
+  it('maps common OCPI standards to friendly names', () => {
+    expect(CONNECTOR_STANDARD_LABELS['IEC_62196_T2']).toBe('Type 2');
+    expect(CONNECTOR_STANDARD_LABELS['IEC_62196_T2_COMBO']).toBe('CCS');
+    expect(CONNECTOR_STANDARD_LABELS['CHADEMO']).toBe('CHAdeMO');
   });
 });
 
