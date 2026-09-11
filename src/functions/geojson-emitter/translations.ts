@@ -1,15 +1,5 @@
 /**
  * Central, language-keyed translations for the user-facing GeoJSON popup text.
- *
- * `de` is the authoritative source (matches what production has shipped so far).
- * `fr`, `it` and `en` are provided here so each swisstopo language file gets its
- * own language instead of German everywhere.
- *
- * NOTE: the fr/it/en strings are a first translation pass and should be reviewed
- * by native speakers / the BFE before being treated as final. Machine-facing
- * values (the `Availability` property, `symbology`, CSS classes, connector
- * standard codes, the `kWh` unit and the currency) are intentionally NOT
- * translated — they live in lookups.ts and must stay stable across languages.
  */
 
 export const GEOJSON_LANGUAGES = ['de', 'fr', 'it', 'en'] as const;

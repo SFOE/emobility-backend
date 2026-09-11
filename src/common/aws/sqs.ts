@@ -8,16 +8,11 @@ const OCPI_INGESTION_NAMESPACE = 'OCPI/Ingestion';
 
 export type IngestionAction = 'PUT' | 'PATCH' | 'DELETE';
 export type IngestionObjectType =
-  | 'tariffs'
-  | 'locations'
-  | 'evse'
-  | 'connector';
+  'tariffs' | 'locations' | 'evse' | 'connector';
 
 export interface IngestionEvent {
   action: IngestionAction;
   type: IngestionObjectType;
-  // Composite id derived from the path identifiers (see buildObjectId).
-  object_id: string;
   location_id?: string;
   evse_uid?: string;
   connector_id?: string;
@@ -32,30 +27,10 @@ export interface IngestionEvent {
   } | null;
 }
 
-// Handler-facing shape: everything except object_id, which publishIngestionEvent
-// derives centrally from the path identifiers.
-export type IngestionEventInput = Omit<IngestionEvent, 'object_id'>;
-
-// Derives the canonical object_id from the path identifiers per object type:
-// location: "LOC001"; evse: "LOC001*EVSE001"; connector: "LOC001*EVSE001*1"; tariff: "TARIFF001".
-const buildObjectId = (event: IngestionEventInput): string => {
-  switch (event.type) {
-    case 'locations':
-      return `${event.location_id}`;
-    case 'evse':
-      return `${event.location_id}*${event.evse_uid}`;
-    case 'connector':
-      return `${event.location_id}*${event.evse_uid}*${event.connector_id}`;
-    case 'tariffs':
-      return `${event.tariff_id}`;
-  }
-};
-
 // Flat output record written per ingestion event to the Landing Zone.
 export interface RawDataRecord {
   action: IngestionAction; // PUT | PATCH | DELETE
   type: IngestionObjectType; // locations | evse | connector | tariffs
-  object_id: string; // location: "LOC001"; evse: "LOC001*EVSE001"; connector: "LOC001*EVSE001*1"; tariff: "TARIFF001"
   location_id?: string;
   evse_uid?: string;
   connector_id?: string;
@@ -74,7 +49,6 @@ export const buildRawDataRecord = (
 ): RawDataRecord => ({
   action: event.action,
   type: event.type,
-  object_id: event.object_id,
   location_id: event.location_id,
   evse_uid: event.evse_uid,
   connector_id: event.connector_id,
@@ -86,13 +60,10 @@ export const buildRawDataRecord = (
   payload: rawPayload, // populated for PUT and PATCH events
 });
 
-// Publishes an ingestion event to SQS for downstream processing. object_id is
-// derived here from the path identifiers so handlers only pass the raw ids.
+// Publishes an ingestion event to SQS for downstream processing.
 export const publishIngestionEvent = async (
-  input: IngestionEventInput,
+  event: IngestionEvent,
 ): Promise<void> => {
-  const event: IngestionEvent = { ...input, object_id: buildObjectId(input) };
-
   await sqsClient.send(
     new SendMessageCommand({
       QueueUrl: Aws.ingestionQueueUrl,
@@ -127,9 +98,6 @@ const emitIngestionMetric = (event: IngestionEvent): void => {
       country_code: event.country_code,
       party_id: event.party_id,
       ocpi_version: event.ocpi_version,
-    },
-    properties: {
-      object_id: event.object_id,
     },
   });
 };

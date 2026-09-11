@@ -98,7 +98,7 @@ describe('ocpi-locations-patch-evse handler', () => {
       );
     });
 
-    it('publishes a PATCH ingestion event to SQS with composite object_id and S3 reference', async () => {
+    it('publishes a PATCH ingestion event to SQS with the path ids and S3 reference', async () => {
       await handler(buildEvsePatchEvent());
 
       expect(mockPublishIngestionEvent).toHaveBeenCalledWith(

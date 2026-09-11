@@ -61,7 +61,7 @@ describe('ocpi-locations-patch integration', () => {
         expect(event).toMatchObject({
             action: 'PATCH',
             type: 'locations',
-            object_id: LOCATION_ID,
+            location_id: LOCATION_ID,
             country_code: VALID_LOCATION.country_code,
             party_id: VALID_LOCATION.party_id,
             raw: { bucket: BUCKET_NAME, key: expect.any(String) },

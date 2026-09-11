@@ -91,7 +91,7 @@ describe('ocpi-locations-put-connector handler', () => {
       );
     });
 
-    it('publishes a PUT ingestion event to SQS with composite object_id and S3 reference', async () => {
+    it('publishes a PUT ingestion event to SQS with the path ids and S3 reference', async () => {
       await handler(buildConnectorPutEvent());
 
       expect(mockPublishIngestionEvent).toHaveBeenCalledWith(

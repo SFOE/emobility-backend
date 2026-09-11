@@ -52,7 +52,7 @@ describe('ocpi-locations-patch-connector integration', () => {
         expect(parseBody(result).status_code).toBe(1000);
     });
 
-    it('publishes a PATCH ingestion event to SQS with composite object_id and S3 reference', async () => {
+    it('publishes a PATCH ingestion event to SQS with the path ids and S3 reference', async () => {
         await handler(buildConnectorPatchEvent());
 
         const received = await sqsClient.send(
@@ -66,7 +66,9 @@ describe('ocpi-locations-patch-connector integration', () => {
         expect(event).toMatchObject({
             action: 'PATCH',
             type: 'connector',
-            object_id: `${LOCATION_ID}*${EVSE_UID}*${CONNECTOR_ID}`,
+            location_id: LOCATION_ID,
+            evse_uid: EVSE_UID,
+            connector_id: CONNECTOR_ID,
             country_code: VALID_LOCATION.country_code,
             party_id: VALID_LOCATION.party_id,
             raw: { bucket: BUCKET_NAME, key: expect.any(String) },

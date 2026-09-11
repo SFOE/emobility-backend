@@ -77,7 +77,7 @@ describe('ocpi-locations-put-evse integration', () => {
         expect(stored).toEqual(VALID_EVSE);
     });
 
-    it('publishes a PUT ingestion event to SQS with composite object_id and S3 reference', async () => {
+    it('publishes a PUT ingestion event to SQS with the path ids and S3 reference', async () => {
         await handler(buildEvsePutEvent());
 
         const received = await sqsClient.send(
@@ -91,7 +91,8 @@ describe('ocpi-locations-put-evse integration', () => {
         expect(event).toMatchObject({
             action: 'PUT',
             type: 'evse',
-            object_id: `${LOCATION_ID}*${EVSE_UID}`,
+            location_id: LOCATION_ID,
+            evse_uid: EVSE_UID,
             country_code: VALID_LOCATION.country_code,
             party_id: VALID_LOCATION.party_id,
             raw: {
