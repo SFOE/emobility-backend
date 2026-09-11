@@ -57,7 +57,7 @@ describe('emitMetric (EMF)', () => {
       value: 5,
       dimensionSets: [['type']],
       dimensions: { type: 'tariffs', party_id: 'XYZ' },
-      properties: { object_id: 'TARIFF001' },
+      properties: { request_id: 'REQ001' },
     });
 
     const emf = parseEmitted();
@@ -65,7 +65,7 @@ describe('emitMetric (EMF)', () => {
     expect(emf.ObjectsIngested).toBe(5);
     expect(emf.type).toBe('tariffs');
     expect(emf.party_id).toBe('XYZ');
-    expect(emf.object_id).toBe('TARIFF001');
+    expect(emf.request_id).toBe('REQ001');
   });
 
   it('defaults the unit to Count when none is provided', () => {

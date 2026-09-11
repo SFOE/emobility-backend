@@ -35,7 +35,7 @@ export type GuardFn = (
 /**
  * Reads the OCPI path parameters once. country_code and party_id are CiString
  * and normalized to uppercase, so they stay consistent everywhere they become
- * S3 partitions, DynamoDB keys, object_ids and metric dimensions.
+ * S3 partitions, DynamoDB keys and metric dimensions.
  */
 export const parsePathParams = (event: {
   pathParameters?: { [name: string]: string | undefined } | null;

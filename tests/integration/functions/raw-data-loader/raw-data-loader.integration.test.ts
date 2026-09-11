@@ -116,7 +116,7 @@ describe('raw-data-loader integration', () => {
     const ingestionEvent: IngestionEvent = {
       action: 'PUT',
       type: 'tariffs',
-      object_id: TARIFF_ID,
+      tariff_id: TARIFF_ID,
       country_code: 'DE',
       party_id: 'EMS',
       ocpi_version: '2.2.1',
@@ -137,7 +137,7 @@ describe('raw-data-loader integration', () => {
     expect(uploadedRecords).toHaveLength(1);
     expect(uploadedRecords[0].action).toBe('PUT');
     expect(uploadedRecords[0].payload).toEqual(VALID_TARIFF);
-    expect(uploadedRecords[0].object_id).toBe(TARIFF_ID);
+    expect(uploadedRecords[0].tariff_id).toBe(TARIFF_ID);
   });
 
   it('PATCH record: fetches S3 object and writes enriched RawDataRecord with payload to JSONL.GZ batch', async () => {
@@ -155,7 +155,7 @@ describe('raw-data-loader integration', () => {
     const ingestionEvent: IngestionEvent = {
       action: 'PATCH',
       type: 'tariffs',
-      object_id: TARIFF_ID,
+      tariff_id: TARIFF_ID,
       country_code: 'DE',
       party_id: 'EMS',
       ocpi_version: '2.2.1',
@@ -176,14 +176,14 @@ describe('raw-data-loader integration', () => {
     expect(uploadedRecords).toHaveLength(1);
     expect(uploadedRecords[0].action).toBe('PATCH');
     expect(uploadedRecords[0].payload).toEqual(patchPayload);
-    expect(uploadedRecords[0].object_id).toBe(TARIFF_ID);
+    expect(uploadedRecords[0].tariff_id).toBe(TARIFF_ID);
   });
 
   it('DELETE record: writes enriched RawDataRecord with null payload to JSONL.GZ batch', async () => {
     const ingestionEvent: IngestionEvent = {
       action: 'DELETE',
       type: 'tariffs',
-      object_id: TARIFF_ID,
+      tariff_id: TARIFF_ID,
       country_code: 'DE',
       party_id: 'EMS',
       ocpi_version: '2.2.1',
@@ -219,7 +219,7 @@ describe('raw-data-loader integration', () => {
     const putEvent: IngestionEvent = {
       action: 'PUT',
       type: 'tariffs',
-      object_id: TARIFF_ID,
+      tariff_id: TARIFF_ID,
       country_code: 'DE',
       party_id: 'EMS',
       ocpi_version: '2.2.1',
@@ -239,7 +239,7 @@ describe('raw-data-loader integration', () => {
     const patchEvent: IngestionEvent = {
       action: 'PATCH',
       type: 'tariffs',
-      object_id: TARIFF_ID,
+      tariff_id: TARIFF_ID,
       country_code: 'DE',
       party_id: 'EMS',
       ocpi_version: '2.2.1',
@@ -269,7 +269,7 @@ describe('raw-data-loader integration', () => {
     const ingestionEvent: IngestionEvent = {
       action: 'PUT',
       type: 'tariffs',
-      object_id: TARIFF_ID,
+      tariff_id: TARIFF_ID,
       country_code: 'DE',
       party_id: 'EMS',
       ocpi_version: '2.2.1',

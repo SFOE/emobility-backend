@@ -86,7 +86,7 @@ describe('ocpi-locations-put-evse handler', () => {
       );
     });
 
-    it('publishes a PUT ingestion event to SQS with composite object_id and S3 reference', async () => {
+    it('publishes a PUT ingestion event to SQS with the path ids and S3 reference', async () => {
       await handler(buildEvsePutEvent());
 
       expect(mockPublishIngestionEvent).toHaveBeenCalledWith(

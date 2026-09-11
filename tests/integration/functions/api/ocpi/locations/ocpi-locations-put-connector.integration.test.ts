@@ -78,7 +78,7 @@ describe('ocpi-locations-put-connector integration', () => {
         expect(stored).toEqual(VALID_CONNECTOR);
     });
 
-    it('publishes a PUT ingestion event to SQS with composite object_id and S3 reference', async () => {
+    it('publishes a PUT ingestion event to SQS with the path ids and S3 reference', async () => {
         await handler(buildConnectorPutEvent());
 
         const received = await sqsClient.send(
@@ -92,7 +92,9 @@ describe('ocpi-locations-put-connector integration', () => {
         expect(event).toMatchObject({
             action: 'PUT',
             type: 'connector',
-            object_id: `${LOCATION_ID}*${EVSE_UID}*${CONNECTOR_ID}`,
+            location_id: LOCATION_ID,
+            evse_uid: EVSE_UID,
+            connector_id: CONNECTOR_ID,
             country_code: VALID_LOCATION.country_code,
             party_id: VALID_LOCATION.party_id,
             raw: {

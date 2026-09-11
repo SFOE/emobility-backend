@@ -37,7 +37,6 @@ const MOCK_PATCH_S3_KEY =
 const PUT_EVENT: IngestionEvent = {
   action: 'PUT',
   type: 'tariffs',
-  object_id: TARIFF_ID,
   tariff_id: TARIFF_ID,
   country_code: 'DE',
   party_id: 'EMS',
@@ -54,7 +53,6 @@ const MOCK_PATCH_PAYLOAD = {
 const PATCH_EVENT: IngestionEvent = {
   action: 'PATCH',
   type: 'tariffs',
-  object_id: TARIFF_ID,
   tariff_id: TARIFF_ID,
   country_code: 'DE',
   party_id: 'EMS',
@@ -66,7 +64,6 @@ const PATCH_EVENT: IngestionEvent = {
 const DELETE_EVENT: IngestionEvent = {
   action: 'DELETE',
   type: 'tariffs',
-  object_id: TARIFF_ID,
   tariff_id: TARIFF_ID,
   country_code: 'DE',
   party_id: 'EMS',
@@ -154,7 +151,7 @@ describe('raw-data-loader handler', () => {
       expect(uploadedRecords).toHaveLength(1);
       expect(uploadedRecords[0].payload).toEqual(VALID_TARIFF);
       expect(uploadedRecords[0].action).toBe('PUT');
-      // The individual path id lands in the Landing Zone record next to object_id.
+      // The individual path id lands in the Landing Zone record.
       expect(uploadedRecords[0].tariff_id).toBe(TARIFF_ID);
     });
   });
