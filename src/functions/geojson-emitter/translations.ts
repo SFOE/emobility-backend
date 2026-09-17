@@ -21,7 +21,7 @@ export interface Translations {
     minute: string; // TIME / PARKING_TIME price component unit
   };
   labels: {
-    network: string;
+    operator: string;
     location: string;
     price: string;
     adHocPrice: string;
@@ -56,7 +56,7 @@ const de: Translations = {
   renewableSuffix: 'erneuerbar',
   units: { charge: 'Ladung', minute: 'Min' },
   labels: {
-    network: 'Ladenetzwerk',
+    operator: 'Betreiber',
     location: 'Standort',
     price: 'Preis',
     adHocPrice: 'Ad-hoc Preis je Ladepunkt',
@@ -126,7 +126,7 @@ const fr: Translations = {
   renewableSuffix: 'renouvelable',
   units: { charge: 'charge', minute: 'min' },
   labels: {
-    network: 'Réseau de recharge',
+    operator: 'Opérateur',
     location: 'Emplacement',
     price: 'Prix',
     adHocPrice: 'Prix ad hoc par point de recharge',
@@ -197,7 +197,7 @@ const it: Translations = {
   renewableSuffix: 'rinnovabile',
   units: { charge: 'ricarica', minute: 'min' },
   labels: {
-    network: 'Rete di ricarica',
+    operator: 'Operatore',
     location: 'Posizione',
     price: 'Prezzo',
     adHocPrice: 'Prezzo ad hoc per punto di ricarica',
@@ -268,7 +268,7 @@ const en: Translations = {
   renewableSuffix: 'renewable',
   units: { charge: 'charge', minute: 'min' },
   labels: {
-    network: 'Charging network',
+    operator: 'Operator',
     location: 'Location',
     price: 'Price',
     adHocPrice: 'Ad hoc price per charging point',

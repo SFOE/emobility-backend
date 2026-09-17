@@ -352,7 +352,7 @@ function renderEvseBlock(
   );
 }
 
-function renderNetwork(location: GoldLocation, t: Translations): string {
+function renderOperator(location: GoldLocation, t: Translations): string {
   const operatorName = escapeHtml(location.operator_name ?? t.infoUnavailable);
   if (!location.operator_url) {
     return operatorName;
@@ -369,7 +369,7 @@ export function renderDescription(
     .map((evse) => renderEvseBlock(evse, tariffsByIdMap, t))
     .join('');
   const feedbackIds = escapeHtml(location.evse_ids.join(','));
-  const networkLink = renderNetwork(location, t);
+  const operatorLink = renderOperator(location, t);
   const openingHoursLine = renderOpeningHours(
     parseJsonField<OpeningHours>(location.opening_hours_json),
     t,
@@ -391,7 +391,7 @@ export function renderDescription(
   return (
     `<div class="evse-data">${evseBlocks}</div>` +
     `<div class="station-data"><table><tbody>` +
-    `<tr><td class="cell-left">${l.network}</td><td>${networkLink}</td></tr>` +
+    `<tr><td class="cell-left">${l.operator}</td><td>${operatorLink}</td></tr>` +
     `<tr><td class="cell-left">${l.location}</td>` +
     `<td>${escapeHtml(location.address_display)}</td></tr>` +
     `<tr><td class="cell-left">${l.price}</td><td>${l.adHocPrice}</td></tr>` +
