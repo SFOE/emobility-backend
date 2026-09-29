@@ -10,23 +10,35 @@
 
 export const STATUS_CATEGORY_MAP: Record<string, string> = {
   AVAILABLE: 'AVAILABLE',
-  CHARGING: 'CHARGING',
+  CHARGING: 'OCCUPIED',
   RESERVED: 'RESERVED',
   UNKNOWN: 'UNKNOWN',
-  PLANNED: 'OUTOFORDER',
-  BLOCKED: 'OUTOFORDER',
-  INOPERATIVE: 'OUTOFORDER',
-  OUTOFORDER: 'OUTOFORDER',
-  REMOVED: 'OUTOFORDER',
+  PLANNED: 'OFFLINE',
+  BLOCKED: 'OFFLINE',
+  INOPERATIVE: 'OUTOFSERVICE',
+  OUTOFORDER: 'OUTOFSERVICE',
+  REMOVED: 'OUTOFSERVICE',
 };
 
 // EVSE status category -> CSS class used in the popup (styling key, not shown).
+// Availability category -> value of the GeoJSON `Availability` property and the
+// first part of `symbology`.
+export const AVAILABILITY_LABELS: Record<string, string> = {
+  AVAILABLE: 'Available',
+  OCCUPIED: 'Occupied',
+  RESERVED: 'Reserved',
+  OUTOFSERVICE: 'OutOfService',
+  OFFLINE: 'Offline',
+  UNKNOWN: 'Unknown',
+};
+
 export const STATUS_CSS_CLASS: Record<string, string> = {
   AVAILABLE: 'available',
-  CHARGING: 'charging',
+  OCCUPIED: 'occupied',
   RESERVED: 'reserved',
   UNKNOWN: 'unknown',
-  OUTOFORDER: 'outoforder',
+  OUTOFSERVICE: 'outofservice',
+  OFFLINE: 'offline',
 };
 
 // ENERGY price component unit — universal, not translated.
