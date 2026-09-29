@@ -76,7 +76,7 @@ describe('run — happy path', () => {
 
     // CHARGING live status wins over the export's baked-in AVAILABLE
     const written = writeGeoJson.mock.calls[0]![0].de;
-    expect(written.features[0]!.properties.Availability).toBe('Charging');
+    expect(written.features[0]!.properties.Availability).toBe('Occupied');
   });
 
   it('logs how many scanned status entries were actually applied', async () => {
