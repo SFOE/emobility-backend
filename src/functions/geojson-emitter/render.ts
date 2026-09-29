@@ -8,6 +8,7 @@
 
 import {
   AD_HOC_PAYMENT_TARIFF_TYPE,
+  AVAILABILITY_LABELS,
   CONNECTOR_STANDARD_LABELS,
   ENERGY_UNIT,
   PRICE_COMPONENT_ORDER,
@@ -33,9 +34,10 @@ const FAST_CHARGE_THRESHOLD_W = 50_000;
 const FEEDBACK_URL = 'https://www.uvek-gis.admin.ch/BFE/diemo/feedback/';
 const AVAILABILITY_PRIORITY = [
   'AVAILABLE',
-  'CHARGING',
+  'OCCUPIED',
   'RESERVED',
-  'OUTOFORDER',
+  'OUTOFSERVICE',
+  'OFFLINE',
   'UNKNOWN',
 ];
 
@@ -66,9 +68,7 @@ export function computeAvailability(evses: GoldEvse[]): string {
   const categories = new Set(evses.map((evse) => statusCategory(evse.status)));
   for (const candidate of AVAILABILITY_PRIORITY) {
     if (categories.has(candidate)) {
-      return (
-        candidate.charAt(0).toUpperCase() + candidate.slice(1).toLowerCase()
-      );
+      return AVAILABILITY_LABELS[candidate]!;
     }
   }
   return 'Unknown';

@@ -72,10 +72,11 @@ const de: Translations = {
   },
   status: {
     AVAILABLE: 'Verfügbar',
-    CHARGING: 'Besetzt',
+    OCCUPIED: 'Besetzt',
     RESERVED: 'Reserviert',
     UNKNOWN: 'Verfügbarkeit unbekannt',
-    OUTOFORDER: 'Ausser Betrieb',
+    OUTOFSERVICE: 'Ausser Betrieb',
+    OFFLINE: 'Offline',
   },
   weekdays: { 1: 'Mo', 2: 'Di', 3: 'Mi', 4: 'Do', 5: 'Fr', 6: 'Sa', 7: 'So' },
   facilities: {
@@ -143,10 +144,11 @@ const fr: Translations = {
   },
   status: {
     AVAILABLE: 'Disponible',
-    CHARGING: 'Occupé',
+    OCCUPIED: 'Occupé',
     RESERVED: 'Réservé',
     UNKNOWN: 'Disponibilité inconnue',
-    OUTOFORDER: 'Hors service',
+    OUTOFSERVICE: 'Hors service',
+    OFFLINE: 'Hors ligne',
   },
   weekdays: { 1: 'Lu', 2: 'Ma', 3: 'Me', 4: 'Je', 5: 'Ve', 6: 'Sa', 7: 'Di' },
   facilities: {
@@ -214,10 +216,11 @@ const it: Translations = {
   },
   status: {
     AVAILABLE: 'Disponibile',
-    CHARGING: 'Occupato',
+    OCCUPIED: 'Occupato',
     RESERVED: 'Riservato',
     UNKNOWN: 'Disponibilità sconosciuta',
-    OUTOFORDER: 'Fuori servizio',
+    OUTOFSERVICE: 'Fuori servizio',
+    OFFLINE: 'Offline',
   },
   weekdays: { 1: 'Lu', 2: 'Ma', 3: 'Me', 4: 'Gi', 5: 'Ve', 6: 'Sa', 7: 'Do' },
   facilities: {
@@ -285,10 +288,11 @@ const en: Translations = {
   },
   status: {
     AVAILABLE: 'Available',
-    CHARGING: 'Busy',
+    OCCUPIED: 'Busy',
     RESERVED: 'Reserved',
     UNKNOWN: 'Availability unknown',
-    OUTOFORDER: 'Out of order',
+    OUTOFSERVICE: 'Out of order',
+    OFFLINE: 'Offline',
   },
   weekdays: {
     1: 'Mon',

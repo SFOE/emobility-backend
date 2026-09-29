@@ -5,10 +5,11 @@ import {
 
 const STATUS_KEYS = [
   'AVAILABLE',
-  'CHARGING',
+  'OCCUPIED',
   'RESERVED',
   'UNKNOWN',
-  'OUTOFORDER',
+  'OUTOFSERVICE',
+  'OFFLINE',
 ];
 
 describe('TRANSLATIONS', () => {

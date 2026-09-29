@@ -16,16 +16,20 @@ describe('STATUS_CATEGORY_MAP / STATUS_CSS_CLASS consistency', () => {
     }
   });
 
-  it('collapses non-core statuses into OUTOFORDER', () => {
-    expect(STATUS_CATEGORY_MAP['PLANNED']).toBe('OUTOFORDER');
-    expect(STATUS_CATEGORY_MAP['BLOCKED']).toBe('OUTOFORDER');
-    expect(STATUS_CATEGORY_MAP['INOPERATIVE']).toBe('OUTOFORDER');
-    expect(STATUS_CATEGORY_MAP['REMOVED']).toBe('OUTOFORDER');
+  it('maps PLANNED and BLOCKED to OFFLINE', () => {
+    expect(STATUS_CATEGORY_MAP['PLANNED']).toBe('OFFLINE');
+    expect(STATUS_CATEGORY_MAP['BLOCKED']).toBe('OFFLINE');
+  });
+
+  it('collapses remaining non-core statuses into OUTOFSERVICE', () => {
+    expect(STATUS_CATEGORY_MAP['INOPERATIVE']).toBe('OUTOFSERVICE');
+    expect(STATUS_CATEGORY_MAP['OUTOFORDER']).toBe('OUTOFSERVICE');
+    expect(STATUS_CATEGORY_MAP['REMOVED']).toBe('OUTOFSERVICE');
   });
 
   it('keeps the four core statuses as their own category', () => {
     expect(STATUS_CATEGORY_MAP['AVAILABLE']).toBe('AVAILABLE');
-    expect(STATUS_CATEGORY_MAP['CHARGING']).toBe('CHARGING');
+    expect(STATUS_CATEGORY_MAP['CHARGING']).toBe('OCCUPIED');
     expect(STATUS_CATEGORY_MAP['RESERVED']).toBe('RESERVED');
     expect(STATUS_CATEGORY_MAP['UNKNOWN']).toBe('UNKNOWN');
   });

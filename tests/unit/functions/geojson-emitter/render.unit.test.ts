@@ -70,7 +70,7 @@ describe('computeAvailability', () => {
     expect(computeAvailability(evses)).toBe('Available');
   });
 
-  it('prioritises Available over Charging', () => {
+  it('prioritises Available over Occupied', () => {
     const evses = [
       makeEvse({ status: 'CHARGING' }),
       makeEvse({ status: 'AVAILABLE' }),
@@ -78,20 +78,28 @@ describe('computeAvailability', () => {
     expect(computeAvailability(evses)).toBe('Available');
   });
 
-  it('returns Charging when charging outranks reserved/outoforder', () => {
+  it('returns Occupied when charging outranks reserved/out of service', () => {
     const evses = [
       makeEvse({ status: 'RESERVED' }),
       makeEvse({ status: 'CHARGING' }),
     ];
-    expect(computeAvailability(evses)).toBe('Charging');
+    expect(computeAvailability(evses)).toBe('Occupied');
   });
 
-  it('collapses non-core statuses to Outoforder', () => {
+  it('collapses inoperative/removed statuses to OutOfService', () => {
     const evses = [
-      makeEvse({ status: 'BLOCKED' }),
+      makeEvse({ status: 'REMOVED' }),
       makeEvse({ status: 'INOPERATIVE' }),
     ];
-    expect(computeAvailability(evses)).toBe('Outoforder');
+    expect(computeAvailability(evses)).toBe('OutOfService');
+  });
+
+  it('maps PLANNED and BLOCKED to Offline', () => {
+    const evses = [
+      makeEvse({ status: 'BLOCKED' }),
+      makeEvse({ status: 'PLANNED' }),
+    ];
+    expect(computeAvailability(evses)).toBe('Offline');
   });
 
   it('treats an unmapped status as Unknown', () => {
@@ -136,7 +144,7 @@ describe('computeSymbology', () => {
         connectors: [{ standard: 'CHADEMO', max_electric_power: 50000 }],
       }),
     ];
-    expect(computeSymbology('Charging', evses)).toBe('Charging_True');
+    expect(computeSymbology('Occupied', evses)).toBe('Occupied_True');
   });
 
   it('appends _False when there are no connectors', () => {
