@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(yarn test:unit --silent tests/unit/functions/geojson-emitter)"
+    ]
+  }
+}
