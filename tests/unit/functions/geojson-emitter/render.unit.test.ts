@@ -316,7 +316,9 @@ describe('renderDescription — opening hours', () => {
 
   it('renders the opening-hours fallback when the field is absent', () => {
     const location = makeLocation({ opening_hours_json: undefined });
-    expect(renderDescription(location)).toContain('Keine Angabe');
+    expect(renderDescription(location)).toContain(
+      'Information nicht verfügbar',
+    );
   });
 });
 

@@ -68,3 +68,17 @@ export const RENEWABLE_ENERGY_SOURCE_CATEGORIES = new Set([
   'WIND',
   'WATER',
 ]);
+
+// The popup collapses the OCPI vehicle types into just these two categories so the
+// row stays short; trailer variants count towards their base category and every
+// other OCPI type is not shown.
+export const CAR_VEHICLE_TYPES = new Set([
+  'PERSONAL_VEHICLE',
+  'PERSONAL_VEHICLE_WITH_TRAILER',
+]);
+
+export const TRUCK_VEHICLE_TYPES = new Set([
+  'SEMI_TRACTOR',
+  'RIGID',
+  'TRUCK_WITH_TRAILER',
+]);
