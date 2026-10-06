@@ -17,11 +17,11 @@ Korrekturen bitte direkt in `translations.ts` eintragen (gleiche Keys).
 | payment             | Bezahlmöglichkeit Kredit-/Debitkarte                | Paiement par carte de crédit/débit                                   | Pagamento con carta di credito/debito                  | Payment by credit/debit card                           |
 | openingHours        | Öffnungszeiten                                      | Heures d'ouverture                                                   | Orari di apertura                                      | Opening hours                                          |
 | vehicleType         | Fahrzeugtyp                                         | Type de véhicule                                                     | Tipo di veicolo                                        | Vehicle type                                           |
-| accessibleEvseCount | Anzahl barrierefreie Ladepunkte                     | Nombre de points de recharge accessibles                             | Numero di punti di ricarica accessibili                | Number of accessible charging points                   |
+| accessibleEvseCount | Anzahl barrierefreie Ladepunkte                     | Nombre de bornes avec accès PMR                                      | Numero di colonnine con accesso PMR                    | Number of accessible charging points                   |
 | infrastructure      | Infrastruktur                                       | Infrastructure                                                       | Infrastruttura                                         | Infrastructure                                         |
 | energySource        | Energiequelle                                       | Source d'énergie                                                     | Fonte di energia                                       | Energy source                                          |
-| feedbackQuestion    | Fehlerhafte Angaben?                                | Informations erronées ?                                              | Informazioni errate?                                   | Incorrect information?                                 |
-| feedbackLink        | Rückmeldung senden                                  | Envoyer un commentaire                                               | Invia un feedback                                      | Send feedback                                          |
+| feedbackQuestion    | Fehlerhafte Angaben?                                | Données erronées?                                                    | Informazioni errate?                                   | Incorrect information?                                 |
+| feedbackLink        | Rückmeldung senden                                  | Envoyer un message                                                   | Invia un feedback                                      | Send feedback                                          |
 | coordinates         | Geokoordinaten                                      | Coordonnées géographiques                                            | Coordinate geografiche                                 | Geographic coordinates                                 |
 
 ## Werte & Fallbacks
@@ -52,10 +52,10 @@ Korrekturen bitte direkt in `translations.ts` eintragen (gleiche Keys).
 | Key        | DE                      | FR                     | IT                        | EN                   |
 |------------|-------------------------|------------------------|---------------------------|----------------------|
 | AVAILABLE  | Verfügbar               | Disponible             | Disponibile               | Available            |
-| CHARGING   | Besetzt                 | Occupé                 | Occupato                  | Busy                 |
+| CHARGING   | Besetzt                 | Occupé                 | Occupato                  | Occupied             |
 | RESERVED   | Reserviert              | Réservé                | Riservato                 | Reserved             |
 | UNKNOWN    | Verfügbarkeit unbekannt | Disponibilité inconnue | Disponibilità sconosciuta | Availability unknown |
-| OUTOFORDER | Ausser Betrieb          | Hors service           | Fuori servizio            | Out of order         |
+| OUTOFORDER | Ausser Betrieb          | Hors service           | Fuori servizio            | Out of service       |
 
 ## Wochentage (1 = Mo … 7 = So)
 
@@ -99,11 +99,11 @@ Korrekturen bitte direkt in `translations.ts` eintragen (gleiche Keys).
 | Key                           | DE                         | FR                    | IT                        | EN                 |
 |-------------------------------|----------------------------|-----------------------|---------------------------|--------------------|
 | MOTORCYCLE                    | Motorrad                   | Moto                  | Motocicletta              | Motorcycle         |
-| PERSONAL_VEHICLE              | Personenwagen              | Voiture               | Automobile                | Car                |
-| PERSONAL_VEHICLE_WITH_TRAILER | Personenwagen mit Anhänger | Voiture avec remorque | Automobile con rimorchio  | Car with trailer   |
+| PERSONAL_VEHICLE              | PKW                        | Voiture               | Automobile                | Car                |
+| PERSONAL_VEHICLE_WITH_TRAILER | PKW mit Anhänger           | Voiture avec remorque | Automobile con rimorchio  | Car with trailer   |
 | VAN                           | Lieferwagen                | Camionnette           | Furgone                   | Van                |
 | SEMI_TRACTOR                  | Sattelschlepper            | Semi-remorque         | Motrice per semirimorchio | Semi-truck         |
-| RIGID                         | Lastwagen (Solo)           | Camion (porteur)      | Autocarro (rigido)        | Rigid truck        |
-| TRUCK_WITH_TRAILER            | Lastwagen mit Anhänger     | Camion avec remorque  | Autocarro con rimorchio   | Truck with trailer |
+| RIGID                         | LKW                        | Camion (porteur)      | Autocarro (rigido)        | Truck              |
+| TRUCK_WITH_TRAILER            | LKW mit Anhänger           | Camion avec remorque  | Autocarro con rimorchio   | Truck with trailer |
 | BUS                           | Bus                        | Bus                   | Autobus                   | Bus                |
 | DISABLED                      | Behindertenparkplatz       | Place handicapé       | Parcheggio per disabili   | Disabled parking   |
