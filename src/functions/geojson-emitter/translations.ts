@@ -63,7 +63,7 @@ const de: Translations = {
     payment: 'Bezahlmöglichkeit Kredit-/Debitkarte',
     openingHours: 'Öffnungszeiten',
     vehicleType: 'Fahrzeugtyp',
-    accessibleEvseCount: 'Anzahl Ladepunkte für Menschen mit Beeinträchtigung',
+    accessibleEvseCount: 'Anzahl barrierefreie Ladepunkte',
     infrastructure: 'Infrastruktur',
     energySource: 'Energiequelle',
     feedbackQuestion: 'Fehlerhafte Angaben?',
@@ -134,8 +134,7 @@ const fr: Translations = {
     payment: 'Paiement par carte de crédit/débit',
     openingHours: "Heures d'ouverture",
     vehicleType: 'Type de véhicule',
-    accessibleEvseCount:
-      'Nombre de points de recharge pour personnes en situation de handicap',
+    accessibleEvseCount: 'Nombre de points de recharge accessibles',
     infrastructure: 'Infrastructure',
     energySource: "Source d'énergie",
     feedbackQuestion: 'Informations erronées ?',
@@ -206,8 +205,7 @@ const it: Translations = {
     payment: 'Pagamento con carta di credito/debito',
     openingHours: 'Orari di apertura',
     vehicleType: 'Tipo di veicolo',
-    accessibleEvseCount:
-      'Numero di punti di ricarica per persone con disabilità',
+    accessibleEvseCount: 'Numero di punti di ricarica accessibili',
     infrastructure: 'Infrastruttura',
     energySource: 'Fonte di energia',
     feedbackQuestion: 'Informazioni errate?',
@@ -278,8 +276,7 @@ const en: Translations = {
     payment: 'Payment by credit/debit card',
     openingHours: 'Opening hours',
     vehicleType: 'Vehicle type',
-    accessibleEvseCount:
-      'Number of charging points for people with disabilities',
+    accessibleEvseCount: 'Number of accessible charging points',
     infrastructure: 'Infrastructure',
     energySource: 'Energy source',
     feedbackQuestion: 'Incorrect information?',
