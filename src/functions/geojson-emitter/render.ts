@@ -9,6 +9,7 @@
 import {
   AD_HOC_PAYMENT_TARIFF_TYPE,
   AVAILABILITY_LABELS,
+  CAR_VEHICLE_TYPES,
   CONNECTOR_STANDARD_LABELS,
   ENERGY_UNIT,
   PRICE_COMPONENT_ORDER,
@@ -16,6 +17,7 @@ import {
   RENEWABLE_ENERGY_SOURCE_CATEGORIES,
   STATUS_CATEGORY_MAP,
   STATUS_CSS_CLASS,
+  TRUCK_VEHICLE_TYPES,
 } from './lookups';
 import { TRANSLATIONS, type Translations } from './translations';
 import type {
@@ -302,10 +304,14 @@ function renderVehicleTypes(
   vehicleTypes: string[] | undefined,
   t: Translations,
 ): string {
-  if (!vehicleTypes || vehicleTypes.length === 0) {
-    return t.infoUnavailable;
+  const labels: string[] = [];
+  if (vehicleTypes?.some((v) => CAR_VEHICLE_TYPES.has(v))) {
+    labels.push(t.vehicleTypes.PERSONAL_VEHICLE);
   }
-  return vehicleTypes.map((v) => t.vehicleTypes[v] ?? v).join(', ');
+  if (vehicleTypes?.some((v) => TRUCK_VEHICLE_TYPES.has(v))) {
+    labels.push(t.vehicleTypes.RIGID);
+  }
+  return labels.length > 0 ? labels.join(', ') : t.infoUnavailable;
 }
 
 function renderAccessibleEvseCount(
