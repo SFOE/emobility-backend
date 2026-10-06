@@ -32,7 +32,6 @@ Korrekturen bitte direkt in `translations.ts` eintragen (gleiche Keys).
 | no                             | Nein                               | Non                                     | No                                      | No                              |
 | socketPrefix                   | Steckdose                          | Prise                                   | Presa                                   | Socket                          |
 | priceUnavailable               | Preisinformationen nicht verfügbar | Informations tarifaires non disponibles | Informazioni sui prezzi non disponibili | Price information not available |
-| notSpecified                   | Keine Angabe                       | Non renseigné                           | Nessuna indicazione                     | Not specified                   |
 | infoUnavailable                | Information nicht verfügbar        | Information non disponible              | Informazione non disponibile            | Information not available       |
 | renewableSuffix (`<x>% …`)     | erneuerbar                         | renouvelable                            | rinnovabile                             | renewable                       |
 | additionallyOpen               | Zusätzlich geöffnet:               | Ouvert en plus :                        | Aperto in aggiunta:                     | Additionally open:              |

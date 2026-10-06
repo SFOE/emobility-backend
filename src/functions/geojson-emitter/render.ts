@@ -241,7 +241,7 @@ function renderOpeningHours(
   t: Translations,
 ): string {
   if (!openingHours) {
-    return t.notSpecified;
+    return t.infoUnavailable;
   }
   const clock = clockSuffix(t);
   let base: string;
@@ -250,7 +250,7 @@ function renderOpeningHours(
   } else {
     const regularHours = openingHours.regular_hours ?? [];
     if (regularHours.length === 0) {
-      base = t.notSpecified;
+      base = t.infoUnavailable;
     } else {
       const parts = groupWeekdayRanges(regularHours).map((group) => {
         const startLabel =
@@ -276,11 +276,11 @@ function renderPayment(location: GoldLocation, t: Translations): string {
 
 function renderEnergyMix(energyMix: EnergyMix | null, t: Translations): string {
   if (!energyMix) {
-    return t.notSpecified;
+    return t.infoUnavailable;
   }
   const sources = energyMix.energy_sources ?? [];
   if (sources.length === 0) {
-    return t.notSpecified;
+    return t.infoUnavailable;
   }
   const renewablePercentage = sources
     .filter((s) => RENEWABLE_ENERGY_SOURCE_CATEGORIES.has(s.source))
@@ -293,7 +293,7 @@ function renderFacilities(
   t: Translations,
 ): string {
   if (!facilities || facilities.length === 0) {
-    return t.notSpecified;
+    return t.infoUnavailable;
   }
   return facilities.map((f) => t.facilities[f] ?? f).join(', ');
 }

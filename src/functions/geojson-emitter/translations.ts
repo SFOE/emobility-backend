@@ -10,8 +10,9 @@ export interface Translations {
   yes: string;
   no: string;
   priceUnavailable: string;
-  notSpecified: string; // "Keine Angabe" (facilities / opening hours / energy)
-  infoUnavailable: string; // "Information nicht verfügbar" (vehicle types / accessible count / operator)
+  // Single fallback whenever the CPO supplied no value (opening hours, energy mix,
+  // facilities, vehicle types, accessible count, operator).
+  infoUnavailable: string;
   clockSuffix: string; // appended after time ranges, e.g. "Uhr" (empty when the language has none)
   additionallyOpen: string; // exceptional openings prefix
   exceptionallyClosed: string; // exceptional closings prefix
@@ -48,7 +49,6 @@ const de: Translations = {
   yes: 'Ja',
   no: 'Nein',
   priceUnavailable: 'Preisinformationen nicht verfügbar',
-  notSpecified: 'Keine Angabe',
   infoUnavailable: 'Information nicht verfügbar',
   clockSuffix: 'Uhr',
   additionallyOpen: 'Zusätzlich geöffnet:',
@@ -119,7 +119,6 @@ const fr: Translations = {
   yes: 'Oui',
   no: 'Non',
   priceUnavailable: 'Informations tarifaires non disponibles',
-  notSpecified: 'Non renseigné',
   infoUnavailable: 'Information non disponible',
   clockSuffix: '',
   additionallyOpen: 'Ouvert en plus :',
@@ -190,7 +189,6 @@ const it: Translations = {
   yes: 'Sì',
   no: 'No',
   priceUnavailable: 'Informazioni sui prezzi non disponibili',
-  notSpecified: 'Nessuna indicazione',
   infoUnavailable: 'Informazione non disponibile',
   clockSuffix: '',
   additionallyOpen: 'Aperto in aggiunta:',
@@ -261,7 +259,6 @@ const en: Translations = {
   yes: 'Yes',
   no: 'No',
   priceUnavailable: 'Price information not available',
-  notSpecified: 'Not specified',
   infoUnavailable: 'Information not available',
   clockSuffix: '',
   additionallyOpen: 'Additionally open:',
