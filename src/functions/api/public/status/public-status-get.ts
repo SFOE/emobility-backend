@@ -5,7 +5,7 @@ import { parsePublicPathParams } from '/opt/nodejs/modules/ocpi-public/ocpi-publ
 import { prepareOCPIResponse } from '/opt/nodejs/utils/api.utils';
 
 /**
- * Handles GET /status/{country_code}/{party_id}/{location_id}/evses/{evse_uid}
+ * Handles GET /ocpi/status/{country_code}/{party_id}/{location_id}/evses/{evse_uid}
  * (public, no auth). Returns the EVSE's live status `{status, last_updated}`
  * from ocpi-evse-current-status, or 404 / 2003.
  */

@@ -43,16 +43,16 @@ export const buildLocationGetEvent = (
   location_id = 'LOC-001',
 ) =>
   buildPublicGetEvent(
-    'GET /locations/{country_code}/{party_id}/{location_id}',
-    `/locations/${country_code}/${party_id}/${location_id}`,
+    'GET /ocpi/locations/{country_code}/{party_id}/{location_id}',
+    `/ocpi/locations/${country_code}/${party_id}/${location_id}`,
     { country_code, party_id, location_id },
   );
 
 export const buildLocationsListEvent = (query?: Record<string, string>) =>
-  buildPublicGetEvent('GET /locations', '/locations', {}, query);
+  buildPublicGetEvent('GET /ocpi/locations', '/ocpi/locations', {}, query);
 
 export const buildTariffsListEvent = (query?: Record<string, string>) =>
-  buildPublicGetEvent('GET /tariffs', '/tariffs', {}, query);
+  buildPublicGetEvent('GET /ocpi/tariffs', '/ocpi/tariffs', {}, query);
 
 export const buildTariffGetEvent = (
   country_code = 'CH',
@@ -60,8 +60,8 @@ export const buildTariffGetEvent = (
   tariff_id = 'TARIFF-DC-01',
 ) =>
   buildPublicGetEvent(
-    'GET /tariffs/{country_code}/{party_id}/{tariff_id}',
-    `/tariffs/${country_code}/${party_id}/${tariff_id}`,
+    'GET /ocpi/tariffs/{country_code}/{party_id}/{tariff_id}',
+    `/ocpi/tariffs/${country_code}/${party_id}/${tariff_id}`,
     { country_code, party_id, tariff_id },
   );
 
@@ -72,10 +72,10 @@ export const buildStatusGetEvent = (
   evse_uid = '251674',
 ) =>
   buildPublicGetEvent(
-    'GET /status/{country_code}/{party_id}/{location_id}/evses/{evse_uid}',
-    `/status/${country_code}/${party_id}/${location_id}/evses/${evse_uid}`,
+    'GET /ocpi/status/{country_code}/{party_id}/{location_id}/evses/{evse_uid}',
+    `/ocpi/status/${country_code}/${party_id}/${location_id}/evses/${evse_uid}`,
     { country_code, party_id, location_id, evse_uid },
   );
 
 export const buildStatusListEvent = (query?: Record<string, string>) =>
-  buildPublicGetEvent('GET /status', '/status', {}, query);
+  buildPublicGetEvent('GET /ocpi/status', '/ocpi/status', {}, query);

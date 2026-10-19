@@ -24,7 +24,7 @@ const parseBody = (result: APIGatewayProxyResult) => JSON.parse(result.body);
 describe('public status handlers', () => {
   beforeEach(() => jest.resetAllMocks());
 
-  describe('GET /status/{country_code}/{party_id}/{location_id}/evses/{evse_uid}', () => {
+  describe('GET /ocpi/status/{country_code}/{party_id}/{location_id}/evses/{evse_uid}', () => {
     it('returns status and last_updated', async () => {
       mockGetEvseStatus.mockResolvedValue({
         status: 'AVAILABLE',
@@ -68,7 +68,7 @@ describe('public status handlers', () => {
     });
   });
 
-  describe('GET /status', () => {
+  describe('GET /ocpi/status', () => {
     it('lists statuses since date_from in received_at format, without pagination headers', async () => {
       mockListEvseStatusesSince.mockResolvedValue([]);
 

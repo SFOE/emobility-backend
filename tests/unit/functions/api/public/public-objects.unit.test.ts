@@ -43,7 +43,7 @@ describe('public object handlers', () => {
     process.env.BASE_URL = previousBaseUrl;
   });
 
-  describe('GET /locations/{country_code}/{party_id}/{location_id}', () => {
+  describe('GET /ocpi/locations/{country_code}/{party_id}/{location_id}', () => {
     it('returns the stored OCPI object as data', async () => {
       mockGetPublicObject.mockResolvedValue(JSON.stringify(LOCATION));
 
@@ -106,7 +106,7 @@ describe('public object handlers', () => {
     });
   });
 
-  describe('GET /tariffs/{country_code}/{party_id}/{tariff_id}', () => {
+  describe('GET /ocpi/tariffs/{country_code}/{party_id}/{tariff_id}', () => {
     it('reads the tariffs table and says Tariff not found on a miss', async () => {
       mockGetPublicObject.mockResolvedValue(null);
 
@@ -122,7 +122,7 @@ describe('public object handlers', () => {
     });
   });
 
-  describe('GET /locations', () => {
+  describe('GET /ocpi/locations', () => {
     it('returns the page with OCPI pagination headers', async () => {
       mockListPublicObjects.mockResolvedValue({
         bodies: [JSON.stringify(LOCATION), JSON.stringify({ id: 'LOC-002' })],
@@ -144,7 +144,7 @@ describe('public object handlers', () => {
         'Content-Type': 'application/json',
         'X-Total-Count': '5',
         'X-Limit': '2',
-        Link: '<https://api.example.com/locations?offset=4&limit=2>; rel="next"',
+        Link: '<https://api.example.com/ocpi/locations?offset=4&limit=2>; rel="next"',
       });
     });
 
@@ -172,7 +172,7 @@ describe('public object handlers', () => {
     });
   });
 
-  describe('GET /tariffs', () => {
+  describe('GET /ocpi/tariffs', () => {
     it('passes a normalized date_from through and links with it', async () => {
       mockListPublicObjects.mockResolvedValue({
         bodies: [JSON.stringify({ id: 'T1' })],
@@ -192,7 +192,7 @@ describe('public object handlers', () => {
         dateFrom: '2026-08-20T15:30:00Z',
       });
       expect(result.headers?.Link).toBe(
-        '<https://api.example.com/tariffs?date_from=2026-08-20T15%3A30%3A00Z&offset=1&limit=1>; rel="next"',
+        '<https://api.example.com/ocpi/tariffs?date_from=2026-08-20T15%3A30%3A00Z&offset=1&limit=1>; rel="next"',
       );
     });
   });

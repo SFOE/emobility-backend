@@ -54,8 +54,8 @@ export const toSecondsTimestamp = (instant: Date): string =>
 
 /**
  * Parses `offset`, `limit` and (optionally) `date_from` of a list request.
- * With `requireDateFrom`, `date_from` is mandatory (`/status`); with
- * `allowOffset = false`, `offset` is rejected (unpaginated `/status`).
+ * With `requireDateFrom`, `date_from` is mandatory (`/ocpi/status`); with
+ * `allowOffset = false`, `offset` is rejected (unpaginated `/ocpi/status`).
  */
 export const parseListQuery = (
   query: Record<string, string | undefined> | undefined | null,

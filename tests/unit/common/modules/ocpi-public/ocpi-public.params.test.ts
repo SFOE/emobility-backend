@@ -109,7 +109,7 @@ describe('buildPaginationHeaders', () => {
   it('links the next page while objects remain', () => {
     const headers = buildPaginationHeaders(
       BASE_URL,
-      '/locations',
+      '/ocpi/locations',
       { offset: 100, limit: 100 },
       100,
       250,
@@ -118,35 +118,35 @@ describe('buildPaginationHeaders', () => {
     expect(headers).toEqual({
       'X-Total-Count': '250',
       'X-Limit': '100',
-      Link: `<${BASE_URL}/locations?offset=200&limit=100>; rel="next"`,
+      Link: `<${BASE_URL}/ocpi/locations?offset=200&limit=100>; rel="next"`,
     });
   });
 
   it('continues after a page cut short by the size budget', () => {
     const headers = buildPaginationHeaders(
       BASE_URL,
-      '/locations',
+      '/ocpi/locations',
       { offset: 0, limit: 1000 },
       600,
       2000,
     );
 
     expect(headers.Link).toBe(
-      `<${BASE_URL}/locations?offset=600&limit=1000>; rel="next"`,
+      `<${BASE_URL}/ocpi/locations?offset=600&limit=1000>; rel="next"`,
     );
   });
 
   it('carries date_from into the next link', () => {
     const headers = buildPaginationHeaders(
       BASE_URL,
-      '/tariffs',
+      '/ocpi/tariffs',
       { offset: 0, limit: 10, dateFrom: '2026-08-20T15:30:00Z' },
       10,
       11,
     );
 
     expect(headers.Link).toBe(
-      `<${BASE_URL}/tariffs?date_from=2026-08-20T15%3A30%3A00Z&offset=10&limit=10>; rel="next"`,
+      `<${BASE_URL}/ocpi/tariffs?date_from=2026-08-20T15%3A30%3A00Z&offset=10&limit=10>; rel="next"`,
     );
   });
 
@@ -154,7 +154,7 @@ describe('buildPaginationHeaders', () => {
     expect(
       buildPaginationHeaders(
         BASE_URL,
-        '/locations',
+        '/ocpi/locations',
         { offset: 200, limit: 100 },
         50,
         250,
@@ -163,7 +163,7 @@ describe('buildPaginationHeaders', () => {
     expect(
       buildPaginationHeaders(
         BASE_URL,
-        '/locations',
+        '/ocpi/locations',
         { offset: 900, limit: 100 },
         0,
         250,

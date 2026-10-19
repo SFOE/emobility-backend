@@ -191,7 +191,7 @@ describe('public OCPI API integration', () => {
     await seedStatus('11111', '1', 'OUTOFORDER', '2026-08-19T09:00:00.000Z');
   });
 
-  it('pages /locations by offset in seq order with OCPI headers', async () => {
+  it('pages /ocpi/locations by offset in seq order with OCPI headers', async () => {
     const first = await listLocations(buildLocationsListEvent({ limit: '2' }));
     const second = await listLocations(
       buildLocationsListEvent({ offset: '2', limit: '2' }),
@@ -208,12 +208,12 @@ describe('public OCPI API integration', () => {
       'X-Limit': '2',
     });
     expect(first.headers?.Link).toBe(
-      `<${process.env.BASE_URL}/locations?offset=2&limit=2>; rel="next"`,
+      `<${process.env.BASE_URL}/ocpi/locations?offset=2&limit=2>; rel="next"`,
     );
     expect(last.headers).not.toHaveProperty('Link');
   });
 
-  it('filters /locations by date_from on last_updated, oldest change first', async () => {
+  it('filters /ocpi/locations by date_from on last_updated, oldest change first', async () => {
     const result = await listLocations(
       buildLocationsListEvent({
         date_from: '2026-08-10T10:00:00Z',
@@ -253,7 +253,7 @@ describe('public OCPI API integration', () => {
     expect(missing.statusCode).toBe(404);
   });
 
-  it('serves /tariffs from its own table', async () => {
+  it('serves /ocpi/tariffs from its own table', async () => {
     const result = await listTariffs(buildTariffsListEvent());
 
     expect(ids(result)).toEqual(['T1']);

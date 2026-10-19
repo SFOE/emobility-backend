@@ -5,7 +5,7 @@ import { parseListQuery } from '/opt/nodejs/modules/ocpi-public/ocpi-public.para
 import { prepareOCPIResponse } from '/opt/nodejs/utils/api.utils';
 
 /**
- * Handles GET /status?date_from=&limit= (public, no auth). Returns the current
+ * Handles GET /ocpi/status?date_from=&limit= (public, no auth). Returns the current
  * statuses received at or after `date_from`, oldest first, capped at `limit`.
  * Not paginated (no offset, no Link) - the volumes are small.
  */

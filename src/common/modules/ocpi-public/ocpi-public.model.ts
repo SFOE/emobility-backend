@@ -12,7 +12,7 @@ export interface PublicObjectType {
   key: 'LOCATION' | 'TARIFF';
   tableName: string;
   // Public path of the list endpoint, used to build the `Link` header.
-  path: '/locations' | '/tariffs';
+  path: '/ocpi/locations' | '/ocpi/tariffs';
   // Used in error messages, e.g. "Location not found".
   label: 'Location' | 'Tariff';
 }
@@ -22,7 +22,7 @@ export const PUBLIC_LOCATIONS: PublicObjectType = {
   get tableName() {
     return Aws.dynamoDBTables.ocpiLocations;
   },
-  path: '/locations',
+  path: '/ocpi/locations',
   label: 'Location',
 };
 
@@ -31,7 +31,7 @@ export const PUBLIC_TARIFFS: PublicObjectType = {
   get tableName() {
     return Aws.dynamoDBTables.ocpiTariffs;
   },
-  path: '/tariffs',
+  path: '/ocpi/tariffs',
   label: 'Tariff',
 };
 
@@ -68,7 +68,7 @@ export interface EvseStatusItem {
   received_at: string;
 }
 
-// Element of `GET /status?date_from=`.
+// Element of `GET /ocpi/status?date_from=`.
 export interface PublicEvseStatus {
   country_code: string;
   party_id: string;
