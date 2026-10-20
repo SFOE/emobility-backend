@@ -25,7 +25,7 @@ const mockBatchGetItems = batchGetItems as jest.MockedFunction<
 >;
 const mockQueryBySk = queryBySk as jest.MockedFunction<typeof queryBySk>;
 
-const servingItem = (pk: string, seq = '00000000') => ({
+const servingItem = (pk: string, seq = 0) => ({
   pk,
   body: JSON.stringify({ id: pk }),
   last_updated: '2026-08-01T10:00:00Z',
@@ -59,11 +59,11 @@ describe('getPublicObject', () => {
 describe('listPublicObjects by offset', () => {
   beforeEach(() => jest.resetAllMocks());
 
-  it('queries GSI1 from the zero-padded offset and takes the total from #META', async () => {
+  it('queries GSI1 from the numeric offset and takes the total from #META', async () => {
     mockGetItem.mockResolvedValue({ pk: '#META', item_count: 250 });
     mockQueryItems.mockResolvedValue([
-      servingItem('LOCATION#CH#ABC#A', '00000100'),
-      servingItem('LOCATION#CH#ABC#B', '00000101'),
+      servingItem('LOCATION#CH#ABC#A', 100),
+      servingItem('LOCATION#CH#ABC#B', 101),
     ]);
 
     const page = await listPublicObjects(PUBLIC_LOCATIONS, {
@@ -82,7 +82,7 @@ describe('listPublicObjects by offset', () => {
         KeyConditionExpression: 'gsi1pk = :type AND seq >= :offset',
         ExpressionAttributeValues: {
           ':type': 'LOCATION',
-          ':offset': '00000100',
+          ':offset': 100,
         },
       },
       2,

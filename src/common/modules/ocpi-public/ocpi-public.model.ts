@@ -35,12 +35,10 @@ export const PUBLIC_TARIFFS: PublicObjectType = {
   label: 'Tariff',
 };
 
-// GSI1: constant gsi1pk per table + zero-padded seq -> OCPI offset pagination.
+// GSI1: constant gsi1pk per table + numeric seq (type N) -> OCPI offset pagination.
 export const OFFSET_INDEX = 'gsi1';
 // GSI2 (keys only): constant gsi2pk + `{last_updated}#{pk}` -> OCPI date_from.
 export const DATE_FROM_INDEX = 'gsi2';
-// Width of the zero-padded `seq` the Glue job writes (must match SEQ_DIGITS).
-export const SEQ_DIGITS = 8;
 // Reserved item holding the exact object count of a serving table.
 export const META_PK = '#META';
 
@@ -49,7 +47,7 @@ export interface ServingItem {
   pk: string;
   body: string;
   last_updated: string;
-  seq: string;
+  seq: number;
 }
 
 export interface ServingMetaItem {

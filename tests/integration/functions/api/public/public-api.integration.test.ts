@@ -33,9 +33,13 @@ async function createServingTable(tableName: string): Promise<void> {
         TableName: tableName,
         BillingMode: 'PAY_PER_REQUEST',
         KeySchema: [{ AttributeName: 'pk', KeyType: 'HASH' }],
-        AttributeDefinitions: ['pk', 'gsi1pk', 'seq', 'gsi2pk', 'gsi2sk'].map(
-          (name) => ({ AttributeName: name, AttributeType: 'S' }),
-        ),
+        AttributeDefinitions: [
+          ...['pk', 'gsi1pk', 'gsi2pk', 'gsi2sk'].map((name) => ({
+            AttributeName: name,
+            AttributeType: 'S' as const,
+          })),
+          { AttributeName: 'seq', AttributeType: 'N' },
+        ],
         GlobalSecondaryIndexes: [
           {
             IndexName: 'gsi1',
@@ -126,7 +130,7 @@ async function seedServingTable(
         last_updated,
         generation: '2026-10-01T02:00:00Z',
         gsi1pk: type,
-        seq: String(seq).padStart(8, '0'),
+        seq,
         gsi2pk: type,
         gsi2sk: `${last_updated}#${pk}`,
       },
@@ -178,9 +182,17 @@ describe('public OCPI API integration', () => {
       'LOCATION',
       LOCATIONS,
     );
-    await seedServingTable(Aws.dynamoDBTables.ocpiTariffs, 'TARIFF', [
-      { id: 'T1', seq: 0, last_updated: '2026-08-18T08:30:00Z' },
-    ]);
+    // 12 tariffs, so seq crosses from one to two digits: a numeric GSI1 key must keep
+    // 9 < 10 < 11 (a string key would sort "10" before "9").
+    await seedServingTable(
+      Aws.dynamoDBTables.ocpiTariffs,
+      'TARIFF',
+      Array.from({ length: 12 }, (_, seq) => ({
+        id: `T${seq}`,
+        seq,
+        last_updated: '2026-08-18T08:30:00Z',
+      })),
+    );
     await seedStatus(
       '78594',
       '251674',
@@ -253,11 +265,16 @@ describe('public OCPI API integration', () => {
     expect(missing.statusCode).toBe(404);
   });
 
-  it('serves /ocpi/tariffs from its own table', async () => {
-    const result = await listTariffs(buildTariffsListEvent());
+  it('serves /ocpi/tariffs from its own table, ordered numerically by seq', async () => {
+    const result = await listTariffs(
+      buildTariffsListEvent({ offset: '9', limit: '2' }),
+    );
 
-    expect(ids(result)).toEqual(['T1']);
-    expect(result.headers?.['X-Total-Count']).toBe('1');
+    expect(ids(result)).toEqual(['T9', 'T10']);
+    expect(result.headers?.['X-Total-Count']).toBe('12');
+    expect(result.headers?.Link).toBe(
+      `<${process.env.BASE_URL}/ocpi/tariffs?offset=11&limit=2>; rel="next"`,
+    );
   });
 
   it('serves the live status of one EVSE', async () => {

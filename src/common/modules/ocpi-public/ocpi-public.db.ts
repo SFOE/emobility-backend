@@ -12,7 +12,6 @@ import {
   OFFSET_INDEX,
   PublicEvseStatus,
   PublicObjectType,
-  SEQ_DIGITS,
   ServingItem,
   ServingMetaItem,
 } from './ocpi-public.model';
@@ -31,9 +30,6 @@ const objectPk = (
   partyId: string,
   id: string,
 ): string => `${type.key}#${countryCode}#${partyId}#${id}`;
-
-const formatSeq = (offset: number): string =>
-  String(offset).padStart(SEQ_DIGITS, '0');
 
 /**
  * Keeps bodies in order until their size reaches the page budget. The first
@@ -91,7 +87,7 @@ const listByOffset = async (
       KeyConditionExpression: 'gsi1pk = :type AND seq >= :offset',
       ExpressionAttributeValues: {
         ':type': type.key,
-        ':offset': formatSeq(query.offset),
+        ':offset': query.offset,
       },
     },
     query.limit,
