@@ -89,7 +89,7 @@ describe('public status handlers', () => {
       expect(result.headers).not.toHaveProperty('X-Total-Count');
     });
 
-    it('defaults limit to 1000', async () => {
+    it('defaults limit to 5000', async () => {
       mockListEvseStatusesSince.mockResolvedValue([]);
 
       await listStatuses(
@@ -98,7 +98,34 @@ describe('public status handlers', () => {
 
       expect(mockListEvseStatusesSince).toHaveBeenCalledWith(
         '2026-08-20T15:30:00.000Z',
-        1000,
+        5000,
+      );
+    });
+
+    it('accepts a limit up to 5000 and rejects above', async () => {
+      mockListEvseStatusesSince.mockResolvedValue([]);
+
+      const ok = await listStatuses(
+        buildStatusListEvent({
+          date_from: '2026-08-20T15:30:00Z',
+          limit: '5000',
+        }),
+      );
+      const tooHigh = await listStatuses(
+        buildStatusListEvent({
+          date_from: '2026-08-20T15:30:00Z',
+          limit: '5001',
+        }),
+      );
+
+      expect(ok.statusCode).toBe(200);
+      expect(mockListEvseStatusesSince).toHaveBeenCalledWith(
+        '2026-08-20T15:30:00.000Z',
+        5000,
+      );
+      expect(tooHigh.statusCode).toBe(400);
+      expect(parseBody(tooHigh).status_message).toBe(
+        'limit must be between 1 and 5000',
       );
     });
 
