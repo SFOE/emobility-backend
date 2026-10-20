@@ -1,5 +1,9 @@
-import { ConditionalCheckFailedException, DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import {
+  ConditionalCheckFailedException,
+  DynamoDBClient,
+} from '@aws-sdk/client-dynamodb';
+import {
+  BatchGetCommand,
   DeleteCommand,
   DynamoDBDocument,
   GetCommand,
@@ -207,6 +211,99 @@ export const conditionalUpdateItem = async (
       return false;
     }
     console.error(err);
-    throw new Error(`Error conditionally updating item in DynamoDB table ${tableName}`);
+    throw new Error(
+      `Error conditionally updating item in DynamoDB table ${tableName}`,
+    );
   }
+};
+
+/**
+ * Runs a Query and follows LastEvaluatedKey until `maxItems` items are
+ * collected or the key range is exhausted. Every page is capped at 1 MB by
+ * DynamoDB, so a single call can return fewer items than requested.
+ */
+export const queryItems = async <T>(
+  params: QueryCommandInput,
+  maxItems = Number.POSITIVE_INFINITY,
+): Promise<T[]> => {
+  try {
+    const items: T[] = [];
+    let exclusiveStartKey: Record<string, unknown> | undefined;
+
+    do {
+      const remaining = maxItems - items.length;
+      const response = await dynamoDocClient.send(
+        new QueryCommand({
+          ...params,
+          ExclusiveStartKey: exclusiveStartKey,
+          ...(Number.isFinite(remaining) ? { Limit: remaining } : {}),
+        }),
+      );
+
+      items.push(...((response.Items ?? []) as T[]));
+      exclusiveStartKey = response.LastEvaluatedKey;
+    } while (exclusiveStartKey && items.length < maxItems);
+
+    return items;
+  } catch (err) {
+    console.error(err);
+    const message = `Error querying table ${params.TableName} (index ${params.IndexName ?? 'base'})`;
+    throw new Error(message);
+  }
+};
+
+// BatchGetItem accepts at most 100 keys per request.
+const BATCH_GET_MAX_KEYS = 100;
+const BATCH_GET_MAX_ATTEMPTS = 5;
+
+/**
+ * Fetches items by primary key in chunks of 100, resending UnprocessedKeys
+ * (with a short backoff). Returns the items found, in no particular order;
+ * keys without an item are simply absent from the result.
+ */
+export const batchGetItems = async <T>(
+  tableName: string,
+  keys: Record<string, unknown>[],
+): Promise<T[]> => {
+  const items: T[] = [];
+
+  for (let start = 0; start < keys.length; start += BATCH_GET_MAX_KEYS) {
+    let pending: Record<string, unknown>[] = keys.slice(
+      start,
+      start + BATCH_GET_MAX_KEYS,
+    );
+
+    for (
+      let attempt = 1;
+      pending.length > 0 && attempt <= BATCH_GET_MAX_ATTEMPTS;
+      attempt++
+    ) {
+      try {
+        const response = await dynamoDocClient.send(
+          new BatchGetCommand({
+            RequestItems: { [tableName]: { Keys: pending } },
+          }),
+        );
+        items.push(...((response.Responses?.[tableName] ?? []) as T[]));
+        pending = (response.UnprocessedKeys?.[tableName]?.Keys ?? []) as Record<
+          string,
+          unknown
+        >[];
+      } catch (err) {
+        console.error(err);
+        throw new Error(`Error batch-getting items from table ${tableName}`);
+      }
+      if (pending.length > 0) {
+        await new Promise((resolve) => setTimeout(resolve, 50 * 2 ** attempt));
+      }
+    }
+
+    if (pending.length > 0) {
+      throw new Error(
+        `Error batch-getting items from table ${tableName}: ${pending.length} keys still unprocessed`,
+      );
+    }
+  }
+
+  return items;
 };

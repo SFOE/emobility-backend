@@ -64,5 +64,8 @@ export const Aws = {
     versions: 'ocpi-versions',
     credentials: 'ocpi-credentials',
     evseCurrentStatus: 'ocpi-evse-current-status',
+    // Public OCPI API serving tables, written by the Glue silver-to-gold job.
+    ocpiLocations: 'ocpi-locations',
+    ocpiTariffs: 'ocpi-tariffs',
   },
 };
