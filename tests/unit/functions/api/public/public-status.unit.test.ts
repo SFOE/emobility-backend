@@ -1,8 +1,8 @@
 jest.mock('/opt/nodejs/modules/ocpi-public/ocpi-public.db');
 
 import { APIGatewayProxyResult } from 'aws-lambda';
-import { handler as getStatus } from '../../../../../src/functions/api/public/status/public-status-get';
-import { handler as listStatuses } from '../../../../../src/functions/api/public/status/public-status-list';
+import { handler as getStatus } from '../../../../../src/functions/api/public/status/status-get';
+import { handler as listStatuses } from '../../../../../src/functions/api/public/status/status-list';
 import {
   getEvseStatus,
   listEvseStatusesSince,

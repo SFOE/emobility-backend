@@ -6,11 +6,11 @@ import {
   ResourceInUseException,
 } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocument } from '@aws-sdk/lib-dynamodb';
-import { handler as getLocation } from '../../../../../src/functions/api/public/locations/public-locations-get';
-import { handler as listLocations } from '../../../../../src/functions/api/public/locations/public-locations-list';
-import { handler as listTariffs } from '../../../../../src/functions/api/public/tariffs/public-tariffs-list';
-import { handler as getStatus } from '../../../../../src/functions/api/public/status/public-status-get';
-import { handler as listStatuses } from '../../../../../src/functions/api/public/status/public-status-list';
+import { handler as getLocation } from '../../../../../src/functions/api/public/locations/locations-get';
+import { handler as listLocations } from '../../../../../src/functions/api/public/locations/locations-list';
+import { handler as listTariffs } from '../../../../../src/functions/api/public/tariffs/tariffs-list';
+import { handler as getStatus } from '../../../../../src/functions/api/public/status/status-get';
+import { handler as listStatuses } from '../../../../../src/functions/api/public/status/status-list';
 import { Aws } from '/opt/nodejs/aws/constants';
 import {
   buildLocationGetEvent,

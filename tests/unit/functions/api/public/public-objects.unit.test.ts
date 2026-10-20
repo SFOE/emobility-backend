@@ -1,10 +1,10 @@
 jest.mock('/opt/nodejs/modules/ocpi-public/ocpi-public.db');
 
 import { APIGatewayProxyResult } from 'aws-lambda';
-import { handler as getLocation } from '../../../../../src/functions/api/public/locations/public-locations-get';
-import { handler as listLocations } from '../../../../../src/functions/api/public/locations/public-locations-list';
-import { handler as getTariff } from '../../../../../src/functions/api/public/tariffs/public-tariffs-get';
-import { handler as listTariffs } from '../../../../../src/functions/api/public/tariffs/public-tariffs-list';
+import { handler as getLocation } from '../../../../../src/functions/api/public/locations/locations-get';
+import { handler as listLocations } from '../../../../../src/functions/api/public/locations/locations-list';
+import { handler as getTariff } from '../../../../../src/functions/api/public/tariffs/tariffs-get';
+import { handler as listTariffs } from '../../../../../src/functions/api/public/tariffs/tariffs-list';
 import {
   getPublicObject,
   listPublicObjects,
