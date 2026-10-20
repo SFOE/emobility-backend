@@ -10,8 +10,9 @@ export interface Translations {
   yes: string;
   no: string;
   priceUnavailable: string;
-  notSpecified: string; // "Keine Angabe" (facilities / opening hours / energy)
-  infoUnavailable: string; // "Information nicht verfügbar" (vehicle types / accessible count / operator)
+  // Single fallback whenever the CPO supplied no value (opening hours, energy mix,
+  // facilities, vehicle types, accessible count, operator).
+  infoUnavailable: string;
   clockSuffix: string; // appended after time ranges, e.g. "Uhr" (empty when the language has none)
   additionallyOpen: string; // exceptional openings prefix
   exceptionallyClosed: string; // exceptional closings prefix
@@ -48,8 +49,7 @@ const de: Translations = {
   yes: 'Ja',
   no: 'Nein',
   priceUnavailable: 'Preisinformationen nicht verfügbar',
-  notSpecified: 'Keine Angabe',
-  infoUnavailable: 'Information nicht verfügbar',
+  infoUnavailable: 'Keine Angabe',
   clockSuffix: 'Uhr',
   additionallyOpen: 'Zusätzlich geöffnet:',
   exceptionallyClosed: 'Ausnahmsweise geschlossen:',
@@ -63,7 +63,7 @@ const de: Translations = {
     payment: 'Bezahlmöglichkeit Kredit-/Debitkarte',
     openingHours: 'Öffnungszeiten',
     vehicleType: 'Fahrzeugtyp',
-    accessibleEvseCount: 'Anzahl Ladepunkte für Menschen mit Beeinträchtigung',
+    accessibleEvseCount: 'Anzahl barrierefreie Ladepunkte',
     infrastructure: 'Infrastruktur',
     energySource: 'Energiequelle',
     feedbackQuestion: 'Fehlerhafte Angaben?',
@@ -103,12 +103,12 @@ const de: Translations = {
   },
   vehicleTypes: {
     MOTORCYCLE: 'Motorrad',
-    PERSONAL_VEHICLE: 'Personenwagen',
-    PERSONAL_VEHICLE_WITH_TRAILER: 'Personenwagen mit Anhänger',
+    PERSONAL_VEHICLE: 'PKW',
+    PERSONAL_VEHICLE_WITH_TRAILER: 'PKW mit Anhänger',
     VAN: 'Lieferwagen',
     SEMI_TRACTOR: 'Sattelschlepper',
-    RIGID: 'Lastwagen (Solo)',
-    TRUCK_WITH_TRAILER: 'Lastwagen mit Anhänger',
+    RIGID: 'LKW',
+    TRUCK_WITH_TRAILER: 'LKW mit Anhänger',
     BUS: 'Bus',
     DISABLED: 'Behindertenparkplatz',
   },
@@ -119,8 +119,7 @@ const fr: Translations = {
   yes: 'Oui',
   no: 'Non',
   priceUnavailable: 'Informations tarifaires non disponibles',
-  notSpecified: 'Non renseigné',
-  infoUnavailable: 'Information non disponible',
+  infoUnavailable: 'Aucune indication',
   clockSuffix: '',
   additionallyOpen: 'Ouvert en plus :',
   exceptionallyClosed: 'Exceptionnellement fermé :',
@@ -134,12 +133,11 @@ const fr: Translations = {
     payment: 'Paiement par carte de crédit/débit',
     openingHours: "Heures d'ouverture",
     vehicleType: 'Type de véhicule',
-    accessibleEvseCount:
-      'Nombre de points de recharge pour personnes en situation de handicap',
+    accessibleEvseCount: 'Nombre de bornes avec accès PMR',
     infrastructure: 'Infrastructure',
     energySource: "Source d'énergie",
-    feedbackQuestion: 'Informations erronées ?',
-    feedbackLink: 'Envoyer un commentaire',
+    feedbackQuestion: 'Données erronées?',
+    feedbackLink: 'Envoyer un message',
     coordinates: 'Coordonnées géographiques',
   },
   status: {
@@ -191,8 +189,7 @@ const it: Translations = {
   yes: 'Sì',
   no: 'No',
   priceUnavailable: 'Informazioni sui prezzi non disponibili',
-  notSpecified: 'Nessuna indicazione',
-  infoUnavailable: 'Informazione non disponibile',
+  infoUnavailable: 'Nessuna indicazione',
   clockSuffix: '',
   additionallyOpen: 'Aperto in aggiunta:',
   exceptionallyClosed: 'Eccezionalmente chiuso:',
@@ -206,8 +203,7 @@ const it: Translations = {
     payment: 'Pagamento con carta di credito/debito',
     openingHours: 'Orari di apertura',
     vehicleType: 'Tipo di veicolo',
-    accessibleEvseCount:
-      'Numero di punti di ricarica per persone con disabilità',
+    accessibleEvseCount: 'Numero di colonnine con accesso PMR',
     infrastructure: 'Infrastruttura',
     energySource: 'Fonte di energia',
     feedbackQuestion: 'Informazioni errate?',
@@ -263,8 +259,7 @@ const en: Translations = {
   yes: 'Yes',
   no: 'No',
   priceUnavailable: 'Price information not available',
-  notSpecified: 'Not specified',
-  infoUnavailable: 'Information not available',
+  infoUnavailable: 'Not specified',
   clockSuffix: '',
   additionallyOpen: 'Additionally open:',
   exceptionallyClosed: 'Exceptionally closed:',
@@ -278,8 +273,7 @@ const en: Translations = {
     payment: 'Payment by credit/debit card',
     openingHours: 'Opening hours',
     vehicleType: 'Vehicle type',
-    accessibleEvseCount:
-      'Number of charging points for people with disabilities',
+    accessibleEvseCount: 'Number of accessible charging points',
     infrastructure: 'Infrastructure',
     energySource: 'Energy source',
     feedbackQuestion: 'Incorrect information?',
@@ -288,10 +282,10 @@ const en: Translations = {
   },
   status: {
     AVAILABLE: 'Available',
-    OCCUPIED: 'Busy',
+    OCCUPIED: 'Occupied',
     RESERVED: 'Reserved',
     UNKNOWN: 'Availability unknown',
-    OUTOFSERVICE: 'Out of order',
+    OUTOFSERVICE: 'Out of service',
     OFFLINE: 'Offline',
   },
   weekdays: {
@@ -331,7 +325,7 @@ const en: Translations = {
     PERSONAL_VEHICLE_WITH_TRAILER: 'Car with trailer',
     VAN: 'Van',
     SEMI_TRACTOR: 'Semi-truck',
-    RIGID: 'Rigid truck',
+    RIGID: 'Truck',
     TRUCK_WITH_TRAILER: 'Truck with trailer',
     BUS: 'Bus',
     DISABLED: 'Disabled parking',

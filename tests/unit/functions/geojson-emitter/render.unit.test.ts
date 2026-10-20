@@ -353,9 +353,7 @@ describe('renderDescription — energy mix, payment & fallbacks', () => {
 
   it('renders the accessible-count fallback when the value ends in /0', () => {
     const location = makeLocation({ accessible_evse_count: '0/0' });
-    expect(renderDescription(location)).toContain(
-      'Information nicht verfügbar',
-    );
+    expect(renderDescription(location)).toContain('Keine Angabe');
   });
 });
 
