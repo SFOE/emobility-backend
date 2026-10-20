@@ -1,0 +1,41 @@
+name: Publish & Deploy Tag
+run-name: "Publish & deploy ${{ inputs.tag }} to ${{ inputs.environment }}"
+
+# Publishes a git tag to the S3 artifact store of the target environment and then
+# deploys it there, in one run. Reuses the publish-tag and deploy-tag workflows:
+# deploy only starts once publish (build, tests, Inspector scan, upload) succeeded.
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: "Target environment"
+        required: true
+        type: environment
+      tag:
+        description: "Git tag to publish and deploy (e.g. 1.0.0)"
+        required: true
+        type: string
+
+jobs:
+  publish:
+    name: Publish
+    uses: ./.github/workflows/publish-tag.yml
+    with:
+      environment: ${{ inputs.environment }}
+      tag: ${{ inputs.tag }}
+    permissions:
+      contents: read
+      id-token: write
+    secrets: inherit
+
+  deploy:
+    name: Deploy
+    needs: publish
+    uses: ./.github/workflows/deploy-tag.yml
+    with:
+      environment: ${{ inputs.environment }}
+      tag: ${{ inputs.tag }}
+    permissions:
+      id-token: write
+    secrets: inherit

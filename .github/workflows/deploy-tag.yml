@@ -15,6 +15,15 @@ on:
         description: "Git tag to deploy (e.g. 1.0.0)"
         required: true
         type: string
+  # Also callable from publish-deploy-tag (workflow_call has no `environment` input type).
+  workflow_call:
+    inputs:
+      environment:
+        required: true
+        type: string
+      tag:
+        required: true
+        type: string
 
 concurrency:
   group: deploy-${{ inputs.environment }}
