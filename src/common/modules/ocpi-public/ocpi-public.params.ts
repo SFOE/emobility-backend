@@ -5,6 +5,10 @@ import { ErrorHandler } from '/opt/nodejs/api/error/api-error-handler';
 export const DEFAULT_LIMIT = 1000;
 export const MAX_LIMIT = 1000;
 
+// /ocpi/status is not paginated, so its default is its maximum: a client that
+// sends no limit still gets everything up to it. ~140 KB per 1000 statuses.
+export const STATUS_LIMIT = 5000;
+
 // Lambda caps a response at 6 MB. A page stops adding objects once their bodies
 // reach this budget and returns fewer than `limit` - which OCPI allows, the
 // `Link` header then points at the next offset.
@@ -56,6 +60,7 @@ export const toSecondsTimestamp = (instant: Date): string =>
  * Parses `offset`, `limit` and (optionally) `date_from` of a list request.
  * With `requireDateFrom`, `date_from` is mandatory (`/ocpi/status`); with
  * `allowOffset = false`, `offset` is rejected (unpaginated `/ocpi/status`).
+ * `defaultLimit`/`maxLimit` default to the OCPI 1000.
  */
 export const parseListQuery = (
   query: Record<string, string | undefined> | undefined | null,
@@ -63,12 +68,16 @@ export const parseListQuery = (
     requireDateFrom?: boolean;
     allowOffset?: boolean;
     formatDateFrom?: (instant: Date) => string;
+    defaultLimit?: number;
+    maxLimit?: number;
   } = {},
 ): ParseResult<ListQuery> => {
   const {
     requireDateFrom = false,
     allowOffset = true,
     formatDateFrom = toSecondsTimestamp,
+    defaultLimit = DEFAULT_LIMIT,
+    maxLimit = MAX_LIMIT,
   } = options;
   const params = query ?? {};
 
@@ -84,11 +93,11 @@ export const parseListQuery = (
     offset = parsed;
   }
 
-  let limit = DEFAULT_LIMIT;
+  let limit = defaultLimit;
   if (params.limit !== undefined) {
     const parsed = parseInteger(params.limit);
-    if (parsed === null || parsed < 1 || parsed > MAX_LIMIT) {
-      return invalid(`limit must be between 1 and ${MAX_LIMIT}`);
+    if (parsed === null || parsed < 1 || parsed > maxLimit) {
+      return invalid(`limit must be between 1 and ${maxLimit}`);
     }
     limit = parsed;
   }

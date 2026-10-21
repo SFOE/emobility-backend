@@ -90,6 +90,19 @@ describe('parseListQuery', () => {
     },
   );
 
+  it('uses the given default and maximum limit', () => {
+    const options = { defaultLimit: 5000, maxLimit: 5000 };
+
+    expect(
+      parseListQuery({}, options).success && parseListQuery({}, options),
+    ).toMatchObject({
+      value: { limit: 5000 },
+    });
+    expect(
+      errorOf(parseListQuery({ limit: '5001' }, options)).body.status_message,
+    ).toBe('limit must be between 1 and 5000');
+  });
+
   it('requires date_from when asked to', () => {
     expect(
       errorOf(parseListQuery({}, { requireDateFrom: true })).body
