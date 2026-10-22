@@ -16,6 +16,15 @@ on:
         description: "Git tag to publish and deploy (e.g. 1.0.0)"
         required: true
         type: string
+  # Also called by the release workflow to deploy each new release to dev.
+  workflow_call:
+    inputs:
+      environment:
+        required: true
+        type: string
+      tag:
+        required: true
+        type: string
 
 jobs:
   publish:

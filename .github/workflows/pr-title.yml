@@ -1,0 +1,36 @@
+name: PR Title
+run-name: "PR title (#${{ github.event.pull_request.number }})"
+
+# Squash merges use the PR title as the commit message on main, and semantic-release
+# derives the next version from it - so the title must be a Conventional Commit
+# (feat: …, fix: …, refactor: …, docs: …). Make this a required check on main.
+
+on:
+  pull_request:
+    types: [opened, edited, reopened, synchronize]
+
+permissions:
+  pull-requests: read
+
+jobs:
+  conventional-title:
+    name: Conventional Commit title
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: amannn/action-semantic-pull-request@v5
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          types: |
+            feat
+            fix
+            perf
+            refactor
+            revert
+            docs
+            test
+            ci
+            build
+            chore
+            style
