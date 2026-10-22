@@ -14,7 +14,7 @@ import { getS3AccessKeySecret } from '/opt/nodejs/aws/secrets-manager';
 import { Aws } from '/opt/nodejs/aws/constants';
 import { overlayStatus, parseStatusItems } from './overlay';
 import { buildFeatureCollection } from './render';
-import { GEOJSON_LANGUAGES, TRANSLATIONS, type Language } from './translations';
+import { GEOJSON_LANGUAGES, type Language, TRANSLATIONS } from './translations';
 import type {
   GeoJsonFeatureCollection,
   GoldExport,
@@ -177,8 +177,8 @@ export async function run(
     statusByKey = parseStatusItems(statusItems);
     console.log(`Scanned ${scannedCount} EVSE status entries from DynamoDB`);
   } catch (err) {
-    console.warn(
-      `WARNING: DynamoDB status scan failed, falling back to Gold's baked-in status: ${err}`,
+    console.error(
+      `ERROR: DynamoDB status scan failed, falling back to Gold's baked-in status: ${err}`,
     );
   }
 
