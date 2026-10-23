@@ -1,5 +1,6 @@
 import type { S3Client } from '@aws-sdk/client-s3';
 import {
+  deltaWindowStart,
   run,
   writeGeoJson,
 } from '../../../../src/functions/geojson-emitter/geojson-emitter';
@@ -11,8 +12,14 @@ import type {
 
 const GENERATED_AT = '2026-08-13T00:00:00Z';
 
+// Spark's isoformat() emits no timezone suffix – the emitter has to read it as UTC.
+const EXPORT_GENERATED_AT = '2026-08-13T06:00:00.000000';
+// EXPORT_GENERATED_AT minus the default 1h buffer, normalized to UTC.
+const EXPECTED_WINDOW_START = '2026-08-13T05:00:00.000Z';
+
 function makeExport(): GoldExport {
   return {
+    generated_at: EXPORT_GENERATED_AT,
     locations: [
       {
         country_code: 'CH',
@@ -98,7 +105,9 @@ describe('run — happy path', () => {
 
     const logged = logSpy.mock.calls.map((call) => String(call[0]));
     expect(logged).toContain('Loaded Gold export: 1 locations, 1 EVSEs');
-    expect(logged).toContain('Scanned 2 EVSE status entries from DynamoDB');
+    expect(logged).toContain(
+      `Scanned 2 EVSE status entries from DynamoDB (changed since ${EXPECTED_WINDOW_START})`,
+    );
     expect(logged).toContain(
       'Applied live status to 1 of 1 EVSEs (1 DynamoDB entries had no matching EVSE)',
     );
@@ -261,5 +270,103 @@ describe('run — status scan failure falls back to baked-in status', () => {
     await expect(
       run(loadExport, scanStatus, writeGeoJson, GENERATED_AT),
     ).resolves.toBeUndefined();
+  });
+});
+
+describe('deltaWindowStart', () => {
+  it('reads a suffix-less Spark timestamp as UTC, not as local time', () => {
+    // The whole point of the helper: Date.parse would treat this as the host's
+    // local time. On a non-UTC machine that shifts the window by the offset and
+    // silently drops status updates, so the expectation is pinned to UTC.
+    expect(deltaWindowStart('2026-08-13T06:00:00.000000', 2)).toBe(
+      '2026-08-13T04:00:00.000Z',
+    );
+  });
+
+  it('honours an explicit Z suffix', () => {
+    expect(deltaWindowStart('2026-08-13T06:00:00.000Z', 2)).toBe(
+      '2026-08-13T04:00:00.000Z',
+    );
+  });
+
+  it('honours an explicit numeric offset', () => {
+    expect(deltaWindowStart('2026-08-13T08:00:00+02:00', 2)).toBe(
+      '2026-08-13T04:00:00.000Z',
+    );
+  });
+
+  it('subtracts the configured buffer', () => {
+    expect(deltaWindowStart('2026-08-13T06:00:00Z', 0)).toBe(
+      '2026-08-13T06:00:00.000Z',
+    );
+    expect(deltaWindowStart('2026-08-13T06:00:00Z', 6)).toBe(
+      '2026-08-13T00:00:00.000Z',
+    );
+  });
+
+  it('returns null for a missing or unparseable timestamp', () => {
+    expect(deltaWindowStart(undefined, 2)).toBeNull();
+    expect(deltaWindowStart('', 2)).toBeNull();
+    expect(deltaWindowStart('not-a-date', 2)).toBeNull();
+  });
+});
+
+describe('run — status delta window', () => {
+  it('asks only for statuses newer than the export, minus the buffer', async () => {
+    const loadExport = jest
+      .fn<Promise<GoldExport>, []>()
+      .mockResolvedValue(makeExport());
+    const fetchStatus = jest
+      .fn<Promise<StatusItem[]>, [string | null]>()
+      .mockResolvedValue([]);
+    const writeGeoJson = jest
+      .fn<Promise<void>, [Record<string, GeoJsonFeatureCollection>]>()
+      .mockResolvedValue();
+
+    await run(loadExport, fetchStatus, writeGeoJson, GENERATED_AT);
+
+    expect(fetchStatus).toHaveBeenCalledWith(EXPECTED_WINDOW_START);
+  });
+
+  it('falls back to a full read when the export has no generated_at', async () => {
+    const { generated_at: _omitted, ...withoutTimestamp } = makeExport();
+    const loadExport = jest
+      .fn<Promise<GoldExport>, []>()
+      .mockResolvedValue(withoutTimestamp);
+    const fetchStatus = jest
+      .fn<Promise<StatusItem[]>, [string | null]>()
+      .mockResolvedValue([]);
+    const writeGeoJson = jest
+      .fn<Promise<void>, [Record<string, GeoJsonFeatureCollection>]>()
+      .mockResolvedValue();
+    const warnSpy = jest.spyOn(console, 'warn').mockImplementation();
+
+    await run(loadExport, fetchStatus, writeGeoJson, GENERATED_AT);
+
+    expect(fetchStatus).toHaveBeenCalledWith(null);
+    expect(warnSpy.mock.calls.map((call) => String(call[0]))).toContainEqual(
+      expect.stringContaining('no usable generated_at'),
+    );
+    // The GeoJSON is still published – a missing timestamp must not stop the run.
+    expect(writeGeoJson).toHaveBeenCalledTimes(1);
+
+    warnSpy.mockRestore();
+  });
+
+  it('still overlays the live status that the delta returned', async () => {
+    const loadExport = jest
+      .fn<Promise<GoldExport>, []>()
+      .mockResolvedValue(makeExport());
+    const fetchStatus = jest
+      .fn<Promise<StatusItem[]>, [string | null]>()
+      .mockResolvedValue([makeStatusItem()]);
+    const writeGeoJson = jest
+      .fn<Promise<void>, [Record<string, GeoJsonFeatureCollection>]>()
+      .mockResolvedValue();
+
+    await run(loadExport, fetchStatus, writeGeoJson, GENERATED_AT);
+
+    const written = writeGeoJson.mock.calls[0]![0].de;
+    expect(written.features[0]!.properties.Availability).toBe('Occupied');
   });
 });

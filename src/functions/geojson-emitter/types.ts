@@ -59,6 +59,15 @@ export interface GoldLocation {
 }
 
 export interface GoldExport {
+  /**
+   * When the Gold job built this export (its `built_at`), as written by
+   * silver-to-gold.py. Spark's `isoformat()` emits no timezone suffix, so the
+   * value is a bare local-looking instant that has to be read as UTC.
+   *
+   * Optional because exports written before this field existed are still valid
+   * input; the emitter falls back to a full status scan for those.
+   */
+  generated_at?: string;
   locations: GoldLocation[];
 }
 
