@@ -14,7 +14,7 @@ import { getS3AccessKeySecret } from '/opt/nodejs/aws/secrets-manager';
 import { Aws } from '/opt/nodejs/aws/constants';
 import { overlayStatus, parseStatusItems } from './overlay';
 import { buildFeatureCollection } from './render';
-import { GEOJSON_LANGUAGES, TRANSLATIONS, type Language } from './translations';
+import { GEOJSON_LANGUAGES, type Language, TRANSLATIONS } from './translations';
 import type {
   GeoJsonFeatureCollection,
   GoldExport,
