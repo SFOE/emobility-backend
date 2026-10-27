@@ -53,6 +53,12 @@ export interface GoldLocation {
   vehicle_types?: string[];
   /** e.g. "2/10" – rendered as-is unless empty or ending in "/0". */
   accessible_evse_count?: string;
+  /**
+   * Whether any EVSE here sits on an LKW-capable parking place (Gold's rollup of
+   * the pipeline's per-EVSE `is_lkw_suitable`). Absent in exports built before the
+   * field existed - treated as false.
+   */
+  is_lkw_suitable?: boolean;
   tariffs: GoldTariff[];
   evses: GoldEvse[];
   evse_ids: string[];

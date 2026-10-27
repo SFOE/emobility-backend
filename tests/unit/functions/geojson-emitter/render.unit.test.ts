@@ -118,7 +118,7 @@ describe('computeAvailability', () => {
 });
 
 describe('computeSymbology', () => {
-  it('appends _True when any connector meets the fast-charge threshold', () => {
+  it('appends _fast when any connector meets the fast-charge threshold', () => {
     const evses = [
       makeEvse({
         connectors: [
@@ -126,16 +126,16 @@ describe('computeSymbology', () => {
         ],
       }),
     ];
-    expect(computeSymbology('Available', evses)).toBe('Available_True');
+    expect(computeSymbology('Available', evses)).toBe('Available_fast');
   });
 
-  it('appends _False when no connector reaches the fast-charge threshold', () => {
+  it('appends _slow when no connector reaches the fast-charge threshold', () => {
     const evses = [
       makeEvse({
         connectors: [{ standard: 'IEC_62196_T2', max_electric_power: 22000 }],
       }),
     ];
-    expect(computeSymbology('Available', evses)).toBe('Available_False');
+    expect(computeSymbology('Available', evses)).toBe('Available_slow');
   });
 
   it('treats exactly the threshold (50000 W) as a fast charger', () => {
@@ -144,12 +144,32 @@ describe('computeSymbology', () => {
         connectors: [{ standard: 'CHADEMO', max_electric_power: 50000 }],
       }),
     ];
-    expect(computeSymbology('Occupied', evses)).toBe('Occupied_True');
+    expect(computeSymbology('Occupied', evses)).toBe('Occupied_fast');
   });
 
-  it('appends _False when there are no connectors', () => {
+  it('appends _slow when there are no connectors', () => {
     const evses = [makeEvse({ connectors: [] })];
-    expect(computeSymbology('Unknown', evses)).toBe('Unknown_False');
+    expect(computeSymbology('Unknown', evses)).toBe('Unknown_slow');
+  });
+
+  it('appends _lkw for an LKW-suitable fast-charging location', () => {
+    const evses = [
+      makeEvse({
+        connectors: [
+          { standard: 'IEC_62196_T2_COMBO', max_electric_power: 150000 },
+        ],
+      }),
+    ];
+    expect(computeSymbology('Available', evses, true)).toBe('Available_lkw');
+  });
+
+  it('keeps _slow for an LKW-suitable location below the threshold', () => {
+    const evses = [
+      makeEvse({
+        connectors: [{ standard: 'IEC_62196_T2', max_electric_power: 22000 }],
+      }),
+    ];
+    expect(computeSymbology('Available', evses, true)).toBe('Available_slow');
   });
 });
 
@@ -381,7 +401,7 @@ describe('buildFeature', () => {
     const feature = buildFeature(makeLocation());
     expect(feature.properties.location_id).toBe('CH*TIA*LOC002');
     expect(feature.properties.Availability).toBe('Available');
-    expect(feature.properties.symbology).toBe('Available_False');
+    expect(feature.properties.symbology).toBe('Available_slow');
     expect(typeof feature.properties.description).toBe('string');
   });
 });

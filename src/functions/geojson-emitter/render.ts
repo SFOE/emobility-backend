@@ -76,9 +76,13 @@ export function computeAvailability(evses: GoldEvse[]): string {
   return 'Unknown';
 }
 
+// Pin variant, top-down: the E-LKW pin only exists as a fast-charging variant, so
+// LKW-suitability only counts once the fast-charge threshold is met. The suffixes
+// must match the `value`s in swisstopo's style definition, or no pin is drawn.
 export function computeSymbology(
   availability: string,
   evses: GoldEvse[],
+  isLkwSuitable = false,
 ): string {
   const hasFastCharger = evses.some((evse) =>
     (evse.connectors ?? []).some(
@@ -86,7 +90,8 @@ export function computeSymbology(
         (connector.max_electric_power || 0) >= FAST_CHARGE_THRESHOLD_W,
     ),
   );
-  return `${availability}_${hasFastCharger ? 'True' : 'False'}`;
+  const variant = hasFastCharger ? (isLkwSuitable ? 'lkw' : 'fast') : 'slow';
+  return `${availability}_${variant}`;
 }
 
 function tariffPriceComponents(tariff: GoldTariff): GoldTariffPriceComponent[] {
@@ -431,7 +436,11 @@ export function buildFeature(
     properties: {
       location_id: location.full_location_id,
       Availability: availability,
-      symbology: computeSymbology(availability, location.evses),
+      symbology: computeSymbology(
+        availability,
+        location.evses,
+        location.is_lkw_suitable,
+      ),
       description: renderDescription(location, t),
     },
   };
