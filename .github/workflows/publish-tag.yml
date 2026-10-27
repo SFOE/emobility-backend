@@ -108,6 +108,10 @@ jobs:
           role-to-assume: ${{ vars.AWS_OIDC_ROLE_ARN }}
           aws-region: eu-central-1
 
+      - name: Auth ECR repo
+        shell: bash
+        run: aws ecr-public get-login-password --region us-east-1 | docker login --username AWS --password-stdin public.ecr.aws
+
       # Scan the production dependencies of the node-modules layer with AWS Inspector
       - name: Scan node-modules layer with Inspector
         uses: aws-actions/vulnerability-scan-github-action-for-amazon-inspector@v1.6.0
