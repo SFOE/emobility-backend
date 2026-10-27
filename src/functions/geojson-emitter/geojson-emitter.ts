@@ -32,10 +32,16 @@ type FeatureCollectionByLanguage = Record<Language, GeoJsonFeatureCollection>;
  * `handler` itself stays a thin, untested driver (same convention as the
  * existing handlers).
  *
- * A DynamoDB scan failure does not abort the run: `run()` falls back to an
+ * A DynamoDB read failure does not abort the run: `run()` falls back to an
  * empty status overlay so the GeoJSON still gets rewritten with Gold's baked-in
  * fallback status, refreshing at the Gold cadence instead of not at all. This
  * also means the emitter can be deployed ahead of DynamoDB/the status API.
+ *
+ * Only the status delta is read, not the whole table: every entry older than the
+ * Gold export's `generated_at` is already baked into that export, so re-reading
+ * it each run would be wasted work. The emitter keeps no state between runs --
+ * the export itself carries the baseline, and the window is re-derived from it
+ * on every invocation.
  *
  * The DynamoDB client is created once at module scope for warm-invocation reuse.
  * The S3 client reading the Gold export and writing the GeoJSON back into Gold
@@ -58,6 +64,49 @@ const GOLD_GEOJSON_KEY_PREFIX = 'final_geojson';
 const GEOJSON_FILE_BASENAME = 'ch.bfe.ladestellen-elektromobilitaet';
 
 const EVSE_STATUS_TABLE = Aws.dynamoDBTables.evseCurrentStatus;
+
+/**
+ * How far back before the Gold export's `generated_at` the status delta starts.
+ *
+ * The export's baked-in status comes from Silver, which was built before Gold
+ * stamped `generated_at`. A status that arrived while the pipeline was running
+ * is therefore in neither the export nor a delta starting exactly at
+ * `generated_at`, and would silently stay stale until the next Gold run. The
+ * buffer covers that gap. Reading a bit extra is harmless -- the overlay is
+ * idempotent -- whereas too small a buffer silently publishes stale status, so
+ * raise this if the Bronze->Silver->Gold chain ever takes longer than an hour.
+ */
+const STATUS_DELTA_BUFFER_HOURS = Number(
+  process.env.STATUS_DELTA_BUFFER_HOURS ?? 1,
+);
+
+const HOUR_IN_MS = 60 * 60 * 1000;
+
+/**
+ * Start of the status delta window, or `null` when it cannot be derived and the
+ * caller has to fall back to a full scan.
+ *
+ * Compared lexicographically against `gsi1sk`, which is prefixed with
+ * `received_at` (`new Date().toISOString()`, always UTC with a `Z`). The Gold
+ * export's `generated_at` lacks that suffix, and `Date.parse` would read a
+ * bare timestamp as the Lambda's *local* time -- shifting the window by the
+ * host offset. Appending `Z` pins it to UTC, and re-serializing normalizes both
+ * sides to the same format so the comparison holds.
+ */
+export function deltaWindowStart(
+  generatedAt: string | undefined,
+  bufferHours: number,
+): string | null {
+  if (!generatedAt) {
+    return null;
+  }
+  const hasTimezone = /(Z|[+-]\d{2}:?\d{2})$/.test(generatedAt);
+  const parsed = Date.parse(hasTimezone ? generatedAt : `${generatedAt}Z`);
+  if (Number.isNaN(parsed)) {
+    return null;
+  }
+  return new Date(parsed - bufferHours * HOUR_IN_MS).toISOString();
+}
 
 // DynamoDB client initialized once per execution environment (same-account, no role assumption needed).
 const dynamoDocClient = DynamoDBDocument.from(
@@ -95,7 +144,7 @@ async function loadExport(
   }
 }
 
-async function scanDynamoStatus(tableName: string): Promise<StatusItem[]> {
+async function scanAllStatus(tableName: string): Promise<StatusItem[]> {
   const items: StatusItem[] = [];
   let lastEvaluatedKey: Record<string, unknown> | undefined;
 
@@ -109,6 +158,50 @@ async function scanDynamoStatus(tableName: string): Promise<StatusItem[]> {
   } while (lastEvaluatedKey);
 
   return items;
+}
+
+/**
+ * Status entries whose `received_at` is at or after `since`, read through gsi1
+ * (constant `gsi1pk`, `gsi1sk` = `{received_at}#{cc}#{party}#{location}#{uid}`).
+ * The same index backs the public status API's `date_from`.
+ *
+ * Paginated to completion: the window can legitimately exceed one page right
+ * before a Gold run, and a truncated result would silently publish stale status.
+ */
+async function queryStatusSince(
+  tableName: string,
+  since: string,
+): Promise<StatusItem[]> {
+  const items: StatusItem[] = [];
+  let lastEvaluatedKey: Record<string, unknown> | undefined;
+
+  do {
+    const response = await dynamoDocClient.query({
+      TableName: tableName,
+      IndexName: 'gsi1',
+      KeyConditionExpression: 'gsi1pk = :type AND gsi1sk >= :since',
+      ExpressionAttributeValues: { ':type': 'EVSE_STATUS', ':since': since },
+      ExclusiveStartKey: lastEvaluatedKey,
+    });
+    items.push(...((response.Items ?? []) as StatusItem[]));
+    lastEvaluatedKey = response.LastEvaluatedKey;
+  } while (lastEvaluatedKey);
+
+  return items;
+}
+
+/**
+ * Everything older than `since` is already baked into the Gold export, so only
+ * the delta has to be read. `since === null` means the export carried no usable
+ * `generated_at`; then the whole table is scanned, exactly as before.
+ */
+async function fetchStatus(
+  tableName: string,
+  since: string | null,
+): Promise<StatusItem[]> {
+  return since === null
+    ? scanAllStatus(tableName)
+    : queryStatusSince(tableName, since);
 }
 
 /**
@@ -141,12 +234,16 @@ export async function writeGeoJson(
  *
  * An exception from `loadExportFn` propagates immediately; `writeGeoJsonFn` is
  * never called so a partial result is never published. An exception from
- * `scanStatusFn` is caught and logged; the run continues with an empty status
+ * `fetchStatusFn` is caught and logged; the run continues with an empty status
  * overlay so Gold's baked-in status is used instead.
+ *
+ * `fetchStatusFn` receives the start of the delta window derived from the
+ * export, or `null` when the export has no usable timestamp and the caller
+ * should read everything.
  */
 export async function run(
   loadExportFn: () => Promise<GoldExport | null>,
-  scanStatusFn: () => Promise<StatusItem[]>,
+  fetchStatusFn: (since: string | null) => Promise<StatusItem[]>,
   writeGeoJsonFn: (
     collectionsByLanguage: FeatureCollectionByLanguage,
   ) => Promise<void>,
@@ -169,16 +266,31 @@ export async function run(
     `Loaded Gold export: ${exportData.locations.length} locations, ${evseCount} EVSEs`,
   );
 
+  // Statuses older than this are already in the export, so only the delta is read.
+  const windowStart = deltaWindowStart(
+    exportData.generated_at,
+    STATUS_DELTA_BUFFER_HOURS,
+  );
+  if (windowStart === null) {
+    console.warn(
+      'Gold export carries no usable generated_at — falling back to a full status scan.',
+    );
+  }
+
   let statusByKey: StatusByKey = {};
   let scannedCount = 0;
   try {
-    const statusItems = await scanStatusFn();
+    const statusItems = await fetchStatusFn(windowStart);
     scannedCount = statusItems.length;
     statusByKey = parseStatusItems(statusItems);
-    console.log(`Scanned ${scannedCount} EVSE status entries from DynamoDB`);
+    console.log(
+      windowStart === null
+        ? `Scanned ${scannedCount} EVSE status entries from DynamoDB (full scan)`
+        : `Scanned ${scannedCount} EVSE status entries from DynamoDB (changed since ${windowStart})`,
+    );
   } catch (err) {
-    console.error(
-      `ERROR: DynamoDB status scan failed, falling back to Gold's baked-in status: ${err}`,
+    console.warn(
+      `WARNING: DynamoDB status read failed, falling back to Gold's baked-in status: ${err}`,
     );
   }
 
@@ -220,7 +332,7 @@ export const handler = async (): Promise<void> => {
 
   await run(
     () => loadExport(goldS3Client, goldBucket, GOLD_EXPORT_KEY),
-    () => scanDynamoStatus(EVSE_STATUS_TABLE),
+    (since) => fetchStatus(EVSE_STATUS_TABLE, since),
     async (collectionsByLanguage) => {
       // Gold is written first so a swisstopo failure cannot suppress it.
       await writeGeoJson(
