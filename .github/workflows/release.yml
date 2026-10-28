@@ -4,9 +4,10 @@ run-name: "Release (${{ github.sha }})"
 # On every push to main, semantic-release derives the next version from the Conventional
 # Commit messages since the last tag (feat -> minor; fix, perf, refactor, revert -> patch;
 # BREAKING CHANGE -> major; docs, ci, chore, test, style, build -> no release), tags it
-# (no "v" prefix, e.g. 0.7.0) and creates a GitHub release with generated notes. Nothing is
-# committed back to main. A new release is then published and deployed to dev via
-# publish-deploy-tag; test and prod are promoted manually with the same workflow and tag.
+# (no "v" prefix, e.g. 0.7.0), creates a GitHub release with generated notes and commits the
+# same notes to CHANGELOG.md on main ("chore(release): ... [skip ci]"). A new release is then
+# published and deployed via publish-deploy-tag, first to dev and, once that succeeded, to
+# test; prod is promoted manually with the same workflow and tag.
 
 on:
   push:
@@ -44,6 +45,8 @@ jobs:
           semantic_version: 24
           extra_plugins: |
             conventional-changelog-conventionalcommits@8
+            @semantic-release/changelog@6
+            @semantic-release/git@10
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -54,6 +57,18 @@ jobs:
     uses: ./.github/workflows/publish-deploy-tag.yml
     with:
       environment: dev
+      tag: ${{ needs.release.outputs.version }}
+    permissions:
+      contents: read
+      id-token: write
+    secrets: inherit
+
+  deploy-test:
+    name: Deploy ${{ needs.release.outputs.version }} to test
+    needs: [release, deploy-dev]
+    uses: ./.github/workflows/publish-deploy-tag.yml
+    with:
+      environment: test
       tag: ${{ needs.release.outputs.version }}
     permissions:
       contents: read
