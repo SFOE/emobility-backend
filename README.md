@@ -110,14 +110,15 @@ from the commit messages on `main`:
   `BREAKING CHANGE:` footer → major; `docs:`, `ci:`, `chore:`, `test:`, `style:`,
   `build:` → no release.
 - `release.yml` tags the version (no `v` prefix, e.g. `1.2.0`), creates a GitHub release
-  with notes and deploys it to **dev** automatically.
+  with notes, commits the same notes to `CHANGELOG.md` (`chore(release): … [skip ci]`) and
+  deploys it to **dev**, then **test**, automatically. Prod stays manual.
 
 | Workflow                 | Trigger                        | Purpose                                                                                                                 |
 | ------------------------ | ------------------------------ | ----------------------------------------------------------------------------------------------------------------------- |
 | Build & Test             | PRs and pushes to `main`       | Build, lint, unit tests                                                                                                 |
 | PR Title                 | PRs                            | Conventional Commit title                                                                                               |
-| Release                  | push to `main`                 | semantic-release, then Publish & Deploy to dev                                                                          |
-| Publish & Deploy Tag     | manual                         | Promote a tag to an environment (test, prod)                                                                            |
+| Release                  | push to `main`                 | semantic-release + `CHANGELOG.md`, then Publish & Deploy to dev, then test                                              |
+| Publish & Deploy Tag     | manual                         | Promote a tag to an environment (prod; or redeploy dev/test)                                                            |
 | Publish Tag / Deploy Tag | manual, or called by the above | Upload the artifacts to the environment's S3 artifact store / set `backend_app_version` in `prometheon-emobility-<env>` |
 | Deploy Dev               | manual                         | Deploy the current branch HEAD (by SHA) to dev for testing                                                              |
 
