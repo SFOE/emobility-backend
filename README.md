@@ -106,9 +106,9 @@ from the commit messages on `main`:
 
 - PRs are squash-merged, so the **PR title becomes the commit message** and must be a
   [Conventional Commit](https://www.conventionalcommits.org/) (checked by `pr-title.yml`).
-- `feat:` → minor; `fix:`, `perf:`, `refactor:`, `revert:` → patch; `feat!:` or a
-  `BREAKING CHANGE:` footer → major; `docs:`, `ci:`, `chore:`, `test:`, `style:`,
-  `build:` → no release.
+- `feat:` → minor; `fix:`, `perf:`, `refactor:`, `revert:`, `chore(deps):` → patch;
+  `feat!:` or a `BREAKING CHANGE:` footer → major; `docs:`, `ci:`, other `chore:`,
+  `test:`, `style:`, `build:` → no release.
 - `release.yml` tags the version (no `v` prefix, e.g. `1.2.0`), creates a GitHub release
   with notes, commits the same notes to `CHANGELOG.md` (`chore(release): … [skip ci]`) and
   deploys it to **dev**, then **test**, automatically. Prod stays manual.
