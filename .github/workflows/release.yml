@@ -40,7 +40,7 @@ jobs:
       # Uses .releaserc.json; tags and the GitHub release are created with GITHUB_TOKEN
       - name: Semantic release
         id: semantic
-        uses: cycjimmy/semantic-release-action@v4
+        uses: cycjimmy/semantic-release-action@v5
         with:
           semantic_version: 24
           extra_plugins: |
