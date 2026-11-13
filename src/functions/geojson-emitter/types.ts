@@ -43,6 +43,12 @@ export interface GoldLocation {
   address_display: string;
   operator_name?: string;
   operator_url?: string;
+  /**
+   * OCPI `suboperator` (name and website), when the CPO sends one. Absent in
+   * exports built before the field existed.
+   */
+  suboperator_name?: string;
+  suboperator_url?: string;
   credit_card_payable?: boolean;
   debit_card_payable?: boolean;
   /** JSON-stringified opening hours object, as stored in the Gold export. */
