@@ -67,5 +67,7 @@ export const Aws = {
     // Public OCPI API serving tables, written by the Glue silver-to-gold job.
     ocpiLocations: 'ocpi-locations',
     ocpiTariffs: 'ocpi-tariffs',
+    // Per-CPO onboarding figures for GET /monitoring/cpos, written by the Glue silver-to-gold job.
+    cpoMonitoring: 'ocpi-cpo-monitoring',
   },
 };

@@ -10,6 +10,8 @@ functions written in TypeScript behind an API Gateway HTTP API, with DynamoDB, S
   (`emobility-data-pipelines`). EVSE status is also written straight to DynamoDB.
 - **Public read-only OCPI API** (`/ocpi/locations`, `/ocpi/tariffs`, `/ocpi/status`, no
   authentication): serves the aggregated data to data consumers as OCPI 2.3.0.
+- **Monitoring API** (`/monitoring/cpos`, no authentication for now): per-CPO onboarding
+  figures for BFE's E-Mobility Monitoring page (`emobility-monitoring-web`).
 - **GeoJSON emitter**: publishes the map data for swisstopo.
 
 Infrastructure (Lambdas, API Gateway, DynamoDB tables, CloudFront/WAF) is defined in the
@@ -56,6 +58,19 @@ offset paging, GSI2 for `date_from`) is documented in `emobility-data-pipelines`
 (`docs/schemas.md`). The consumer documentation is BFE's "Anleitung zum Datenbezug
 «Ich tanke Strom»".
 
+**Monitoring** (no authentication for now, CORS from the API Gateway):
+
+`GET /monitoring/cpos` returns, as OCPI `data`, every registered CPO (CPO roles in
+`ocpi-credentials`, without tokens or URLs) merged with the per-CPO figures the Glue job
+writes into `ocpi-cpo-monitoring` after each run: locations (total and published), EVSEs,
+tariffs, status updates (24 h and per day over 7 days), last data, pending quarantine. A
+party with figures but no credentials is listed with `registered: false`. The handler
+derives each CPO's `status` at request time, in this order: `REGISTERED` (no data),
+`INACTIVE` (latest data older than 48 h), `FIRST_DATA` (registered less than 14 days
+ago), `MASTER_DATA_ONLY` (no status update in 24 h), else `ACTIVE`. The response also
+holds the totals (`summary`), the previous run's totals (`previous`) and `status_counts`.
+The table layout is documented in `emobility-data-pipelines` (`docs/schemas.md`).
+
 ## Project structure
 
 ```
@@ -63,6 +78,7 @@ src/
 ├── functions/                    # Lambda handlers (thin: validate → common → response)
 │   ├── api/ocpi/                 # CPO-facing OCPI API + authorizer
 │   ├── api/public/               # public read-only API (locations, tariffs, status)
+│   ├── api/monitoring/           # GET /monitoring/cpos for the E-Mobility Monitoring page
 │   ├── geojson-emitter/          # swisstopo GeoJSON publication
 │   └── raw-data-loader/          # SQS → lakehouse landing zone
 └── common/                       # shipped as Lambda layer, imported as /opt/nodejs/*
