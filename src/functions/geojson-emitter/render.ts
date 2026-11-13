@@ -363,12 +363,28 @@ function renderEvseBlock(
   );
 }
 
+/**
+ * The party shown as "Betreiber": the suboperator if the CPO sends one, else the
+ * operator. Name and link always come from the same party - a suboperator without a
+ * website is shown unlinked rather than linking to the operator's site.
+ */
+function displayedOperator(location: GoldLocation): {
+  name?: string;
+  url?: string;
+} {
+  if (location.suboperator_name) {
+    return { name: location.suboperator_name, url: location.suboperator_url };
+  }
+  return { name: location.operator_name, url: location.operator_url };
+}
+
 function renderOperator(location: GoldLocation, t: Translations): string {
-  const operatorName = escapeHtml(location.operator_name ?? t.infoUnavailable);
-  if (!location.operator_url) {
+  const { name, url } = displayedOperator(location);
+  const operatorName = escapeHtml(name ?? t.infoUnavailable);
+  if (!url) {
     return operatorName;
   }
-  return `<a href="${escapeHtml(location.operator_url)}" target="_blank">${operatorName}</a>`;
+  return `<a href="${escapeHtml(url)}" target="_blank">${operatorName}</a>`;
 }
 
 export function renderDescription(
