@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.1.1](https://github.com/SFOE/emobility-backend/compare/1.1.0...1.1.1) (2026-11-16)
+
+### Bug Fixes
+
+* **ci:** make deploy.auto.tfvars version update whitespace-tolerant ([#69](https://github.com/SFOE/emobility-backend/issues/69)) ([136a069](https://github.com/SFOE/emobility-backend/commit/136a069b845ae578870b246bbc4bb67e64399706))
+
 ## [1.1.0](https://github.com/SFOE/emobility-backend/compare/1.0.0...1.1.0) (2026-11-16)
 
 ### Features
