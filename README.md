@@ -17,6 +17,22 @@ functions written in TypeScript behind an API Gateway HTTP API, with DynamoDB, S
 Infrastructure (Lambdas, API Gateway, DynamoDB tables, CloudFront/WAF) is defined in the
 `prometheon-emobility-<env>` Terraform repositories.
 
+## Deployed versions
+
+<!-- deployed-versions:start -->
+
+| Environment | Version | Since (UTC) |
+|---|---|---|
+| [dev](https://github.com/SFOE-Prometheon/prometheon-emobility-dev/blob/main/deploy.auto.tfvars) | [1.1.1](https://github.com/SFOE/emobility-backend/releases/tag/1.1.1) | 2026-11-16 13:35 |
+| [test](https://github.com/SFOE-Prometheon/prometheon-emobility-test/blob/main/deploy.auto.tfvars) | [1.1.1](https://github.com/SFOE/emobility-backend/releases/tag/1.1.1) | 2026-11-16 13:36 |
+| [prod](https://github.com/SFOE-Prometheon/prometheon-emobility-prod/blob/main/deploy.auto.tfvars) | [1.1.0](https://github.com/SFOE/emobility-backend/releases/tag/1.1.0) | 2026-11-16 10:45 |
+
+<!-- deployed-versions:end -->
+
+Updated automatically by [`deployed-versions.yml`](.github/workflows/deployed-versions.yml)
+after every deploy, from `deploy.auto.tfvars` in `prometheon-emobility-<env>`. A version
+there is rolled out by that repository's `tofu apply`, usually within a few minutes.
+
 ## Architecture
 
 ```
