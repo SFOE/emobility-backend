@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.1.0](https://github.com/SFOE/emobility-backend/compare/1.0.0...1.1.0) (2026-11-16)
+
+### Features
+
+* show the suboperator as operator in the GeoJSON popup ([#68](https://github.com/SFOE/emobility-backend/issues/68)) ([7e173bc](https://github.com/SFOE/emobility-backend/commit/7e173bca3a912832b9626cf898f1368811fb3294)), closes [SFOE/emobility-data-pipelines#74](https://github.com/SFOE/emobility-data-pipelines/issues/74)
+
 ## [1.0.0](https://github.com/SFOE/emobility-backend/compare/0.9.0...1.0.0) (2026-11-13)
 
 ### ⚠ BREAKING CHANGES
