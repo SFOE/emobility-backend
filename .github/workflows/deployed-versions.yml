@@ -1,0 +1,60 @@
+name: Deployed Versions
+
+# Keeps the "Deployed versions" table in README.md in line with deploy.auto.tfvars of
+# prometheon-emobility-<env>, which the deploy workflows bump. Runs after each of them,
+# plus once a day to pick up versions set some other way.
+
+on:
+  workflow_run:
+    workflows: ["Deploy Dev", "Deploy Tag", "Publish & Deploy Tag", "Release"]
+    types: [completed]
+  schedule:
+    - cron: "17 5 * * *"
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+concurrency:
+  group: deployed-versions
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Authenticate as GitHub App
+        id: app-token
+        uses: actions/create-github-app-token@v3
+        with:
+          app-id: ${{ secrets.GH_APP_ID }}
+          private-key: ${{ secrets.GH_APP_PRIVATE_KEY }}
+          owner: SFOE-Prometheon
+          repositories: prometheon-emobility-dev,prometheon-emobility-test,prometheon-emobility-prod
+          permission-contents: read
+
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          ref: main
+
+      - name: Update README
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+        run: .github/scripts/deployed-versions.sh backend_app_version "deploy backend" README.md
+
+      # Pushed with GITHUB_TOKEN, which starts no other workflow. "chore" makes no release.
+      - name: Commit
+        run: |
+          if git diff --quiet README.md; then
+            echo "Deployed versions unchanged"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898299+github-actions[bot]@users.noreply.github.com"
+          git commit -q -m "chore: update deployed versions in README [skip ci]" README.md
+          for attempt in 1 2 3; do
+            git pull -q --rebase origin main && git push -q origin HEAD:main && exit 0
+            sleep 5
+          done
+          exit 1
