@@ -377,6 +377,46 @@ describe('renderDescription — energy mix, payment & fallbacks', () => {
   });
 });
 
+describe('renderDescription — operator', () => {
+  const operatorRow = (html: string): string =>
+    html.match(/Betreiber<\/td><td>(.*?)<\/td>/)?.[1] ?? '';
+
+  it('links the operator name to its website', () => {
+    const location = makeLocation({
+      operator_name: 'Operator AG',
+      operator_url: 'https://operator.example',
+    });
+    expect(operatorRow(renderDescription(location))).toBe(
+      '<a href="https://operator.example" target="_blank">Operator AG</a>',
+    );
+  });
+
+  it('prefers the suboperator over the operator, name and link', () => {
+    const location = makeLocation({
+      operator_name: 'Operator AG',
+      operator_url: 'https://operator.example',
+      suboperator_name: 'Sub GmbH',
+      suboperator_url: 'https://sub.example',
+    });
+    expect(operatorRow(renderDescription(location))).toBe(
+      '<a href="https://sub.example" target="_blank">Sub GmbH</a>',
+    );
+  });
+
+  it('shows a suboperator without website unlinked, not with the operator link', () => {
+    const location = makeLocation({
+      operator_name: 'Operator AG',
+      operator_url: 'https://operator.example',
+      suboperator_name: 'Sub GmbH',
+    });
+    expect(operatorRow(renderDescription(location))).toBe('Sub GmbH');
+  });
+
+  it('falls back to the unavailable text without operator and suboperator', () => {
+    expect(operatorRow(renderDescription(makeLocation()))).toBe('Keine Angabe');
+  });
+});
+
 describe('renderDescription — HTML escaping', () => {
   it('escapes HTML-significant characters in the address', () => {
     const location = makeLocation({ address_display: 'A & B <script>' });
