@@ -145,7 +145,8 @@ jobs:
         run: |
           set -euo pipefail
           cd tf-repo
-          sed -i "s/backend_app_version = \".*\"/backend_app_version = \"${VERSION}\"/" deploy.auto.tfvars
+          sed -i -E "s/^(backend_app_version[[:space:]]*=[[:space:]]*)\".*\"/\1\"${VERSION}\"/" deploy.auto.tfvars
+          grep -Eq "^backend_app_version[[:space:]]*=[[:space:]]*\"${VERSION}\"" deploy.auto.tfvars || { echo "::error::backend_app_version not updated in deploy.auto.tfvars"; exit 1; }
           git config user.name "GitHub Actions"
           git config user.email "noreply@github.com"
           git add deploy.auto.tfvars
