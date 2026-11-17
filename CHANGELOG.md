@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.2.0](https://github.com/SFOE/emobility-backend/compare/1.1.1...1.2.0) (2026-11-17)
+
+### Features
+
+* pass the OCPI versions per CPO through GET /monitoring/cpos ([#71](https://github.com/SFOE/emobility-backend/issues/71)) ([e0e5f53](https://github.com/SFOE/emobility-backend/commit/e0e5f53fbdd6eb6a1b41931fb678c5019a235ddf))
+
 ## [1.1.1](https://github.com/SFOE/emobility-backend/compare/1.1.0...1.1.1) (2026-11-16)
 
 ### Bug Fixes
