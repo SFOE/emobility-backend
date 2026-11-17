@@ -101,6 +101,7 @@ const toCpo = (
     last_data_at: item?.last_data_at ?? null,
     quarantine_pending: item?.quarantine_pending ?? 0,
     quarantine_by_reason: item?.quarantine_by_reason ?? {},
+    ocpi_versions: item?.ocpi_versions ?? [],
   };
 };
 
