@@ -122,6 +122,21 @@ describe('buildMonitoringResponse', () => {
     expect(response.previous).toBeNull();
   });
 
+  it('passes the OCPI versions through, empty without figures', () => {
+    const response = buildMonitoringResponse(
+      [party(), party({ party_id: 'NEW' })],
+      [item({ ocpi_versions: ['2.2.1', '2.3.0'] })],
+      null,
+      NOW,
+      DEFAULT_STATUS_THRESHOLDS,
+    );
+
+    expect(response.cpos.map((cpo) => cpo.ocpi_versions)).toEqual([
+      ['2.2.1', '2.3.0'],
+      [],
+    ]);
+  });
+
   it('keeps the first registration of a party registered twice', () => {
     const response = buildMonitoringResponse(
       [

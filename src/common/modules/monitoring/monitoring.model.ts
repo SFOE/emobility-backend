@@ -21,6 +21,8 @@ export interface CpoMonitoringItem {
   last_data_at?: string;
   quarantine_pending: number;
   quarantine_by_reason: Record<string, number>;
+  // OCPI versions the party pushed with in the latest Silver run (absent if it sent nothing new).
+  ocpi_versions?: string[];
   updated_at: string;
   job_run_id?: string;
 }
@@ -94,6 +96,8 @@ export interface MonitoringCpo {
   last_data_at: string | null;
   quarantine_pending: number;
   quarantine_by_reason: Record<string, number>;
+  // OCPI versions the CPO pushed with in the latest pipeline run, sorted; empty if none.
+  ocpi_versions: string[];
 }
 
 export interface MonitoringSummary {
