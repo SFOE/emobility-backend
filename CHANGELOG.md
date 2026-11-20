@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.3.0](https://github.com/SFOE/emobility-backend/compare/1.2.0...1.3.0) (2026-11-20)
+
+### Features
+
+* send GeoJSON popup feedback by e-mail instead of the uvek-gis form ([#72](https://github.com/SFOE/emobility-backend/issues/72)) ([33eea15](https://github.com/SFOE/emobility-backend/commit/33eea152dee27f6ac4932be1791759280c5313d7))
+
 ## [1.2.0](https://github.com/SFOE/emobility-backend/compare/1.1.1...1.2.0) (2026-11-17)
 
 ### Features
