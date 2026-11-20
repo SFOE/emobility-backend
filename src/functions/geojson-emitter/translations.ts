@@ -36,6 +36,15 @@ export interface Translations {
     feedbackLink: string;
     coordinates: string;
   };
+  // Prefilled feedback e-mail behind the feedbackLink. The station's details are
+  // appended below the intro, so BFE can identify it without asking back.
+  feedbackMail: {
+    subject: string; // followed by ": <address>"
+    greeting: string;
+    intro: string;
+    stationId: string;
+    evseIds: string;
+  };
   // EVSE status category -> display label.
   status: Record<string, string>;
   // ISO weekday number (1 = Monday .. 7 = Sunday) -> short label.
@@ -69,6 +78,13 @@ const de: Translations = {
     feedbackQuestion: 'Fehlerhafte Angaben?',
     feedbackLink: 'Rückmeldung senden',
     coordinates: 'Geokoordinaten',
+  },
+  feedbackMail: {
+    subject: 'Rückmeldung zur Ladestation',
+    greeting: 'Guten Tag',
+    intro: 'Bei dieser Ladestation sind folgende Angaben fehlerhaft:',
+    stationId: 'Station-ID',
+    evseIds: 'Ladepunkte (EVSE-IDs)',
   },
   status: {
     AVAILABLE: 'Verfügbar',
@@ -140,6 +156,14 @@ const fr: Translations = {
     feedbackLink: 'Envoyer un message',
     coordinates: 'Coordonnées géographiques',
   },
+  feedbackMail: {
+    subject: 'Message concernant la station de recharge',
+    greeting: 'Bonjour',
+    intro:
+      'Les informations suivantes sur cette station de recharge sont erronées :',
+    stationId: 'ID de la station',
+    evseIds: 'Points de recharge (EVSE-IDs)',
+  },
   status: {
     AVAILABLE: 'Disponible',
     OCCUPIED: 'Occupé',
@@ -210,6 +234,14 @@ const it: Translations = {
     feedbackLink: 'Invia un feedback',
     coordinates: 'Coordinate geografiche',
   },
+  feedbackMail: {
+    subject: 'Feedback sulla stazione di ricarica',
+    greeting: 'Buongiorno',
+    intro:
+      'Le seguenti informazioni su questa stazione di ricarica sono errate:',
+    stationId: 'ID della stazione',
+    evseIds: 'Punti di ricarica (EVSE-IDs)',
+  },
   status: {
     AVAILABLE: 'Disponibile',
     OCCUPIED: 'Occupato',
@@ -279,6 +311,13 @@ const en: Translations = {
     feedbackQuestion: 'Incorrect information?',
     feedbackLink: 'Send feedback',
     coordinates: 'Geographic coordinates',
+  },
+  feedbackMail: {
+    subject: 'Feedback on charging station',
+    greeting: 'Hello',
+    intro: 'The following information on this charging station is incorrect:',
+    stationId: 'Station ID',
+    evseIds: 'Charging points (EVSE IDs)',
   },
   status: {
     AVAILABLE: 'Available',

@@ -33,7 +33,7 @@ import type {
 } from './types';
 
 const FAST_CHARGE_THRESHOLD_W = 50_000;
-const FEEDBACK_URL = 'https://www.uvek-gis.admin.ch/BFE/diemo/feedback/';
+const FEEDBACK_EMAIL = 'ich-tanke-strom@bfe.admin.ch';
 const AVAILABILITY_PRIORITY = [
   'AVAILABLE',
   'OCCUPIED',
@@ -387,6 +387,37 @@ function renderOperator(location: GoldLocation, t: Translations): string {
   return `<a href="${escapeHtml(url)}" target="_blank">${operatorName}</a>`;
 }
 
+/**
+ * mailto link for "Rückmeldung senden": subject with the address, body with an empty
+ * space for the user's text followed by the station's details (address, operator,
+ * IDs, coordinates), so BFE can identify the station. Line breaks are CRLF as
+ * RFC 6068 asks for.
+ */
+function feedbackMailto(location: GoldLocation, t: Translations): string {
+  const m = t.feedbackMail;
+  const l = t.labels;
+  const operatorName = displayedOperator(location).name ?? t.infoUnavailable;
+  const body = [
+    m.greeting,
+    '',
+    m.intro,
+    '',
+    '',
+    '',
+    '---',
+    `${l.location}: ${location.address_display}`,
+    `${l.operator}: ${operatorName}`,
+    `${m.stationId}: ${location.full_location_id}`,
+    `${m.evseIds}: ${location.evse_ids.join(', ')}`,
+    `${l.coordinates}: ${renderCoordinates(location)}`,
+  ].join('\r\n');
+  const subject = `${m.subject}: ${location.address_display}`;
+  return (
+    `mailto:${FEEDBACK_EMAIL}` +
+    `?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`
+  );
+}
+
 export function renderDescription(
   location: GoldLocation,
   t: Translations = TRANSLATIONS.de,
@@ -395,7 +426,7 @@ export function renderDescription(
   const evseBlocks = location.evses
     .map((evse) => renderEvseBlock(evse, tariffsByIdMap, t))
     .join('');
-  const feedbackIds = escapeHtml(location.evse_ids.join(','));
+  const feedbackHref = escapeHtml(feedbackMailto(location, t));
   const operatorLink = renderOperator(location, t);
   const openingHoursLine = renderOpeningHours(
     parseJsonField<OpeningHours>(location.opening_hours_json),
@@ -430,8 +461,7 @@ export function renderDescription(
     `<tr><td class="cell-left">${l.infrastructure}</td><td>${escapeHtml(facilitiesLine)}</td></tr>` +
     `<tr><td class="cell-left">${l.energySource}</td><td>${energyMixLine}</td></tr>` +
     `<tr><td class="cell-left">${l.feedbackQuestion}</td>` +
-    `<td><a href="${FEEDBACK_URL}?stationids=${feedbackIds}" ` +
-    `target="_blank">${l.feedbackLink}</a></td></tr>` +
+    `<td><a href="${feedbackHref}">${l.feedbackLink}</a></td></tr>` +
     `<tr><td class="cell-left">${l.coordinates}</td><td>${coordinatesLine}</td></tr>` +
     `</tbody></table></div>`
   );
