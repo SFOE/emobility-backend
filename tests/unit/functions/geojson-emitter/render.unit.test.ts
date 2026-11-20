@@ -5,6 +5,7 @@ import {
   computeSymbology,
   renderDescription,
 } from '../../../../src/functions/geojson-emitter/render';
+import { TRANSLATIONS } from '../../../../src/functions/geojson-emitter/translations';
 import type {
   GoldEvse,
   GoldLocation,
@@ -414,6 +415,72 @@ describe('renderDescription — operator', () => {
 
   it('falls back to the unavailable text without operator and suboperator', () => {
     expect(operatorRow(renderDescription(makeLocation()))).toBe('Keine Angabe');
+  });
+});
+
+describe('renderDescription — feedback mailto', () => {
+  const feedbackHref = (html: string): string => {
+    const href = html.match(/<a href="(mailto:[^"]*)">/)?.[1] ?? '';
+    return href.replace(/&amp;/g, '&').replace(/&#039;/g, "'");
+  };
+  const mailParams = (html: string): URLSearchParams =>
+    new URL(feedbackHref(html)).searchParams;
+
+  it('links to the ich-tanke-strom address instead of the old feedback form', () => {
+    const html = renderDescription(makeLocation());
+    expect(feedbackHref(html)).toMatch(
+      /^mailto:ich-tanke-strom@bfe\.admin\.ch\?subject=/,
+    );
+    expect(html).not.toContain('uvek-gis.admin.ch');
+    expect(html).toContain('>Rückmeldung senden</a>');
+  });
+
+  it('prefills subject and body with the station details', () => {
+    const location = makeLocation({
+      operator_name: 'Operator AG',
+      suboperator_name: 'Sub GmbH',
+      evse_ids: ['CH*TIA*EVSE001', 'CH*TIA*EVSE002'],
+    });
+    const params = mailParams(renderDescription(location));
+    expect(params.get('subject')).toBe(
+      'Rückmeldung zur Ladestation: Teststrasse 1, 8000 Zürich',
+    );
+    expect(params.get('body')).toBe(
+      [
+        'Guten Tag',
+        '',
+        'Bei dieser Ladestation sind folgende Angaben fehlerhaft:',
+        '',
+        '',
+        '',
+        '---',
+        'Standort: Teststrasse 1, 8000 Zürich',
+        'Betreiber: Sub GmbH',
+        'Station-ID: CH*TIA*LOC002',
+        'Ladepunkte (EVSE-IDs): CH*TIA*EVSE001, CH*TIA*EVSE002',
+        'Geokoordinaten: 47.123456, 8.234567',
+      ].join('\r\n'),
+    );
+  });
+
+  it('uses the language of the popup', () => {
+    const params = mailParams(
+      renderDescription(makeLocation(), TRANSLATIONS.fr),
+    );
+    expect(params.get('subject')).toBe(
+      'Message concernant la station de recharge: Teststrasse 1, 8000 Zürich',
+    );
+    expect(params.get('body')).toContain('Bonjour');
+  });
+
+  it('encodes characters that would break the URL or the attribute', () => {
+    const location = makeLocation({ address_display: `A & B "C" 'D' #1?x=y` });
+    const html = renderDescription(location);
+    const rawHref = html.match(/<a href="(mailto:[^"]*)">/)?.[1] ?? '';
+    expect(rawHref).not.toMatch(/["<>]/);
+    expect(mailParams(html).get('subject')).toBe(
+      `Rückmeldung zur Ladestation: A & B "C" 'D' #1?x=y`,
+    );
   });
 });
 
