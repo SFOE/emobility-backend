@@ -79,7 +79,9 @@ offset paging, GSI2 for `date_from`) is documented in `emobility-data-pipelines`
 Protected by an API Gateway JWT authorizer for the Cognito pool `prometheon-prod-userpool`
 (production eIAM, app clients `emobility-monitoring-<env>`). The handler additionally requires the
 group in `MONITORING_REQUIRED_GROUP` (`bfe-all`, BFE staff) in the access token's `cognito:groups`
-and answers 403 otherwise. Without that variable it does not check a group.
+or an e-mail address from `MONITORING_ALLOWED_EMAILS` (comma-separated, the platform developers,
+who sign in with AGOV but are not BFE staff) in its `email` claim, and answers 403 otherwise.
+Without `MONITORING_REQUIRED_GROUP` it checks neither.
 
 `GET /monitoring/cpos` returns, as OCPI `data`, every registered CPO (CPO roles in
 `ocpi-credentials`, without tokens or URLs) merged with the per-CPO figures the Glue job

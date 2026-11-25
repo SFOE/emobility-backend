@@ -1,8 +1,15 @@
 import {
+  emailFromClaims,
   groupsFromClaims,
   hasMonitoringAccess,
+  monitoringAllowedEmails,
   monitoringRequiredGroup,
 } from '../../../../../src/common/modules/monitoring/monitoring.auth';
+
+const eventWithClaims = (claims: Record<string, unknown>) =>
+  ({
+    requestContext: { authorizer: { jwt: { claims, scopes: [] } } },
+  }) as never;
 
 const eventWithGroups = (groups: unknown) =>
   ({
@@ -12,13 +19,32 @@ const eventWithGroups = (groups: unknown) =>
   }) as never;
 
 describe('monitoring.auth', () => {
-  const original = process.env.MONITORING_REQUIRED_GROUP;
+  const original = {
+    MONITORING_REQUIRED_GROUP: process.env.MONITORING_REQUIRED_GROUP,
+    MONITORING_ALLOWED_EMAILS: process.env.MONITORING_ALLOWED_EMAILS,
+  };
   afterEach(() => {
-    if (original === undefined) {
-      delete process.env.MONITORING_REQUIRED_GROUP;
-    } else {
-      process.env.MONITORING_REQUIRED_GROUP = original;
+    for (const [key, value] of Object.entries(original)) {
+      if (value === undefined) {
+        delete process.env[key];
+      } else {
+        process.env[key] = value;
+      }
     }
+  });
+
+  describe('emailFromClaims', () => {
+    it('returns the trimmed, lower-cased email claim', () => {
+      expect(emailFromClaims({ email: ' Pauli.Winkelmann@ti8m.ch ' })).toBe(
+        'pauli.winkelmann@ti8m.ch',
+      );
+    });
+
+    it('returns null without a usable claim', () => {
+      expect(emailFromClaims(undefined)).toBeNull();
+      expect(emailFromClaims({ email: '' })).toBeNull();
+      expect(emailFromClaims({ email: 42 })).toBeNull();
+    });
   });
 
   describe('groupsFromClaims', () => {
@@ -66,6 +92,46 @@ describe('monitoring.auth', () => {
       expect(hasMonitoringAccess(eventWithGroups('[other]'))).toBe(false);
       delete process.env.MONITORING_REQUIRED_GROUP;
       expect(hasMonitoringAccess(eventWithGroups('[other]'))).toBe(true);
+    });
+
+    it('allows an e-mail address from the list without the group', () => {
+      const allowed = ['dev@example.ch'];
+      expect(
+        hasMonitoringAccess(
+          eventWithClaims({
+            'cognito:groups': '[other]',
+            email: 'Dev@Example.ch',
+          }),
+          'bfe-all',
+          allowed,
+        ),
+      ).toBe(true);
+      expect(
+        hasMonitoringAccess(
+          eventWithClaims({ email: 'someone@example.ch' }),
+          'bfe-all',
+          allowed,
+        ),
+      ).toBe(false);
+      expect(hasMonitoringAccess(eventWithClaims({}), 'bfe-all', allowed)).toBe(
+        false,
+      );
+    });
+
+    it('reads the allowed e-mail addresses from MONITORING_ALLOWED_EMAILS', () => {
+      process.env.MONITORING_REQUIRED_GROUP = 'bfe-all';
+      process.env.MONITORING_ALLOWED_EMAILS = ' A@Example.ch , b@example.ch ,';
+      expect(monitoringAllowedEmails()).toEqual([
+        'a@example.ch',
+        'b@example.ch',
+      ]);
+      expect(
+        hasMonitoringAccess(eventWithClaims({ email: 'a@example.ch' })),
+      ).toBe(true);
+      delete process.env.MONITORING_ALLOWED_EMAILS;
+      expect(
+        hasMonitoringAccess(eventWithClaims({ email: 'a@example.ch' })),
+      ).toBe(false);
     });
   });
 });
