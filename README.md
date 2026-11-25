@@ -25,7 +25,7 @@ Infrastructure (Lambdas, API Gateway, DynamoDB tables, CloudFront/WAF) is define
 |---|---|---|
 | [dev](https://github.com/SFOE-Prometheon/prometheon-emobility-dev/blob/main/deploy.auto.tfvars) | [1.5.0](https://github.com/SFOE/emobility-backend/releases/tag/1.5.0) | 2026-11-25 13:25 |
 | [test](https://github.com/SFOE-Prometheon/prometheon-emobility-test/blob/main/deploy.auto.tfvars) | [1.5.0](https://github.com/SFOE/emobility-backend/releases/tag/1.5.0) | 2026-11-25 13:27 |
-| [prod](https://github.com/SFOE-Prometheon/prometheon-emobility-prod/blob/main/deploy.auto.tfvars) | [1.3.0](https://github.com/SFOE/emobility-backend/releases/tag/1.3.0) | 2026-11-20 09:34 |
+| [prod](https://github.com/SFOE-Prometheon/prometheon-emobility-prod/blob/main/deploy.auto.tfvars) | [1.5.0](https://github.com/SFOE/emobility-backend/releases/tag/1.5.0) | 2026-11-25 13:59 |
 
 <!-- deployed-versions:end -->
 
