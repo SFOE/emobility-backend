@@ -1,11 +1,13 @@
 jest.mock('/opt/nodejs/modules/monitoring/monitoring.db');
 jest.mock('/opt/nodejs/modules/monitoring/monitoring.service');
+jest.mock('/opt/nodejs/modules/monitoring/monitoring.auth');
 
 import { handler } from '../../../../../src/functions/api/monitoring/monitoring-cpos-get';
 import {
   fetchMonitoringItems,
   fetchRegisteredParties,
 } from '/opt/nodejs/modules/monitoring/monitoring.db';
+import { hasMonitoringAccess } from '/opt/nodejs/modules/monitoring/monitoring.auth';
 import { DEFAULT_STATUS_THRESHOLDS } from '/opt/nodejs/modules/monitoring/monitoring.model';
 import { buildMonitoringResponse } from '/opt/nodejs/modules/monitoring/monitoring.service';
 
@@ -18,9 +20,15 @@ const mockBuildMonitoringResponse =
   buildMonitoringResponse as jest.MockedFunction<
     typeof buildMonitoringResponse
   >;
+const mockHasMonitoringAccess = hasMonitoringAccess as jest.MockedFunction<
+  typeof hasMonitoringAccess
+>;
 
 describe('GET /monitoring/cpos', () => {
-  beforeEach(() => jest.resetAllMocks());
+  beforeEach(() => {
+    jest.resetAllMocks();
+    mockHasMonitoringAccess.mockReturnValue(true);
+  });
 
   it('merges parties and figures and returns them as OCPI data', async () => {
     const parties = [
@@ -59,5 +67,16 @@ describe('GET /monitoring/cpos', () => {
     const result = await handler();
 
     expect(result.statusCode).toBe(500);
+  });
+
+  it('returns 403 without reading the tables when the caller lacks access', async () => {
+    mockHasMonitoringAccess.mockReturnValue(false);
+    jest.spyOn(console, 'warn').mockImplementation(() => undefined);
+
+    const result = await handler();
+
+    expect(result.statusCode).toBe(403);
+    expect(mockFetchRegisteredParties).not.toHaveBeenCalled();
+    expect(mockFetchMonitoringItems).not.toHaveBeenCalled();
   });
 });
