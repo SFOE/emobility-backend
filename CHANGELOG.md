@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.5.0](https://github.com/SFOE/emobility-backend/compare/1.4.0...1.5.0) (2026-11-25)
+
+### Features
+
+* **monitoring:** allow listed e-mail addresses on the monitoring API ([#74](https://github.com/SFOE/emobility-backend/issues/74)) ([cae2531](https://github.com/SFOE/emobility-backend/commit/cae25313acac231dde919f67ee438e0252ed74bf)), closes [SFOE-prometheon/prometheon-emobility-dev#123](https://github.com/SFOE-prometheon/prometheon-emobility-dev/issues/123)
+
 ## [1.4.0](https://github.com/SFOE/emobility-backend/compare/1.3.0...1.4.0) (2026-11-25)
 
 ### Features
