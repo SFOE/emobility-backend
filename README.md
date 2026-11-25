@@ -10,7 +10,7 @@ functions written in TypeScript behind an API Gateway HTTP API, with DynamoDB, S
   (`emobility-data-pipelines`). EVSE status is also written straight to DynamoDB.
 - **Public read-only OCPI API** (`/ocpi/locations`, `/ocpi/tariffs`, `/ocpi/status`, no
   authentication): serves the aggregated data to data consumers as OCPI 2.3.0.
-- **Monitoring API** (`/monitoring/cpos`, no authentication for now): per-CPO onboarding
+- **Monitoring API** (`/monitoring/cpos`, Cognito login, BFE staff only): per-CPO onboarding
   figures for BFE's E-Mobility Monitoring page (`emobility-monitoring-web`).
 - **GeoJSON emitter**: publishes the map data for swisstopo.
 
@@ -74,7 +74,12 @@ offset paging, GSI2 for `date_from`) is documented in `emobility-data-pipelines`
 (`docs/schemas.md`). The consumer documentation is BFE's "Anleitung zum Datenbezug
 «Ich tanke Strom»".
 
-**Monitoring** (no authentication for now, CORS from the API Gateway):
+**Monitoring** (CORS from the API Gateway):
+
+Protected by an API Gateway JWT authorizer for the Cognito pool `prometheon-prod-userpool`
+(production eIAM, app clients `emobility-monitoring-<env>`). The handler additionally requires the
+group in `MONITORING_REQUIRED_GROUP` (`bfe-all`, BFE staff) in the access token's `cognito:groups`
+and answers 403 otherwise. Without that variable it does not check a group.
 
 `GET /monitoring/cpos` returns, as OCPI `data`, every registered CPO (CPO roles in
 `ocpi-credentials`, without tokens or URLs) merged with the per-CPO figures the Glue job
