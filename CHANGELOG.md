@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.4.0](https://github.com/SFOE/emobility-backend/compare/1.3.0...1.4.0) (2026-11-25)
+
+### Features
+
+* **monitoring:** require the BFE staff group for GET /monitoring/cpos ([#73](https://github.com/SFOE/emobility-backend/issues/73)) ([97df78a](https://github.com/SFOE/emobility-backend/commit/97df78a5d52e85087e4e5b58dca0f3e8b4adcd88)), closes [SFOE-prometheon/prometheon-cognito#70](https://github.com/SFOE-prometheon/prometheon-cognito/issues/70)
+
 ## [1.3.0](https://github.com/SFOE/emobility-backend/compare/1.2.0...1.3.0) (2026-11-20)
 
 ### Features
