@@ -17,7 +17,8 @@ import { buildMonitoringResponse } from '/opt/nodejs/modules/monitoring/monitori
  * Handles GET /monitoring/cpos for the E-Mobility Monitoring page: per-CPO
  * onboarding figures and status. With a JWT authorizer on the route, API
  * Gateway has already validated the Cognito access token; this handler then
- * requires the group from MONITORING_REQUIRED_GROUP (BFE staff) and answers
+ * requires the group from MONITORING_REQUIRED_GROUP (BFE staff) or an e-mail
+ * address from MONITORING_ALLOWED_EMAILS (platform developers) and answers
  * 403 otherwise. CORS comes from the API Gateway, so no CORS headers are set
  * here.
  */
